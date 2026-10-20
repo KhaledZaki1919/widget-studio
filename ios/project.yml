@@ -1,0 +1,125 @@
+# XcodeGen spec (ADR-002). Never hand-edit the generated WidgetStudio.xcodeproj.
+name: WidgetStudio
+options:
+  bundleIdPrefix: com.khaled
+  deploymentTarget:
+    iOS: "17.0"
+  developmentLanguage: ar
+  createIntermediateGroups: true
+
+settings:
+  base:
+    # Swift 5 language mode with minimal concurrency checking (ADR-006).
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    TARGETED_DEVICE_FAMILY: "1"
+    # No team: Simulator builds are ad-hoc signed ("-"); device builds run with
+    # CODE_SIGNING_ALLOWED=NO and are signed by Sideloadly at install time (ADR-003).
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
+
+packages:
+  WidgetKitCore:
+    path: WidgetKitCore
+
+targets:
+  WidgetStudio:
+    type: application
+    platform: iOS
+    sources:
+      - path: WidgetStudio
+    dependencies:
+      - package: WidgetKitCore
+        product: WidgetKitCore
+      - target: WidgetStudioWidgets
+      - sdk: HealthKit.framework
+    entitlements:
+      path: Config/WidgetStudio.entitlements
+      # XcodeGen writes this file from `properties` on every generate.
+      properties:
+        com.apple.security.application-groups: [group.com.khaled.widgetstudio]
+        # Probed in Diagnostics (ADR-005); the no-HealthKit IPA drops it (scripts/build-ipa.sh).
+        com.apple.developer.healthkit: true
+    info:
+      path: WidgetStudio/Info.plist
+      properties:
+        CFBundleDisplayName: "Widget Studio"
+        CFBundleDevelopmentRegion: ar
+        CFBundleLocalizations: [ar, en]
+        # Must be non-empty: XcodeGen drops empty dictionaries, and without this key iOS
+        # runs the app letterboxed in legacy mode. CI verifies it (scripts/build-ipa.sh).
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        ITSAppUsesNonExemptEncryption: false
+        CFBundleURLTypes:
+          - CFBundleURLName: com.khaled.widgetstudio
+            CFBundleURLSchemes: [widgetstudio]
+        # Localized in Resources/InfoPlist.xcstrings.
+        NSLocationWhenInUseUsageDescription: "يستخدم الموقع للطقس ومواقيت الصلاة واتجاه القبلة في الودجت."
+        NSHealthShareUsageDescription: "يقرأ عدد الخطوات والنوم لعرضهما في الودجت."
+        UIRequiredDeviceCapabilities: [arm64]
+        WSAppGroup: group.com.khaled.widgetstudio
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.khaled.widgetstudio
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+
+  WidgetStudioWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: WidgetStudioWidgets
+    dependencies:
+      - package: WidgetKitCore
+        product: WidgetKitCore
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+    entitlements:
+      path: Config/WidgetStudioWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.khaled.widgetstudio]
+    info:
+      path: WidgetStudioWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: "Widget Studio"
+        WSAppGroup: group.com.khaled.widgetstudio
+        # Location inside the widget (brief §2), probed in Diagnostics (ADR-005).
+        NSWidgetWantsLocation: true
+        NSLocationWhenInUseUsageDescription: "يستخدم الموقع للطقس ومواقيت الصلاة واتجاه القبلة في الودجت."
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.khaled.widgetstudio.widgets
+
+  WidgetStudioUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: WidgetStudioUITests
+    dependencies:
+      - target: WidgetStudio
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.khaled.widgetstudio.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: WidgetStudio
+
+schemes:
+  WidgetStudio:
+    build:
+      targets:
+        WidgetStudio: all
+        WidgetStudioUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - WidgetStudioUITests
