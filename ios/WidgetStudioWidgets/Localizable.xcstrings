@@ -1,6 +1,23 @@
 {
   "sourceLanguage": "ar",
   "strings": {
+    "widget.probe.battery": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "البطارية"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Battery"
+          }
+        }
+      }
+    },
     "widget.probe.description": {
       "extractionState": "manual",
       "localizations": {
@@ -14,6 +31,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Checks that the widget can see app data, location and battery."
+          }
+        }
+      }
+    },
+    "widget.probe.group": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المشاركة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shared"
+          }
+        }
+      }
+    },
+    "widget.probe.location": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الموقع"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Location"
           }
         }
       }
@@ -35,40 +86,6 @@
         }
       }
     },
-    "widget.probe.noGroup": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "لا توجد مساحة مشتركة. افتح التطبيق للإعداد."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No shared storage. Open the app to set up widgets."
-          }
-        }
-      }
-    },
-    "widget.probe.openApp": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "افتح التطبيق مرة واحدة."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open the app once."
-          }
-        }
-      }
-    },
     "widget.probe.title": {
       "extractionState": "manual",
       "localizations": {
@@ -82,23 +99,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Widget check"
-          }
-        }
-      }
-    },
-    "widget.probe.value": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "القيمة من التطبيق"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Value from the app"
           }
         }
       }

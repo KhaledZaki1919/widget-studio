@@ -2,8 +2,10 @@ import SwiftUI
 import WidgetKit
 import WidgetKitCore
 
-/// M0 probe widget: shows whether it shares the app's App Group container and the test value
-/// the app wrote there (ADR-004, ADR-005). The real widgets arrive in M1–M3.
+/// M0 probe widget (ADR-004, ADR-005): shows whether it shares the app's App Group container,
+/// the test value the app wrote there, and whether location and battery work inside the
+/// extension. It also saves a `WidgetReport` for the app's Diagnostics screen. Tapping it opens
+/// Diagnostics. The real widgets arrive in M1–M3.
 struct ProbeWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "WidgetStudioProbe", provider: ProbeProvider()) { entry in
@@ -18,54 +20,96 @@ struct ProbeWidget: Widget {
 struct ProbeEntry: TimelineEntry {
     let date: Date
     let isShared: Bool
-    let appHeartbeat: AppHeartbeat?
+    let report: WidgetReport?
 }
 
 struct ProbeProvider: TimelineProvider {
     func placeholder(in context: Context) -> ProbeEntry {
-        ProbeEntry(date: .now, isShared: true, appHeartbeat: nil)
+        ProbeEntry(date: .now, isShared: true, report: nil)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (ProbeEntry) -> Void) {
-        completion(makeEntry())
+        // The widget gallery needs an answer quickly: show the last saved report.
+        let location = AppGroupResolver.resolve()
+        completion(ProbeEntry(date: .now, isShared: location.isShared,
+                              report: ProbeStore(location: location).readWidgetReport()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<ProbeEntry>) -> Void) {
-        let entry = makeEntry()
-        completion(Timeline(entries: [entry], policy: .after(entry.date.addingTimeInterval(15 * 60))))
+        Task { @MainActor in
+            let entry = await Self.measure()
+            completion(Timeline(entries: [entry], policy: .after(entry.date.addingTimeInterval(15 * 60))))
+        }
     }
 
-    private func makeEntry() -> ProbeEntry {
+    @MainActor
+    private static func measure() async -> ProbeEntry {
         let location = AppGroupResolver.resolve()
         let store = ProbeStore(location: location)
-        return ProbeEntry(date: .now, isShared: location.isShared, appHeartbeat: store.readAppHeartbeat())
+        let (authorized, fix) = await WidgetProbes.location()
+        let report = WidgetReport(
+            date: .now,
+            bundleID: Bundle.main.bundleIdentifier ?? "",
+            appGroupID: location.appGroupID,
+            appHeartbeat: store.readAppHeartbeat(),
+            locationAuthorizedForWidget: authorized,
+            location: fix,
+            battery: WidgetProbes.battery()
+        )
+        try? store.writeWidgetReport(report)
+        return ProbeEntry(date: report.date, isShared: location.isShared, report: report)
     }
 }
 
 struct ProbeWidgetView: View {
+    @Environment(\.widgetFamily) private var family
     let entry: ProbeEntry
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("widget.probe.title")
-                .font(.headline)
-            Spacer(minLength: 0)
-            if !entry.isShared {
-                Text("widget.probe.noGroup")
-                    .font(.footnote)
-            } else if let heartbeat = entry.appHeartbeat {
-                Text("widget.probe.value")
-                    .font(.caption)
+            HStack {
+                Text("widget.probe.title")
+                    .font(.caption.weight(.semibold))
+                Spacer(minLength: 0)
+                Text(entry.date, style: .time)
+                    .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
-                Text(verbatim: "\(heartbeat.testValue)")
-                    .font(.title2.monospacedDigit())
-            } else {
-                Text("widget.probe.openApp")
-                    .font(.footnote)
             }
+            Spacer(minLength: 0)
+            row("widget.probe.group", ok: entry.isShared, detail: groupDetail)
+            row("widget.probe.location", ok: entry.report?.location.isOK, detail: detail(entry.report?.location))
+            row("widget.probe.battery", ok: entry.report?.battery.isOK, detail: detail(entry.report?.battery))
         }
         .foregroundStyle(.white)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .containerBackground(Color(white: 0.055), for: .widget)
+        .widgetURL(URL(string: "widgetstudio://diagnostics"))
+    }
+
+    /// The app's test value when the widget can read it.
+    private var groupDetail: String {
+        guard entry.isShared else { return "—" }
+        return entry.report?.appHeartbeat.map { "#\($0.testValue)" } ?? "…"
+    }
+
+    private func detail(_ outcome: ProbeOutcome?) -> String {
+        switch outcome {
+        case .ok(let text)?: family == .systemSmall ? String(text.prefix(12)) : text
+        case .failed(let reason)?: family == .systemSmall ? "✕" : reason
+        case .notRun?, nil: "…"
+        }
+    }
+
+    private func row(_ title: LocalizedStringKey, ok: Bool?, detail: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: ok == true ? "checkmark.circle.fill" : ok == false ? "xmark.circle.fill" : "circle.dotted")
+                .foregroundStyle(ok == true ? .green : ok == false ? .red : .gray)
+            Text(title)
+            Spacer(minLength: 2)
+            Text(verbatim: detail)
+                .lineLimit(1)
+                .foregroundStyle(.secondary)
+        }
+        .font(.caption2)
     }
 }

@@ -2,23 +2,43 @@ import SwiftUI
 import WidgetKit
 import WidgetKitCore
 
-/// M0 home: a placeholder until the template library arrives in M2.
+/// M0 home: a placeholder until the template library arrives in M2. Diagnostics opens from the
+/// visible link (M0 only), a long press on the version, or the probe widget
+/// (`widgetstudio://diagnostics`).
 struct RootView: View {
+    @State private var showDiagnostics = false
+
     var body: some View {
         NavigationStack {
             List {
                 Section {
                     Text("home.m0.body")
                         .foregroundStyle(.secondary)
+                    NavigationLink("home.diagnostics") {
+                        DiagnosticsView()
+                    }
+                    .accessibilityIdentifier("ax.home.diagnostics")
                 }
-                Section("home.section.about") {
+                Section {
                     LabeledContent("home.version", value: AppInfo.versionText)
+                        .contentShape(Rectangle())
+                        .onLongPressGesture { showDiagnostics = true }
                         .accessibilityIdentifier("ax.home.version")
+                } header: {
+                    Text("home.section.about")
+                } footer: {
+                    Text("home.version.footer")
                 }
             }
             .navigationTitle("home.title")
+            .navigationDestination(isPresented: $showDiagnostics) {
+                DiagnosticsView()
+            }
         }
         .onAppear(perform: AppInfo.touchHeartbeat)
+        .onOpenURL { url in
+            if url.scheme == "widgetstudio", url.host() == "diagnostics" { showDiagnostics = true }
+        }
     }
 }
 
