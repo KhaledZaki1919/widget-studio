@@ -22,8 +22,13 @@ APP_NAME="$(basename "$APP" .app)"
 APP_ENTITLEMENTS="$WORK/$APP_NAME.entitlements"
 cp "$CONFIG_DIR/$APP_NAME.entitlements" "$APP_ENTITLEMENTS"
 if [ "$NO_HEALTHKIT" = "--no-healthkit" ]; then
-  plutil -remove com.apple.developer.healthkit "$APP_ENTITLEMENTS"
-  plutil -remove com.apple.developer.healthkit.access "$APP_ENTITLEMENTS" 2>/dev/null || true
+  # PlistBuddy, not plutil: plutil reads the dots in the key as a nested key path.
+  /usr/libexec/PlistBuddy -c "Delete :com.apple.developer.healthkit" "$APP_ENTITLEMENTS"
+  /usr/libexec/PlistBuddy -c "Delete :com.apple.developer.healthkit.access" "$APP_ENTITLEMENTS" 2>/dev/null || true
+  if grep -q "com.apple.developer.healthkit" "$APP_ENTITLEMENTS"; then
+    echo "error: HealthKit entitlement still present in the no-HealthKit variant" >&2
+    exit 1
+  fi
 fi
 
 # The widget extension must be embedded.
