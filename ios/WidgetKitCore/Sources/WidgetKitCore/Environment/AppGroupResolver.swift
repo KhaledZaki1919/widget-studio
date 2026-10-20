@@ -5,39 +5,75 @@ public struct StoreLocation: Sendable, Equatable {
     public let directory: URL
     /// The App Group in use, or nil when falling back to the app's own container.
     public let appGroupID: String?
+    /// Where `appGroupID` came from; nil with the fallback container.
+    public let source: AppGroupSource?
+
+    public init(directory: URL, appGroupID: String?, source: AppGroupSource?) {
+        self.directory = directory
+        self.appGroupID = appGroupID
+        self.source = source
+    }
 
     public var isShared: Bool { appGroupID != nil }
 }
 
+/// Where a candidate App Group ID was found, in resolution order.
+public enum AppGroupSource: String, Sendable, Equatable, CaseIterable {
+    /// `ALTAppGroups` in Info.plist. AltStore and SideStore register these groups and rewrite
+    /// the key to the real IDs when they sign the app.
+    case altAppGroups
+    /// `com.apple.security.application-groups` in `embedded.mobileprovision`.
+    case profile
+    /// The compiled default (`WSAppGroup` in Info.plist).
+    case compiled
+}
+
 /// Resolves the shared container at runtime (ADR-004):
-/// 1. App Groups listed in the embedded provisioning profile (as rewritten by the signer),
-/// 2. the compiled default from Info.plist (`WSAppGroup`),
-/// 3. the target's own Application Support directory.
+/// 1. `ALTAppGroups` from Info.plist (as rewritten by AltStore / SideStore),
+/// 2. App Groups in the embedded provisioning profile (as rewritten by the signer),
+/// 3. the compiled default from Info.plist (`WSAppGroup`),
+/// 4. the target's own Application Support directory (not shared).
 public enum AppGroupResolver {
     public static let infoPlistKey = "WSAppGroup"
+    public static let altStoreKey = "ALTAppGroups"
+
+    public struct Candidate: Sendable, Equatable {
+        public let id: String
+        public let source: AppGroupSource
+    }
 
     public static func resolve(bundle: Bundle = .main) -> StoreLocation {
-        let profileGroups = ProvisioningProfile.load(from: bundle)?.appGroups ?? []
-        let compiled = bundle.object(forInfoDictionaryKey: infoPlistKey) as? String
-        return resolve(
-            candidates: candidateIDs(profileGroups: profileGroups, compiled: compiled),
+        resolve(
+            candidates: candidates(bundle: bundle),
             containerURL: { FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: $0) },
             fallback: defaultFallbackDirectory()
         )
     }
 
-    static func candidateIDs(profileGroups: [String], compiled: String?) -> [String] {
-        var seen = Set<String>()
-        return (profileGroups + [compiled].compactMap { $0 }).filter { seen.insert($0).inserted }
+    /// Every group ID worth trying, in order, without duplicates (also shown in Diagnostics).
+    public static func candidates(bundle: Bundle = .main) -> [Candidate] {
+        candidates(
+            altGroups: bundle.object(forInfoDictionaryKey: altStoreKey) as? [String] ?? [],
+            profileGroups: ProvisioningProfile.load(from: bundle)?.appGroups ?? [],
+            compiled: bundle.object(forInfoDictionaryKey: infoPlistKey) as? String
+        )
     }
 
-    static func resolve(candidates: [String], containerURL: (String) -> URL?, fallback: URL) -> StoreLocation {
-        for id in candidates {
-            if let url = containerURL(id), isWritable(url) {
-                return StoreLocation(directory: url, appGroupID: id)
+    static func candidates(altGroups: [String], profileGroups: [String], compiled: String?) -> [Candidate] {
+        var seen = Set<String>()
+        let all = altGroups.map { Candidate(id: $0, source: .altAppGroups) }
+            + profileGroups.map { Candidate(id: $0, source: .profile) }
+            + [compiled].compactMap { $0 }.map { Candidate(id: $0, source: .compiled) }
+        return all.filter { !$0.id.isEmpty && seen.insert($0.id).inserted }
+    }
+
+    static func resolve(candidates: [Candidate], containerURL: (String) -> URL?, fallback: URL) -> StoreLocation {
+        for candidate in candidates {
+            if let url = containerURL(candidate.id), isWritable(url) {
+                return StoreLocation(directory: url, appGroupID: candidate.id, source: candidate.source)
             }
         }
-        return StoreLocation(directory: fallback, appGroupID: nil)
+        return StoreLocation(directory: fallback, appGroupID: nil, source: nil)
     }
 
     /// `containerURL` can return a path even when the entitlement is missing, so write to it.

@@ -49,6 +49,10 @@ struct DiagnosticsView: View {
     private var appGroupSection: some View {
         Section {
             valueRow("diag.group.resolved", model.store.appGroupID ?? "—")
+                .accessibilityIdentifier("ax.diag.groupName")
+            valueRow("diag.group.source", model.store.source?.rawValue ?? "—")
+            valueRow("diag.group.candidates", model.candidates.isEmpty ? "—"
+                : model.candidates.map { "\($0.id) (\($0.source.rawValue))" }.joined(separator: "\n"))
             statusRow("diag.group.shared", ok: model.store.isShared)
                 .accessibilityIdentifier("ax.diag.appGroup")
             outcomeRow("diag.group.readWrite", model.appGroupTest)

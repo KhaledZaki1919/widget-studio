@@ -86,6 +86,23 @@
         }
       }
     },
+    "widget.probe.noGroup": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد مجموعة مشتركة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No App Group"
+          }
+        }
+      }
+    },
     "widget.probe.title": {
       "extractionState": "manual",
       "localizations": {

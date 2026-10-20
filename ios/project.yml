@@ -67,6 +67,8 @@ targets:
         NSHealthShareUsageDescription: "يقرأ عدد الخطوات والنوم لعرضهما في الودجت."
         UIRequiredDeviceCapabilities: [arm64]
         WSAppGroup: group.com.khaled.widgetstudio
+        # AltStore / SideStore register these and rewrite them to the real IDs (ADR-004).
+        ALTAppGroups: [group.com.khaled.widgetstudio]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.khaled.widgetstudio
@@ -92,6 +94,8 @@ targets:
       properties:
         CFBundleDisplayName: "Widget Studio"
         WSAppGroup: group.com.khaled.widgetstudio
+        # AltStore / SideStore register these and rewrite them to the real IDs (ADR-004).
+        ALTAppGroups: [group.com.khaled.widgetstudio]
         # Location inside the widget (brief §2), probed in Diagnostics (ADR-005).
         NSWidgetWantsLocation: true
         NSLocationWhenInUseUsageDescription: "يستخدم الموقع للطقس ومواقيت الصلاة واتجاه القبلة في الودجت."

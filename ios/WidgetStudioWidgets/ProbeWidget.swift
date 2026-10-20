@@ -19,19 +19,22 @@ struct ProbeWidget: Widget {
 
 struct ProbeEntry: TimelineEntry {
     let date: Date
-    let isShared: Bool
+    /// The App Group this extension resolved; nil when it fell back to its own container.
+    let groupID: String?
     let report: WidgetReport?
+
+    var isShared: Bool { groupID != nil }
 }
 
 struct ProbeProvider: TimelineProvider {
     func placeholder(in context: Context) -> ProbeEntry {
-        ProbeEntry(date: .now, isShared: true, report: nil)
+        ProbeEntry(date: .now, groupID: "group.com.khaled.widgetstudio", report: nil)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (ProbeEntry) -> Void) {
         // The widget gallery needs an answer quickly: show the last saved report.
         let location = AppGroupResolver.resolve()
-        completion(ProbeEntry(date: .now, isShared: location.isShared,
+        completion(ProbeEntry(date: .now, groupID: location.appGroupID,
                               report: ProbeStore(location: location).readWidgetReport()))
     }
 
@@ -57,7 +60,7 @@ struct ProbeProvider: TimelineProvider {
             battery: WidgetProbes.battery()
         )
         try? store.writeWidgetReport(report)
-        return ProbeEntry(date: report.date, isShared: location.isShared, report: report)
+        return ProbeEntry(date: report.date, groupID: location.appGroupID, report: report)
     }
 }
 
@@ -75,6 +78,18 @@ struct ProbeWidgetView: View {
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
+            // The resolved group name, or a "no group" note (the M0 device test showed none).
+            Group {
+                if let groupID = entry.groupID {
+                    Text(verbatim: groupID)
+                } else {
+                    Text("widget.probe.noGroup")
+                }
+            }
+            .font(.system(size: 9, design: .monospaced))
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+            .minimumScaleFactor(0.7)
             Spacer(minLength: 0)
             row("widget.probe.group", ok: entry.isShared, detail: groupDetail)
             row("widget.probe.location", ok: entry.report?.location.isOK, detail: detail(entry.report?.location))

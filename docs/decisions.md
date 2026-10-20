@@ -29,9 +29,12 @@ Open questions use the brief's defaults: name "Widget Studio", Android after iOS
 **Status:** Accepted (2026-10-20); behavior on device to be confirmed by the M0 Diagnostics report.
 **Context:** In Lakhas, a free-Apple-ID Sideloadly install reported no App Group in the signing profile; Sideloadly lists custom entitlements as a paid feature. Signers that do support groups may rewrite the group ID.
 **Decision:** Ported from Lakhas ADR-014. App and widget resolve the shared container at runtime:
-1. App Groups in `embedded.mobileprovision` (as rewritten by the signer);
-2. the compiled ID from Info.plist (`WSAppGroup`);
-3. the target's own container (not shared). The widget then shows "Open the app to set up widgets".
+1. `ALTAppGroups` from Info.plist. AltStore/SideStore register these groups on free accounts and rewrite the key to the real IDs when signing (added 2026-10-20, after the M0 device test);
+2. App Groups in `embedded.mobileprovision` (as rewritten by the signer);
+3. the compiled ID from Info.plist (`WSAppGroup`);
+4. the target's own container (not shared). The widget then shows "Open the app to set up widgets".
+
+The first candidate whose container is writable wins. `StoreLocation.source` records which step it came from. Diagnostics lists the resolved group, its source and every candidate tried; the check widget shows the group name.
 
 Never hardcode the bundle ID, team prefix or group at runtime. No Keychain sharing: the widget never needs a key.
 **If the App Group fails on device:** widgets can't read saved designs. Fallbacks to evaluate in M1/M3: bundle-only templates configured through the widget's AppIntent parameters (stored by the system, no App Group needed), and treating sideloaded builds as "templates only" until a paid account.
@@ -45,6 +48,22 @@ Never hardcode the bundle ID, team prefix or group at runtime. No Keychain shari
 - Each probe result is one of: ok, failed (with reason), not run.
 - The app requests HealthKit read for step count and sleep analysis only (the bindings in brief §4.5).
 - Outcomes go in a "Device findings" update of this ADR. Templates whose capability fails are dropped or rebound.
+
+**Device findings (2026-10-20, M0 IPA, Sideloadly, free Apple ID):**
+| Check | Result |
+|---|---|
+| Install, launch, widget in the gallery | ✅ the app installs; the widget appears and renders |
+| Location inside the widget (`NSWidgetWantsLocation`) | ✅ fix received in the extension |
+| Battery inside the widget | ✅ level readable in the extension |
+| HealthKit | ✅ available in the app |
+| Signing profile (`embedded.mobileprovision`) | ❌ **missing** in the installed bundle |
+| App Group | ❌ **Shared ✕** in both the app and the widget: no group container is usable |
+
+**Consequences:**
+- Weather, prayer/Qibla, location and battery templates can work: the widget gets location and battery itself.
+- Health templates can rely on HealthKit. Read access is a separate prompt, and a denial looks like "no data".
+- **The app can't hand data to the widget on this install.** Saved designs, user photos, counters written by the app and the app's caches are invisible to the widget. M1 therefore renders **bundled specs** in the widget, chosen through the widget's AppIntent configuration, which the system stores without an App Group (see ADR-004). M3 has to design "My widgets" around this, or ship it only to installs where an App Group resolves.
+- With no profile, the resolver only has the compiled ID and `ALTAppGroups` to try. AltStore/SideStore register `ALTAppGroups` on free accounts, so those installers may give a working group (ADR-004 order). Sideloadly with a free Apple ID doesn't.
 
 ### ADR-006 — Swift 5 language mode; CI compile-first, lint non-blocking
 **Status:** Accepted (2026-10-20). Learned on Lakhas (ADR-019 there).

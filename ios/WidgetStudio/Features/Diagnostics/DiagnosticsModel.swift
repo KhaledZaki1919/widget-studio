@@ -13,6 +13,8 @@ import WidgetKitCore
 final class DiagnosticsModel {
     private(set) var profileStatus: ProvisioningProfile.Status = .missing
     private(set) var store = AppGroupResolver.resolve()
+    /// Every group ID the resolver tried, in order (ADR-004).
+    private(set) var candidates: [AppGroupResolver.Candidate] = []
     private(set) var appGroupTest: ProbeOutcome = .notRun
     private(set) var testValue: Int?
     private(set) var widgetReport: WidgetReport?
@@ -34,6 +36,7 @@ final class DiagnosticsModel {
     func refresh() {
         profileStatus = ProvisioningProfile.inspect()
         store = AppGroupResolver.resolve()
+        candidates = AppGroupResolver.candidates()
         let probeStore = ProbeStore(location: store)
         appGroupTest = probeStore.readWriteTest()
         if AppInfo.writeHeartbeat(changeValue: 0) == nil { widgetReloadedAt = .now }
@@ -101,6 +104,11 @@ final class DiagnosticsModel {
         }
     }
 
+    /// "group.a (altAppGroups), group.b (compiled)"
+    var candidatesText: String {
+        candidates.isEmpty ? "none" : candidates.map { "\($0.id) (\($0.source.rawValue))" }.joined(separator: ", ")
+    }
+
     private static func stamp(_ date: Date?) -> String {
         date.map { $0.formatted(.iso8601) } ?? "never"
     }
@@ -120,7 +128,9 @@ final class DiagnosticsModel {
             "Profile entitlements: \(profile?.entitlementKeys.joined(separator: ", ") ?? "?")",
             "",
             "[App Group]",
-            "Resolved group: \(store.appGroupID ?? "none (app's own container)")",
+            "Resolved group: \(store.appGroupID ?? "none (app's own container)")"
+                + (store.source.map { " via \($0.rawValue)" } ?? ""),
+            "Candidates tried: \(candidatesText)",
             "Shared: \(store.isShared)",
             "Read/write: \(appGroupTest.reportText)",
             "Test value: \(testValue.map { "\($0)" } ?? "none")",

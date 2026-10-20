@@ -47,33 +47,46 @@ struct ProvisioningProfileTests {
 }
 
 struct AppGroupResolverTests {
-    @Test func candidatesPreferProfileGroupsAndDropDuplicates() {
-        let ids = AppGroupResolver.candidateIDs(
-            profileGroups: ["group.rewritten", "group.com.khaled.widgetstudio"],
+    @Test func candidatesOrderAltStoreThenProfileThenCompiledWithoutDuplicates() {
+        let candidates = AppGroupResolver.candidates(
+            altGroups: ["group.com.khaled.widgetstudio.TEAM123"],
+            profileGroups: ["group.rewritten", "group.com.khaled.widgetstudio.TEAM123"],
             compiled: "group.com.khaled.widgetstudio"
         )
-        #expect(ids == ["group.rewritten", "group.com.khaled.widgetstudio"])
+        #expect(candidates.map(\.id) == [
+            "group.com.khaled.widgetstudio.TEAM123", "group.rewritten", "group.com.khaled.widgetstudio",
+        ])
+        #expect(candidates.map(\.source) == [.altAppGroups, .profile, .compiled])
+    }
+
+    @Test func dropsEmptyIDs() {
+        let candidates = AppGroupResolver.candidates(altGroups: [""], profileGroups: [], compiled: nil)
+        #expect(candidates.isEmpty)
     }
 
     @Test func usesFirstWritableContainer() throws {
         let shared = try makeTempDirectory()
         let fallback = try makeTempDirectory()
         let location = AppGroupResolver.resolve(
-            candidates: ["group.missing", "group.ok"],
+            candidates: [
+                .init(id: "group.missing", source: .altAppGroups),
+                .init(id: "group.ok", source: .compiled),
+            ],
             containerURL: { $0 == "group.ok" ? shared : nil },
             fallback: fallback
         )
-        #expect(location == StoreLocation(directory: shared, appGroupID: "group.ok"))
+        #expect(location == StoreLocation(directory: shared, appGroupID: "group.ok", source: .compiled))
         #expect(location.isShared)
     }
 
     @Test func fallsBackWhenNoGroupIsUsable() throws {
         let fallback = try makeTempDirectory()
         let location = AppGroupResolver.resolve(
-            candidates: ["group.a"], containerURL: { _ in nil }, fallback: fallback
+            candidates: [.init(id: "group.a", source: .profile)], containerURL: { _ in nil }, fallback: fallback
         )
         #expect(location.directory == fallback)
         #expect(location.appGroupID == nil)
+        #expect(location.source == nil)
         #expect(!location.isShared)
     }
 }
