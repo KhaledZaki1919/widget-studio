@@ -1,0 +1,178 @@
+# iOS CI (ADR-003, ADR-006). Order: secret scan + compile-only build (all errors, full log as
+# artifact) -> WidgetKitCore tests + Simulator smoke test -> unsigned IPA. SwiftLint runs in
+# parallel and never blocks. Docs-only commits skip the workflow; superseded runs are cancelled.
+name: iOS
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**.md", "docs/**"]
+  pull_request:
+    paths-ignore: ["**.md", "docs/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: ios
+
+jobs:
+  build:
+    name: Compile (Simulator)
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Secret scan
+        working-directory: .
+        run: bash scripts/secret-scan.sh
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Localization check
+        run: python3 scripts/check-strings.py
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Build app, extension and test bundles (no tests)
+        run: |
+          mkdir -p build
+          # Keep compiling other files after the first error so one run shows them all.
+          defaults write com.apple.dt.Xcode IDEBuildingContinueBuildingAfterErrors -bool YES
+          status=0
+          xcodebuild build-for-testing \
+            -project WidgetStudio.xcodeproj -scheme WidgetStudio \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            > build/xcodebuild.log 2>&1 || status=$?
+          grep -E '\*\* (TEST )?BUILD (SUCCEEDED|FAILED) \*\*' build/xcodebuild.log || tail -n 40 build/xcodebuild.log
+          if [ "$status" -ne 0 ]; then
+            echo "::group::All compiler errors (de-duplicated)"
+            grep -E "error:" build/xcodebuild.log | sort -u
+            echo "::endgroup::"
+            exit "$status"
+          fi
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: ios/build/xcodebuild.log
+          retention-days: 7
+
+  lint:
+    name: SwiftLint (non-blocking)
+    runs-on: macos-15
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: SwiftLint
+        run: |
+          command -v swiftlint || brew install swiftlint
+          swiftlint lint --quiet
+
+  test:
+    name: Tests
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache SwiftPM build
+        uses: actions/cache@v4
+        with:
+          path: ios/WidgetKitCore/.build
+          key: spm-${{ runner.os }}-${{ hashFiles('ios/WidgetKitCore/Package.swift') }}
+
+      - name: WidgetKitCore tests
+        run: swift test --package-path WidgetKitCore
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: UI smoke test (Simulator)
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 scripts/pick-simulator.py)
+          xcodebuild test \
+            -project WidgetStudio.xcodeproj -scheme WidgetStudio \
+            -destination "id=$UDID" \
+            -resultBundlePath build/TestResults.xcresult \
+            -quiet
+
+      - name: Test summary
+        if: always()
+        run: |
+          [ -d build/TestResults.xcresult ] || exit 0
+          xcrun xcresulttool get test-results summary --path build/TestResults.xcresult --compact > build/summary.json
+          python3 - <<'PY'
+          import json
+          s = json.load(open("build/summary.json"))
+          print(f"UI tests: {s['passedTests']} passed, {s['failedTests']} failed, {s['skippedTests']} skipped of {s['totalTestCount']}")
+          for f in s.get("testFailures", []):
+              print(f"FAILED {f.get('testIdentifierString', f.get('testName'))}: {f.get('failureText')}")
+          assert s["totalTestCount"] >= 2 and s["failedTests"] == 0, "expected at least 2 passing UI tests"
+          PY
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestResults
+          path: ios/build/TestResults.xcresult
+          retention-days: 7
+
+  ipa:
+    name: Unsigned IPA
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Build (unsigned, Release)
+        run: |
+          xcodebuild build \
+            -project WidgetStudio.xcodeproj -scheme WidgetStudio \
+            -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            -quiet
+
+      - name: Package IPAs
+        run: |
+          APP=build/DerivedData/Build/Products/Release-iphoneos/WidgetStudio.app
+          bash scripts/build-ipa.sh "$APP" build/ipa/WidgetStudio.ipa
+          bash scripts/build-ipa.sh "$APP" build/ipa/WidgetStudio-noHealthKit.ipa --no-healthkit
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WidgetStudio-ipa
+          path: ios/build/ipa/*.ipa
+          if-no-files-found: error
+          retention-days: 30
