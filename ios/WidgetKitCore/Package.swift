@@ -10,7 +10,11 @@ let package = Package(
         .library(name: "WidgetKitCore", targets: ["WidgetKitCore"]),
     ],
     targets: [
-        .target(name: "WidgetKitCore"),
+        .target(
+            name: "WidgetKitCore",
+            // Fonts ship with their OFL license files, as the license requires.
+            resources: [.copy("Resources/Fonts")]
+        ),
         .testTarget(name: "WidgetKitCoreTests", dependencies: ["WidgetKitCore"]),
     ],
     // Swift 5 language mode, minimal concurrency checking (ADR-006).
