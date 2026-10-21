@@ -2,9 +2,9 @@ import SwiftUI
 import WidgetKit
 import WidgetKitCore
 
-/// M0 home: a placeholder until the template library arrives in M2. Diagnostics opens from the
-/// visible link (M0 only), a long press on the version, or the probe widget
-/// (`widgetstudio://diagnostics`).
+/// Home until the template library arrives in M2: the M1 test designs and Diagnostics.
+/// Diagnostics opens from the visible link (until M6), a long press on the version, or the
+/// check widget (`widgetstudio://diagnostics`).
 struct RootView: View {
     @State private var showDiagnostics = false
 
@@ -12,8 +12,12 @@ struct RootView: View {
         NavigationStack {
             List {
                 Section {
-                    Text("home.m0.body")
+                    Text("home.m1.body")
                         .foregroundStyle(.secondary)
+                    NavigationLink("home.testSpecs") {
+                        TestSpecsView()
+                    }
+                    .accessibilityIdentifier("ax.home.testSpecs")
                     NavigationLink("home.diagnostics") {
                         DiagnosticsView()
                     }

@@ -30,6 +30,19 @@ final class SmokeUITests: XCTestCase {
         write.tap()
     }
 
+    /// The test designs gallery renders specs in both languages.
+    @MainActor
+    func testTestDesignsRenderInBothLanguages() {
+        let app = launch(language: "en")
+        let link = app.buttons["ax.home.testSpecs"]
+        XCTAssertTrue(link.waitForExistence(timeout: 15))
+        link.tap()
+        XCTAssertTrue(app.collectionViews["ax.specs.list"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["ax.specs.preview.test.clock.digital"].waitForExistence(timeout: 10))
+        app.buttons["العربية"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["ax.specs.preview.test.clock.digital"].waitForExistence(timeout: 10))
+    }
+
     @MainActor
     func testOpensDiagnosticsInArabic() {
         opensDiagnostics(language: "ar")

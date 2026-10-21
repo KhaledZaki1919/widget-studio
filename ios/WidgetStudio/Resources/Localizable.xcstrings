@@ -766,19 +766,19 @@
         }
       }
     },
-    "home.m0.body": {
+    "home.m1.body": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "هذه نسخة الإعداد (M0). مكتبة القوالب قادمة في المراحل التالية."
+            "value": "نسخة اختبار المحرّك (M1): عرض ١٠ تصاميم تجريبية بنفس محرّك الودجت. مكتبة القوالب قادمة في M2."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This is the setup build (M0). The template library comes in the next milestones."
+            "value": "Renderer test build (M1): 10 test designs drawn by the same renderer as the widget. The template library comes in M2."
           }
         }
       }
@@ -796,6 +796,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "About"
+          }
+        }
+      }
+    },
+    "home.testSpecs": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التصاميم التجريبية"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test designs"
           }
         }
       }
@@ -847,6 +864,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "Long-press the version to open Diagnostics."
+          }
+        }
+      }
+    },
+    "specs.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "البيانات هنا بيانات تجريبية (القاهرة). البيانات الحقيقية للطقس والصحة والصلاة تأتي في M4."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data here is sample data (Cairo). Real weather, health and prayer data come in M4."
+          }
+        }
+      }
+    },
+    "specs.invalid": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تصميم غير صالح"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invalid design"
+          }
+        }
+      }
+    },
+    "specs.language": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اللغة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
+          }
+        }
+      }
+    },
+    "specs.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التصاميم التجريبية"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test designs"
           }
         }
       }
