@@ -15,10 +15,10 @@ The product brief is `widget-app-brief.md` (template catalog: `TEMPLATES.md`, vi
 | Path | What |
 |---|---|
 | `ios/project.yml` | XcodeGen spec (app + widget extension + tests). Never hand-edit the generated `.xcodeproj` |
-| `ios/WidgetStudio/` | App target: `App/` (entry, root), `Features/<Area>/` (Diagnostics, …), `Resources/` |
-| `ios/WidgetStudioWidgets/` | Widget extension (WidgetKit) |
+| `ios/WidgetStudio/` | App target: `App/` (entry, root), `Features/<Area>/` (Diagnostics, TestSpecs, …), `Resources/` |
+| `ios/WidgetStudioWidgets/` | Widget extension: `SpecWidget` (renders a spec, AppIntent configuration) and the `ProbeWidget` check widget |
 | `ios/WidgetStudioUITests/` | Simulator UI smoke tests |
-| `ios/WidgetKitCore/` | Swift package shared by app + extension: environment (App Group resolver, probes), later spec models, validator, renderer. **Unit tests live here** |
+| `ios/WidgetKitCore/` | Swift package shared by app + extension: `Environment/` (App Group resolver, profile), `Probe/`, `Spec/` (models, bindings, validator, icon whitelist, test spec loader), `Render/` (SpecView, layer views, binding resolver, fonts, timelines), `Resources/` (Fonts, TestSpecs, Spec schema). **Unit tests live here** |
 | `ios/Config/` | Entitlements (written by XcodeGen from `project.yml`) |
 | `ios/scripts/` | `build-ipa.sh`, `check-strings.py`, `pick-simulator.py` |
 | `scripts/secret-scan.sh` | Secret scan, run before push and in CI |

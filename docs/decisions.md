@@ -85,3 +85,24 @@ Never hardcode the bundle ID, team prefix or group at runtime. No Keychain shari
 - Providers: `GeminiProvider` (key only in `x-goog-api-key`, which makes `AQ.`-prefixed and `AIza` keys both work; `responseSchema` converted to Google's OpenAPI subset; thinking level low; `MAX_TOKENS` → truncated), `AnthropicProvider`, `OpenAICompatibleProvider` (OpenAI + OpenRouter).
 - `AIKeyStore` (Keychain, sanitizes pasted keys: whitespace, invisible RTL marks, quotes, `Bearer `; format hints accept `AIza` and `AQ.`), `KeychainStore`.
 - Changes for this app: default provider **Gemini** (Lakhas defaulted to Anthropic); features become `generateWidget` + `connectionTest`; the schema is `Spec/widget-spec.v1.schema.json`; `validate()` is the `SpecValidator`; drop price table / daily limit unless needed.
+
+### ADR-009 — Spec v1 implementation choices (M1)
+**Status:** Accepted (2026-10-21).
+- **Decoding vs. validation:** `WidgetSpec` decodes leniently (unknown keys ignored). Unknown layer types decode as `.unknown` and unknown enum values (family, action, …) fail decoding. `SpecValidator.validate(data:)` turns either into a `SpecIssue` with a JSON path (`layers[3].action: unknown value`), never a crash. Validation returns the spec with frames clamped to the canvas (`Result<WidgetSpec, SpecIssues>`).
+- **AI mode:** `SpecValidator(mode: .ai)` also enforces brief §5.1 (only `open.app` buttons, only time/date/weather bindings, font size ≥ 11). The exported `Resources/Spec/widget-spec.v1.schema.json` describes structure only; a unit test keeps its enums in sync with the Swift whitelists.
+- **Additions to the brief's spec** (all optional):
+  - `analogClock.timezone` (a timezone field or IANA name) for world clocks;
+  - `dotBars.offColor`;
+  - `labels` as comma-separated text or a binding;
+  - literal values for `ring.progress` (`"0.4"`), `dotBars.values` (`"0.2,0.5,1"`) and `dotGrid.values` (`"0110…"`).
+- **Binding kinds:** each binding yields text, number, levels, date or symbol. The validator checks the kind where it matters: `ring` needs a number, `dotGrid`/`dotBars` levels, `live.target` a date, `icon` a symbol.
+- **Digits:** all bindings use Latin digits (also in Arabic), so they suit the `dot` font and never mirror. Weekday and month names follow the language (`ar_EG@numbers=latn`).
+- **RTL:** the canvas is always laid out left-to-right in canvas units. In Arabic, only layers with `mirror: true` move to the mirrored frame and lay out their content right-to-left. `forecastRow` runs right-to-left in Arabic.
+- **Circle templates:** with `background.outerColor`, the widget is filled with the outer color and the background is drawn as the largest centered circle.
+- **Fonts:**
+  - Doto ships as a variable font (default instance Black); its weight is set on the `wght` axis through CoreText.
+  - IBM Plex Sans Arabic ships four static weights (Regular, Medium, SemiBold, Bold).
+  - Fonts are registered per process (app and extension) and ship with their OFL licenses.
+- **Buttons** are `Link`s to `widgetstudio://action/<action>?spec=<id>&arg=<value>` until the interactive AppIntents arrive (M4).
+- **Data:** M1 renders `DataSnapshot.sample` (Cairo); real providers replace it in M4.
+- **Widget:** the spec widget uses `AppIntentConfiguration` to pick a **bundled** spec, because the App Group doesn't work on Sideloadly installs (ADR-005). Its timeline follows the spec's `refresh`, and content margins are disabled so the canvas fills the widget.
