@@ -1,0 +1,51 @@
+# Builds static instances of the variable Doto font (OFL) with fontTools, because widgets need
+# fonts declared in UIAppFonts and SwiftUI can't pick a variable-font weight reliably (ADR-010).
+# Manual only; the output is downloaded and committed to ios/Fonts/.
+name: Fonts
+
+on:
+  workflow_dispatch:
+
+jobs:
+  doto:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install fontTools
+        run: pip install fonttools==4.55.3
+
+      - name: Instance Doto (Regular 400, Bold 700, Black 900; ROND 0)
+        run: |
+          mkdir -p out
+          python3 - <<'PY'
+          from fontTools.ttLib import TTFont
+          from fontTools.varLib import instancer
+
+          source = "ios/WidgetKitCore/Sources/WidgetKitCore/Resources/Fonts/Doto.ttf"
+          for weight, style in [(400, "Regular"), (700, "Bold"), (900, "Black")]:
+              font = instancer.instantiateVariableFont(TTFont(source), {"wght": weight, "ROND": 0})
+              names = font["name"]
+              for record in list(names.names):
+                  if record.nameID in (1, 2, 3, 4, 6, 16, 17, 25):
+                      names.removeNames(nameID=record.nameID)
+              for name_id, value in [(1, f"Doto {style}"), (2, "Regular"), (3, f"Doto-{style};static"),
+                                     (4, f"Doto {style}"), (6, f"Doto-{style}")]:
+                  names.setName(value, name_id, 3, 1, 0x409)
+                  names.setName(value, name_id, 1, 0, 0)
+              font["OS/2"].usWeightClass = weight
+              for table in ("STAT", "fvar", "avar"):
+                  if table in font:
+                      del font[table]
+              font.save(f"out/Doto-{style}.ttf")
+              print(style, font["name"].getDebugName(6), font["OS/2"].usWeightClass)
+          PY
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: doto-static
+          path: out/*.ttf
+          if-no-files-found: error
+          retention-days: 7
