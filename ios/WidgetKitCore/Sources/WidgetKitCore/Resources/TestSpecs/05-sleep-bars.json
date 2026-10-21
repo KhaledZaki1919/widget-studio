@@ -10,6 +10,6 @@
     { "type": "text", "value": { "en": "LAST NIGHT", "ar": "الليلة الماضية" }, "font": { "family": "system", "size": 10, "weight": "semibold" }, "tracking": 1, "color": "#FFFFFF99", "frame": { "x": 16, "y": 18, "w": 130, "h": 14 }, "mirror": true },
     { "type": "text", "value": "{{sleep.lastNight}}", "font": { "family": "dot", "size": 30, "weight": "bold" }, "color": "#FFFFFF", "frame": { "x": 14, "y": 36, "w": 136, "h": 38 }, "mirror": true },
     { "type": "icon", "symbol": "bed.double.fill", "size": 18, "color": "#E31C24", "frame": { "x": 16, "y": 130, "w": 24, "h": 24 }, "mirror": true },
-    { "type": "dotBars", "bars": 7, "maxDots": 8, "values": "{{sleep.week}}", "color": "#FFFFFF", "offColor": "#FFFFFF26", "labels": "S,M,T,W,T,F,S", "frame": { "x": 160, "y": 16, "w": 188, "h": 138 } }
+    { "type": "dotBars", "bars": 7, "maxDots": 8, "values": "{{sleep.week}}", "color": "#FFFFFF", "offColor": "#FFFFFF26", "labels": { "en": "S,M,T,W,T,F,S", "ar": "ح,ن,ث,ر,خ,ج,س" }, "frame": { "x": 160, "y": 16, "w": 188, "h": 138 }, "mirror": true }
   ]
 }

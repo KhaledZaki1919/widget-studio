@@ -24,6 +24,8 @@ struct TestSpecsView: View {
                     switch entry.result {
                     case .success(let spec):
                         SpecPreview(spec: spec, language: language)
+                            // Rebuild the TimelineView when the language changes.
+                            .id("\(spec.id).\(language)")
                             .listRowInsets(EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12))
                             .listRowBackground(Color.clear)
                     case .failure(let failure):
@@ -39,7 +41,9 @@ struct TestSpecsView: View {
         }
         .accessibilityIdentifier("ax.specs.list")
         .navigationTitle("specs.title")
-        .environment(\.layoutDirection, language == "ar" ? .rightToLeft : .leftToRight)
+        // No layoutDirection override here: forcing RTL on a List inside an LTR app flips its
+        // UIKit cells like an image (text, digits and clocks mirrored). The language only changes
+        // the specs; SpecView handles RTL itself (ADR-010).
     }
 
     private func header(_ entry: TestSpecs.Entry) -> String {

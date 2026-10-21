@@ -205,23 +205,6 @@
         }
       }
     },
-    "widget.spec.none": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "لا يوجد تصميم"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No design"
-          }
-        }
-      }
-    },
     "widget.spec.param": {
       "extractionState": "manual",
       "localizations": {

@@ -14,7 +14,7 @@ public struct BindingResolver {
             case .text(let text): text
             case .number(_, let display): display
             case .levels(let levels): levels.map { String(format: "%.2f", $0) }.joined(separator: ",")
-            case .date(let date): BindingResolver.timeFormatter.string(from: date)
+            case .date(let date): FormatterCache.date("HH:mm", locale: "en_US_POSIX", zone: .current).string(from: date)
             }
         }
     }
@@ -64,7 +64,7 @@ public struct BindingResolver {
 
     /// A field's current value: the user's, else the spec's default.
     public func fieldValue(_ key: String) -> String? {
-        context.fieldValues[key] ?? spec.field(key)?.default
+        context.fieldValues[key] ?? spec.field(key)?.default?.resolved(language: context.language)
     }
 
     public func value(of raw: String) -> Value? {
@@ -103,16 +103,16 @@ public struct BindingResolver {
         case "weather.cond": return data.weather.map { .text($0.condition.resolved(language: context.language)) }
         case "weather.symbol": return data.weather.map { .text($0.symbol) }
         case "weather.city":
-            return data.weather.map { .text(fieldValueOfType(.city) ?? $0.city) }
+            return data.weather.map { .text(fieldValueOfType(.city) ?? $0.city.resolved(language: context.language)) }
         case "steps.today": return data.stepsToday.map { number($0, digits: 0, grouped: true) }
         case "steps.streak": return data.stepsStreak.map { number($0, digits: 0) }
         case "steps.monthGrid": return data.stepsMonthGrid.map(Value.levels)
-        case "sleep.lastNight": return data.sleepLastNight.map(Value.text)
+        case "sleep.lastNight": return data.sleepLastNight.map { .text($0.resolved(language: context.language)) }
         case "sleep.week": return data.sleepWeek.map(Value.levels)
         case "counter.value": return data.counter.map { number($0, digits: 0) }
         case "stopwatch.running": return .text(data.stopwatchStart == nil ? "0" : "1")
         case "stopwatch.start": return data.stopwatchStart.map(Value.date)
-        case "focus.today": return data.focusToday.map(Value.text)
+        case "focus.today": return data.focusToday.map { .text($0.resolved(language: context.language)) }
         case "focus.week": return data.focusWeek.map(Value.levels)
         case "prayer.next.name": return data.prayer.map { .text($0.nextName.resolved(language: context.language)) }
         case "prayer.next.time": return data.prayer.map { .date($0.nextTime) }
@@ -134,32 +134,18 @@ public struct BindingResolver {
     }
 
     private func number(_ value: Double, digits: Int, grouped: Bool = false) -> Value {
-        let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.numberStyle = .decimal
-        formatter.usesGroupingSeparator = grouped
-        formatter.groupingSeparator = ","
-        formatter.minimumFractionDigits = digits
-        formatter.maximumFractionDigits = digits
+        let formatter = FormatterCache.number(digits: digits, grouped: grouped)
         return .number(value, display: formatter.string(from: NSNumber(value: value)) ?? String(value))
     }
 
     /// Fixed-format, Latin digits.
     private func format(_ pattern: String, zone: TimeZone? = nil) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = zone ?? context.timeZone
-        formatter.dateFormat = pattern
-        return formatter.string(from: context.date)
+        FormatterCache.date(pattern, locale: "en_US_POSIX", zone: zone ?? context.timeZone).string(from: context.date)
     }
 
     /// Words in the render language, digits Latin (`ar@numbers=latn`).
     private func localizedFormat(_ pattern: String) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: context.isArabic ? "ar_EG@numbers=latn" : "en_US")
-        formatter.timeZone = context.timeZone
-        formatter.dateFormat = pattern
-        return formatter.string(from: context.date)
+        FormatterCache.date(pattern, locale: context.localeIdentifier, zone: context.timeZone).string(from: context.date)
     }
 
     /// "GMT+2", "GMT-3:30", "GMT".
@@ -171,11 +157,41 @@ public struct BindingResolver {
         let minutes = abs(seconds) % 3600 / 60
         return minutes == 0 ? "GMT\(sign)\(hours)" : String(format: "GMT%@%d:%02d", sign, hours, minutes)
     }
+}
 
-    static let timeFormatter: DateFormatter = {
+/// Formatters are expensive to create and a widget renders up to 60 entries per timeline, so
+/// they are created once per pattern, locale and time zone.
+enum FormatterCache {
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var dates: [String: DateFormatter] = [:]
+    nonisolated(unsafe) private static var numbers: [String: NumberFormatter] = [:]
+
+    static func date(_ pattern: String, locale: String, zone: TimeZone) -> DateFormatter {
+        let key = "\(pattern)|\(locale)|\(zone.identifier)"
+        lock.lock()
+        defer { lock.unlock() }
+        if let formatter = dates[key] { return formatter }
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "HH:mm"
+        formatter.locale = Locale(identifier: locale)
+        formatter.timeZone = zone
+        formatter.dateFormat = pattern
+        dates[key] = formatter
         return formatter
-    }()
+    }
+
+    static func number(digits: Int, grouped: Bool) -> NumberFormatter {
+        let key = "\(digits)|\(grouped)"
+        lock.lock()
+        defer { lock.unlock() }
+        if let formatter = numbers[key] { return formatter }
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.numberStyle = .decimal
+        formatter.usesGroupingSeparator = grouped
+        formatter.groupingSeparator = ","
+        formatter.minimumFractionDigits = digits
+        formatter.maximumFractionDigits = digits
+        numbers[key] = formatter
+        return formatter
+    }
 }

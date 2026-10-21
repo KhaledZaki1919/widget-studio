@@ -4,6 +4,8 @@ struct TextLayerView: View {
     let layer: TextLayer
     let resolver: BindingResolver
     let scale: CGFloat
+    /// Swaps leading and trailing alignment (RTL `mirror`); the text itself is never flipped.
+    let mirrored: Bool
 
     var body: some View {
         let raw = layer.value.resolved(language: resolver.context.language)
@@ -20,29 +22,75 @@ struct TextLayerView: View {
 
     @ViewBuilder private func content(_ value: String) -> some View {
         let now = resolver.context.date
+        let target = layer.live?.target.flatMap(resolver.date)
+        let frozen = resolver.context.freezesLiveText
         switch layer.live?.kind {
         case .time?:
             Text(now, style: .time)
         case .relative?:
-            if let target = layer.live?.target.flatMap(resolver.date) {
-                Text(target, style: .relative)
+            if let target {
+                if frozen {
+                    Text(verbatim: Self.frozen(from: now, to: target, locale: resolver.context.localeIdentifier))
+                } else {
+                    Text(target, style: .relative)
+                }
             } else {
                 Text(verbatim: BindingResolver.missing)
             }
         case .timer?:
-            if let target = layer.live?.target.flatMap(resolver.date) {
-                // Counts down to a future target, up from a past one.
-                Text(timerInterval: min(now, target)...max(now, target), countsDown: target > now)
+            if let target {
+                if frozen {
+                    Text(verbatim: Self.frozen(from: now, to: target, locale: resolver.context.localeIdentifier))
+                } else {
+                    // Counts down to a future target, up from a past one.
+                    Text(timerInterval: min(now, target)...max(now, target), countsDown: target > now)
+                }
             } else {
                 Text(verbatim: BindingResolver.missing)
             }
         case nil:
-            Text(verbatim: value)
+            styled(value)
+        }
+    }
+
+    /// "2 months, 10 days" from `now` to `target`, as fixed text.
+    static func frozen(from now: Date, to target: Date, locale: String) -> String {
+        let formatter = DateComponentsFormatter()
+        formatter.calendar = {
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.locale = Locale(identifier: locale)
+            return calendar
+        }()
+        formatter.allowedUnits = [.month, .day, .hour, .minute]
+        formatter.maximumUnitCount = 2
+        formatter.unitsStyle = .abbreviated
+        return formatter.string(from: min(now, target), to: max(now, target)) ?? BindingResolver.missing
+    }
+
+    /// Doto has no good degree sign, so in `dot` text "°" is drawn in the system font.
+    private func styled(_ value: String) -> Text {
+        guard FontRegistry.effectiveFamily(layer.font, for: value) == "dot", value.contains("°") else {
+            return Text(verbatim: value)
+        }
+        let degree = Font.system(size: layer.font.size * scale * 0.8, weight: (layer.font.weight ?? .regular).swiftUI)
+        return value.split(separator: "°", omittingEmptySubsequences: false).enumerated().reduce(Text(verbatim: "")) { text, part in
+            let piece = Text(verbatim: String(part.element))
+            return part.offset == 0 ? text + piece : text + Text(verbatim: "°").font(degree) + piece
+        }
+    }
+
+    private var alignment: TextAlign {
+        let align = layer.align ?? .leading
+        guard mirrored else { return align }
+        switch align {
+        case .leading: return .trailing
+        case .center: return .center
+        case .trailing: return .leading
         }
     }
 
     private var textAlignment: TextAlignment {
-        switch layer.align ?? .leading {
+        switch alignment {
         case .leading: .leading
         case .center: .center
         case .trailing: .trailing
@@ -50,7 +98,7 @@ struct TextLayerView: View {
     }
 
     private var frameAlignment: Alignment {
-        switch layer.align ?? .leading {
+        switch alignment {
         case .leading: .leading
         case .center: .center
         case .trailing: .trailing

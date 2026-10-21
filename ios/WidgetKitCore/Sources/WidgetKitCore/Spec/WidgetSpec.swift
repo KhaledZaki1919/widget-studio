@@ -72,9 +72,13 @@ public enum RefreshPolicy: String, Codable, Sendable, CaseIterable {
 }
 
 /// A string, or `{ "en": …, "ar": … }`.
-public enum LocalizedText: Codable, Sendable, Equatable {
+public enum LocalizedText: Codable, Sendable, Equatable, ExpressibleByStringLiteral {
     case plain(String)
     case localized(en: String, ar: String)
+
+    public init(stringLiteral value: String) {
+        self = .plain(value)
+    }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -144,10 +148,10 @@ public struct FieldSpec: Codable, Sendable, Equatable {
     public var key: String
     public var type: Kind
     public var label: LocalizedText
-    /// Dates are ISO 8601 (`2026-12-31` or `2026-12-31T20:00:00Z`).
-    public var `default`: String?
+    /// A string or `{en, ar}`. Dates are ISO 8601 (`2026-12-31` or `2026-12-31T20:00:00Z`).
+    public var `default`: LocalizedText?
 
-    public init(key: String, type: Kind, label: LocalizedText, default: String? = nil) {
+    public init(key: String, type: Kind, label: LocalizedText, default: LocalizedText? = nil) {
         self.key = key
         self.type = type
         self.label = label

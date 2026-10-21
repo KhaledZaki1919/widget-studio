@@ -33,6 +33,9 @@ targets:
     platform: iOS
     sources:
       - path: WidgetStudio
+      # Fonts are bundled in each target and declared in UIAppFonts (ADR-010).
+      - path: Fonts
+        buildPhase: resources
     dependencies:
       - package: WidgetKitCore
         product: WidgetKitCore
@@ -67,6 +70,7 @@ targets:
         NSHealthShareUsageDescription: "يقرأ عدد الخطوات والنوم لعرضهما في الودجت."
         UIRequiredDeviceCapabilities: [arm64]
         WSAppGroup: group.com.khaled.widgetstudio
+        UIAppFonts: [Doto-Regular.ttf, Doto-Bold.ttf, Doto-Black.ttf, IBMPlexSansArabic-Regular.ttf, IBMPlexSansArabic-Medium.ttf, IBMPlexSansArabic-SemiBold.ttf, IBMPlexSansArabic-Bold.ttf]
         # AltStore / SideStore register these and rewrite them to the real IDs (ADR-004).
         ALTAppGroups: [group.com.khaled.widgetstudio]
     settings:
@@ -80,6 +84,8 @@ targets:
     platform: iOS
     sources:
       - path: WidgetStudioWidgets
+      - path: Fonts
+        buildPhase: resources
     dependencies:
       - package: WidgetKitCore
         product: WidgetKitCore
@@ -94,6 +100,7 @@ targets:
       properties:
         CFBundleDisplayName: "Widget Studio"
         WSAppGroup: group.com.khaled.widgetstudio
+        UIAppFonts: [Doto-Regular.ttf, Doto-Bold.ttf, Doto-Black.ttf, IBMPlexSansArabic-Regular.ttf, IBMPlexSansArabic-Medium.ttf, IBMPlexSansArabic-SemiBold.ttf, IBMPlexSansArabic-Bold.ttf]
         # AltStore / SideStore register these and rewrite them to the real IDs (ADR-004).
         ALTAppGroups: [group.com.khaled.widgetstudio]
         # Location inside the widget (brief §2), probed in Diagnostics (ADR-005).
@@ -104,6 +111,21 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.khaled.widgetstudio.widgets
+
+  # App-hosted unit tests: renders and snapshots of the specs (ADR-010).
+  WidgetStudioTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: WidgetStudioTests
+    dependencies:
+      - target: WidgetStudio
+      - package: WidgetKitCore
+        product: WidgetKitCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.khaled.widgetstudio.tests
+        GENERATE_INFOPLIST_FILE: YES
 
   WidgetStudioUITests:
     type: bundle.ui-testing
@@ -123,8 +145,10 @@ schemes:
     build:
       targets:
         WidgetStudio: all
+        WidgetStudioTests: [test]
         WidgetStudioUITests: [test]
     test:
       config: Debug
       targets:
+        - WidgetStudioTests
         - WidgetStudioUITests

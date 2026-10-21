@@ -22,8 +22,10 @@
     { "type": "text", "value": { "en": "London", "ar": "لندن" }, "font": { "family": "system", "size": 11 }, "color": "#FFFFFF99", "align": "center", "frame": { "x": 132, "y": 148, "w": 100, "h": 16 } },
     { "type": "text", "value": { "en": "Dubai", "ar": "دبي" }, "font": { "family": "system", "size": 11 }, "color": "#FFFFFF99", "align": "center", "frame": { "x": 248, "y": 148, "w": 100, "h": 16 } },
     { "type": "shape", "kind": "rect", "fill": "#FFFFFF1F", "frame": { "x": 16, "y": 182, "w": 332, "h": 1 } },
-    { "type": "text", "value": { "en": "STEPS THIS MONTH", "ar": "خطوات هذا الشهر" }, "font": { "family": "system", "size": 10, "weight": "semibold" }, "tracking": 1, "color": "#FFFFFF99", "frame": { "x": 16, "y": 198, "w": 200, "h": 14 }, "mirror": true },
-    { "type": "text", "value": "{{tz.offset}}", "font": { "family": "dot", "size": 14, "weight": "bold" }, "color": "#E31C24", "align": "trailing", "frame": { "x": 248, "y": 196, "w": 100, "h": 18 }, "mirror": true },
-    { "type": "dotGrid", "rows": 4, "cols": 8, "dotSize": 22, "gap": 14, "onColor": "#FFFFFF", "offColor": "#FFFFFF1A", "values": "{{steps.monthGrid}}", "frame": { "x": 16, "y": 222, "w": 332, "h": 144 } }
+    { "type": "text", "value": { "en": "STEPS THIS MONTH", "ar": "خطوات هذا الشهر" }, "font": { "family": "system", "size": 10, "weight": "semibold" }, "tracking": 1, "color": "#FFFFFF99", "frame": { "x": 16, "y": 200, "w": 140, "h": 14 }, "mirror": true },
+    { "type": "text", "value": "{{date.MMM}}", "font": { "family": "dot", "size": 22, "weight": "bold" }, "color": "#E31C24", "frame": { "x": 16, "y": 222, "w": 140, "h": 28 }, "mirror": true },
+    { "type": "text", "value": { "en": "TODAY", "ar": "اليوم" }, "font": { "family": "system", "size": 10, "weight": "semibold" }, "tracking": 1, "color": "#FFFFFF99", "frame": { "x": 16, "y": 300, "w": 140, "h": 14 }, "mirror": true },
+    { "type": "text", "value": "{{steps.today}}", "font": { "family": "dot", "size": 30, "weight": "bold" }, "color": "#FFFFFF", "frame": { "x": 14, "y": 318, "w": 142, "h": 38 }, "mirror": true },
+    { "type": "dotGrid", "rows": 6, "cols": 7, "dotSize": 18, "gap": 7, "onColor": "#FFFFFF", "offColor": "#FFFFFF1A", "values": "{{steps.monthGrid}}", "frame": { "x": 172, "y": 198, "w": 176, "h": 168 }, "mirror": true }
   ]
 }

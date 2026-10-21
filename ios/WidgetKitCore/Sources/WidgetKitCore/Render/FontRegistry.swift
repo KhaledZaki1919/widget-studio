@@ -1,32 +1,20 @@
-import CoreText
 import Foundation
 import SwiftUI
 
 /// The fonts a spec may name (brief §4.6). `dot` is Doto and `arabic` is IBM Plex Sans Arabic,
-/// both OFL and bundled in `Resources/Fonts`. Arabic text always uses `arabic`; `dot` is for
-/// Latin digits and letters only.
+/// both OFL. Arabic text always uses `arabic`; `dot` is for Latin digits and letters only.
+///
+/// The font files live in `ios/Fonts`, are bundled in the app and the widget extension, and are
+/// declared in each target's `UIAppFonts` (ADR-010). Fonts are referenced by PostScript name
+/// only: widgets can't use fonts registered at runtime or built with CoreText variations.
 public enum FontRegistry {
     public static let families = ["system", "system-rounded", "system-serif", "system-mono", "dot", "arabic"]
 
-    private static let lock = NSLock()
-    nonisolated(unsafe) private static var registered = false
-
-    /// Registers the bundled fonts for this process (app and widget extension). Safe to call often.
-    public static func registerBundledFonts() {
-        lock.lock()
-        defer { lock.unlock() }
-        guard !registered else { return }
-        registered = true
-        for url in bundledFontURLs {
-            CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
-        }
-    }
-
-    /// The `.ttf` files in the package's resource bundle.
-    public static var bundledFontURLs: [URL] {
-        Bundle.module.urls(forResourcesWithExtension: "ttf", subdirectory: "Fonts")
-            ?? Bundle.module.urls(forResourcesWithExtension: "ttf", subdirectory: nil) ?? []
-    }
+    /// Every PostScript name the targets must provide through `UIAppFonts`.
+    public static let bundledPostScriptNames = [
+        "Doto-Regular", "Doto-Bold", "Doto-Black",
+        "IBMPlexSansArabic-Regular", "IBMPlexSansArabic-Medium", "IBMPlexSansArabic-SemiBold", "IBMPlexSansArabic-Bold",
+    ]
 
     /// True when `text` has Arabic letters, which switch any family to `arabic`.
     public static func containsArabic(_ text: String) -> Bool {
@@ -34,14 +22,17 @@ public enum FontRegistry {
             || (0x08A0...0x08FF).contains($0.value) || (0xFB50...0xFDFF).contains($0.value) || (0xFE70...0xFEFF).contains($0.value) }
     }
 
+    /// The family actually used for `text`.
+    public static func effectiveFamily(_ spec: FontSpec, for text: String) -> String {
+        containsArabic(text) ? "arabic" : spec.family
+    }
+
     /// The SwiftUI font for a spec font at `size` points (already scaled to the widget).
     public static func font(_ spec: FontSpec, size: CGFloat, for text: String) -> Font {
-        registerBundledFonts()
         let weight = spec.weight ?? .regular
-        let family = containsArabic(text) ? "arabic" : spec.family
-        switch family {
+        switch effectiveFamily(spec, for: text) {
         case "dot":
-            return dotFont(size: size, weight: weight)
+            return Font.custom(dotPostScriptName(weight), fixedSize: size)
         case "arabic":
             return Font.custom(arabicPostScriptName(weight), fixedSize: size)
         case "system-rounded":
@@ -55,6 +46,15 @@ public enum FontRegistry {
         }
     }
 
+    /// Doto ships as three static instances built from the variable font (`.github/workflows/fonts.yml`).
+    static func dotPostScriptName(_ weight: FontWeightName) -> String {
+        switch weight {
+        case .ultraLight, .thin, .light, .regular, .medium: "Doto-Regular"
+        case .semibold, .bold: "Doto-Bold"
+        case .heavy, .black: "Doto-Black"
+        }
+    }
+
     /// IBM Plex Sans Arabic ships four static weights.
     static func arabicPostScriptName(_ weight: FontWeightName) -> String {
         switch weight {
@@ -63,17 +63,6 @@ public enum FontRegistry {
         case .semibold: "IBMPlexSansArabic-SemiBold"
         case .bold, .heavy, .black: "IBMPlexSansArabic-Bold"
         }
-    }
-
-    /// Doto is a variable font (default instance Black); the weight is set on its `wght` axis.
-    static func dotFont(size: CGFloat, weight: FontWeightName) -> Font {
-        let wghtAxis = 0x7767_6874 // 'wght'
-        let attributes: [CFString: Any] = [
-            kCTFontNameAttribute: "Doto-Black" as CFString,
-            kCTFontVariationAttribute: [wghtAxis: weight.dotAxisValue] as CFDictionary,
-        ]
-        let descriptor = CTFontDescriptorCreateWithAttributes(attributes as CFDictionary)
-        return Font(CTFontCreateWithFontDescriptor(descriptor, size, nil))
     }
 }
 
@@ -89,21 +78,6 @@ extension FontWeightName {
         case .bold: .bold
         case .heavy: .heavy
         case .black: .black
-        }
-    }
-
-    /// Doto's `wght` axis runs from 100 to 900.
-    var dotAxisValue: Double {
-        switch self {
-        case .ultraLight: 100
-        case .thin: 200
-        case .light: 300
-        case .regular: 400
-        case .medium: 500
-        case .semibold: 600
-        case .bold: 700
-        case .heavy: 800
-        case .black: 900
         }
     }
 }

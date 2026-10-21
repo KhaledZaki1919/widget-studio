@@ -237,18 +237,24 @@ private struct Check {
             if !Bindings.isValidKey(field.key) { fail("\(path).key", "letters, digits and underscores, starting with a letter") }
             if !keys.insert(field.key).inserted { fail("\(path).key", "duplicate key \"\(field.key)\"") }
             for value in field.label.allValues { text(path: "\(path).label", value, allowBindings: false) }
-            guard let value = field.default else { continue }
-            if value.count > SpecValidator.maxTextLength { fail("\(path).default", "at most \(SpecValidator.maxTextLength) characters") }
-            switch field.type {
-            case .date: if FieldValues.date(value) == nil { fail("\(path).default", "must be an ISO 8601 date") }
-            case .number: if Double(value) == nil { fail("\(path).default", "must be a number") }
-            case .color: color("\(path).default", value)
-            case .timezone: if TimeZone(identifier: value) == nil { fail("\(path).default", "unknown time zone") }
-            // A user field may hold a URL (open.url), but a spec's default may not.
-            case .url: if !value.isEmpty { fail("\(path).default", "URL fields can't have a default") }
-            case .text, .city, .shortcut, .image:
-                if Self.containsURL(value) { fail("\(path).default", "remote URLs are not allowed in specs") }
+            for value in field.default?.allValues ?? [] {
+                checkDefault(value, of: field, path: "\(path).default")
             }
+        }
+    }
+
+    /// A default may be localized; each language's value must fit the field type.
+    mutating func checkDefault(_ value: String, of field: FieldSpec, path: String) {
+        if value.count > SpecValidator.maxTextLength { fail(path, "at most \(SpecValidator.maxTextLength) characters") }
+        switch field.type {
+        case .date: if FieldValues.date(value) == nil { fail(path, "must be an ISO 8601 date") }
+        case .number: if Double(value) == nil { fail(path, "must be a number") }
+        case .color: color(path, value)
+        case .timezone: if TimeZone(identifier: value) == nil { fail(path, "unknown time zone") }
+        // A user field may hold a URL (open.url), but a spec's default may not.
+        case .url: if !value.isEmpty { fail(path, "URL fields can't have a default") }
+        case .text, .city, .shortcut, .image:
+            if Self.containsURL(value) { fail(path, "remote URLs are not allowed in specs") }
         }
     }
 
@@ -315,7 +321,7 @@ private struct Check {
             bindingOrLiteral(path: "\(path).values", bars.values, kinds: [.levels]) { SpecLiterals.levels($0) != nil }
             color("\(path).color", bars.color)
             color("\(path).offColor", bars.offColor)
-            if let labels = bars.labels { text(path: "\(path).labels", labels, expecting: [.text]) }
+            for labels in bars.labels?.allValues ?? [] { text(path: "\(path).labels", labels, expecting: [.text]) }
         case .ring(let ring):
             bindingOrLiteral(path: "\(path).progress", ring.progress, kinds: [.number]) { value in
                 Double(value).map { (0...1).contains($0) } ?? false

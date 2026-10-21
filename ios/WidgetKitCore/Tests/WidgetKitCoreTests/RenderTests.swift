@@ -53,6 +53,15 @@ struct BindingResolverTests {
         #expect(resolver(spec(fields: fields), fields: ["city": "Alexandria"]).render("{{field.city}}") == "Alexandria")
     }
 
+    @Test func localizedDefaultsAndDataFollowTheLanguage() {
+        let fields = [FieldSpec(key: "city", type: .city, label: "City", default: .localized(en: "Cairo", ar: "القاهرة"))]
+        #expect(resolver(spec(fields: fields), language: "ar").render("{{field.city}}") == "القاهرة")
+        #expect(resolver(spec(fields: fields), language: "en").render("{{field.city}}") == "Cairo")
+        #expect(resolver(language: "ar").render("{{weather.cond}}") == "غائم جزئيًا")
+        #expect(resolver(language: "ar").render("{{sleep.lastNight}}") == "7س 20د")
+        #expect(resolver(language: "ar").render("{{date.MMM}}") == "أكتوبر")
+    }
+
     @Test func dateFieldAndTimezoneTime() {
         let fields = [
             FieldSpec(key: "day", type: .date, label: .plain("Day"), default: "2026-12-31"),
@@ -73,6 +82,28 @@ struct BindingResolverTests {
         #expect(resolver().levels("{{sleep.week}}").count == 7)
         #expect(resolver().levels("0.5,1") == [0.5, 1])
         #expect(resolver().levels("01 10") == [0, 1, 1, 0])
+    }
+}
+
+struct MonthGridTests {
+    @Test func octoberStartsOnThursdayWithSundayFirst() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = utc
+        calendar.firstWeekday = 1
+        let cells = MonthGrid.levels(perDay: Array(repeating: 1, count: 31), monthOf: fixedDate, calendar: calendar)
+        // 1 Oct 2026 is a Thursday: Sun…Wed are padding.
+        #expect(Array(cells.prefix(5)) == [-1, -1, -1, -1, 1])
+        #expect(cells.count % 7 == 0)
+        #expect(cells.filter { $0 >= 0 }.count == 31)
+    }
+
+    @Test func saturdayFirstShiftsThePadding() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = utc
+        calendar.firstWeekday = 7
+        let cells = MonthGrid.levels(perDay: [], monthOf: fixedDate, calendar: calendar)
+        // Sat, Sun, Mon, Tue, Wed padding, then Thursday the 1st (level 0: no data).
+        #expect(Array(cells.prefix(6)) == [-1, -1, -1, -1, -1, 0])
     }
 }
 
@@ -106,8 +137,10 @@ struct FontRegistryTests {
         #expect(!FontRegistry.containsArabic("12:45 PM"))
     }
 
-    @Test func bundledFontsArePresent() {
-        let fonts = FontRegistry.bundledFontURLs
-        #expect(fonts.count == 5)
+    @Test func everyWeightMapsToABundledFont() {
+        for weight in FontWeightName.allCases {
+            #expect(FontRegistry.bundledPostScriptNames.contains(FontRegistry.dotPostScriptName(weight)))
+            #expect(FontRegistry.bundledPostScriptNames.contains(FontRegistry.arabicPostScriptName(weight)))
+        }
     }
 }

@@ -24,11 +24,11 @@ public struct DataSnapshot: Sendable, Equatable {
         public var low: Double
         public var condition: LocalizedText
         public var symbol: String
-        public var city: String
+        public var city: LocalizedText
         public var forecast: [DayForecast]
 
         public init(temperature: Double, high: Double, low: Double, condition: LocalizedText, symbol: String,
-                    city: String, forecast: [DayForecast]) {
+                    city: LocalizedText, forecast: [DayForecast]) {
             self.temperature = temperature
             self.high = high
             self.low = low
@@ -54,13 +54,14 @@ public struct DataSnapshot: Sendable, Equatable {
     public var weather: Weather?
     public var stepsToday: Double?
     public var stepsStreak: Double?
-    /// Levels 0…1 per day of the month.
+    /// A month calendar: one level 0…1 per cell, 7 cells per week, -1 for cells outside the month
+    /// (see `MonthGrid`).
     public var stepsMonthGrid: [Double]?
-    public var sleepLastNight: String?
+    public var sleepLastNight: LocalizedText?
     public var sleepWeek: [Double]?
     public var counter: Double?
     public var stopwatchStart: Date?
-    public var focusToday: String?
+    public var focusToday: LocalizedText?
     public var focusWeek: [Double]?
     public var prayer: Prayer?
     public var qiblaBearing: Double?
@@ -80,7 +81,7 @@ public struct DataSnapshot: Sendable, Equatable {
         data.weather = Weather(
             temperature: 30, high: 33, low: 21,
             condition: .localized(en: "Partly cloudy", ar: "غائم جزئيًا"),
-            symbol: "cloud.sun.fill", city: "Cairo",
+            symbol: "cloud.sun.fill", city: .localized(en: "Cairo", ar: "القاهرة"),
             forecast: (0..<7).map { offset in
                 DayForecast(
                     date: calendar.date(byAdding: .day, value: offset, to: start) ?? start,
@@ -90,12 +91,15 @@ public struct DataSnapshot: Sendable, Equatable {
         )
         data.stepsToday = 5_543
         data.stepsStreak = 3
-        data.stepsMonthGrid = (0..<31).map { day in [0.0, 0.3, 0.6, 1.0][(day * 7 + 3) % 4] }
-        data.sleepLastNight = "7h 20m"
+        // Varied levels for the days so far, nothing for the days still to come.
+        let today = calendar.component(.day, from: now)
+        let perDay = (1...31).map { day -> Double in day > today ? 0 : [0.25, 1.0, 0.6, 0.9, 0.4, 1.0, 0.75][(day * 5) % 7] }
+        data.stepsMonthGrid = MonthGrid.levels(perDay: perDay, monthOf: now, calendar: calendar)
+        data.sleepLastNight = .localized(en: "7h 20m", ar: "7س 20د")
         data.sleepWeek = [0.7, 0.85, 0.6, 0.9, 0.75, 0.5, 0.8]
         data.counter = 33
         data.stopwatchStart = now.addingTimeInterval(-754)
-        data.focusToday = "1h 45m"
+        data.focusToday = .localized(en: "1h 45m", ar: "1س 45د")
         data.focusWeek = [0.4, 0.8, 0.6, 1.0, 0.3, 0.0, 0.5]
         func at(_ hour: Int, _ minute: Int) -> Date {
             calendar.date(bySettingHour: hour, minute: minute, second: 0, of: now) ?? now
@@ -128,6 +132,9 @@ public struct RenderContext {
     public var fieldValues: [String: String]
     public var data: DataSnapshot
     public var userImage: CGImage?
+    /// Renders live texts (relative, timer) as fixed text measured from `date`, because SwiftUI's
+    /// live styles measure from the real clock. For snapshot tests only.
+    public var freezesLiveText = false
 
     public init(date: Date = .now, language: String = "ar", timeZone: TimeZone = .current,
                 fieldValues: [String: String] = [:], data: DataSnapshot = DataSnapshot(), userImage: CGImage? = nil) {
@@ -140,6 +147,9 @@ public struct RenderContext {
     }
 
     public var isArabic: Bool { language.hasPrefix("ar") }
+
+    /// Words in the render language with Latin digits, so numbers suit the `dot` font.
+    public var localeIdentifier: String { isArabic ? "ar_EG@numbers=latn" : "en_US" }
 
     /// The app's language, as the system picked it from the app's localizations.
     public static var preferredLanguage: String {

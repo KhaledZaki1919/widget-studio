@@ -48,11 +48,11 @@ struct TestSpecEntity: AppEntity {
 
 struct TestSpecQuery: EntityQuery {
     func entities(for identifiers: [String]) async throws -> [TestSpecEntity] {
-        TestSpecs.all().filter { identifiers.contains($0.id) }.map(TestSpecEntity.init(spec:))
+        SpecProvider.specs.filter { identifiers.contains($0.id) }.map(TestSpecEntity.init(spec:))
     }
 
     func suggestedEntities() async throws -> [TestSpecEntity] {
-        TestSpecs.all().map(TestSpecEntity.init(spec:))
+        SpecProvider.specs.map(TestSpecEntity.init(spec:))
     }
 }
 
@@ -62,6 +62,9 @@ struct SpecEntry: TimelineEntry {
 }
 
 struct SpecProvider: AppIntentTimelineProvider {
+    /// Loaded and validated once per extension process, not on every reload.
+    static let specs = TestSpecs.all()
+
     func placeholder(in context: Context) -> SpecEntry {
         SpecEntry(date: .now, spec: Self.spec(for: nil, family: context.family))
     }
@@ -79,7 +82,6 @@ struct SpecProvider: AppIntentTimelineProvider {
 
     /// The chosen spec, else the first test spec made for this widget size.
     static func spec(for configuration: SelectSpecIntent?, family: WidgetFamily) -> WidgetSpec? {
-        let specs = TestSpecs.all()
         if let id = configuration?.spec?.id, let chosen = specs.first(where: { $0.id == id }) {
             return chosen
         }
@@ -92,21 +94,13 @@ struct SpecProvider: AppIntentTimelineProvider {
     }
 }
 
+/// Renders the entry with the package view the tests also render (`SpecWidgetContent`).
 struct SpecWidgetView: View {
     let entry: SpecEntry
 
     var body: some View {
-        if let spec = entry.spec {
-            SpecView(spec: spec, context: RenderContext(
-                date: entry.date, language: RenderContext.preferredLanguage, data: .sample(now: entry.date)
-            ), drawsBackground: false)
-            .containerBackground(for: .widget) {
-                SpecBackground(spec: spec)
-            }
-        } else {
-            Text("widget.spec.none")
-                .font(.footnote)
-                .containerBackground(Color(white: 0.055), for: .widget)
-        }
+        SpecWidgetContent(spec: entry.spec, context: RenderContext(
+            date: entry.date, language: RenderContext.preferredLanguage, data: .sample(now: entry.date)
+        ))
     }
 }

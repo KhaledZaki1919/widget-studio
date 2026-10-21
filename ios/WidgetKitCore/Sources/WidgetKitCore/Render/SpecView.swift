@@ -2,8 +2,12 @@ import SwiftUI
 
 /// Draws a validated spec (brief §3.2). The same view renders the in-app preview and the real
 /// widget, so the preview is exact. Positions are canvas units scaled uniformly to the space
-/// offered. The canvas is laid out left-to-right; in RTL, layers with `mirror: true` move to
-/// the other side and lay out their own content right-to-left. Numbers and clocks never mirror.
+/// offered.
+///
+/// RTL (ADR-010): the canvas is always laid out left-to-right and nothing is ever flipped like an
+/// image, so text, digits and clocks keep their shape. In Arabic, a layer with `mirror: true`
+/// moves to the mirrored frame and swaps its own alignment and item order (`LayerView.mirrored`).
+/// Layers without `mirror` stay exactly where they are.
 public struct SpecView: View {
     let spec: WidgetSpec
     let context: RenderContext
@@ -29,17 +33,19 @@ public struct SpecView: View {
                 ForEach(Array(spec.layers.enumerated()), id: \.offset) { _, layer in
                     let mirrored = context.isArabic && layer.mirror == true
                     let frame = mirrored ? layer.frame.mirrored(canvasWidth: canvas.width) : layer.frame
-                    LayerView(layer: layer, resolver: resolver, scale: scale)
-                        .environment(\.layoutDirection, mirrored ? .rightToLeft : .leftToRight)
+                    LayerView(layer: layer, resolver: resolver, scale: scale, mirrored: mirrored)
                         .frame(width: frame.w * scale, height: frame.h * scale)
                         .opacity(layer.opacity ?? 1)
                         .position(x: (frame.x + frame.w / 2) * scale, y: (frame.y + frame.h / 2) * scale)
                 }
             }
             .frame(width: canvas.width * scale, height: canvas.height * scale)
-            .environment(\.layoutDirection, .leftToRight)
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
+        // Absolute canvas coordinates, whatever the host's direction.
+        .environment(\.layoutDirection, .leftToRight)
+        // Live texts (time, relative, timer) format in the spec's language with Latin digits.
+        .environment(\.locale, Locale(identifier: context.localeIdentifier))
         .environment(\.colorScheme, spec.theme == .dark ? .dark : .light)
     }
 }
@@ -92,23 +98,26 @@ extension Color {
     }
 }
 
-/// One layer, filling the frame it is given.
+/// One layer, filling the frame it is given. `mirrored` swaps leading/trailing alignment and
+/// reverses horizontal item order; it never flips glyphs.
 struct LayerView: View {
     let layer: Layer
     let resolver: BindingResolver
     let scale: CGFloat
+    let mirrored: Bool
 
     var body: some View {
         switch layer.content {
-        case .text(let text): TextLayerView(layer: text, resolver: resolver, scale: scale)
+        case .text(let text): TextLayerView(layer: text, resolver: resolver, scale: scale, mirrored: mirrored)
         case .image(let image): ImageLayerView(layer: image, image: resolver.context.userImage, scale: scale)
         case .shape(let shape): ShapeLayerView(layer: shape, scale: scale)
         case .icon(let icon): IconLayerView(layer: icon, resolver: resolver, scale: scale)
         case .analogClock(let clock): AnalogClockView(layer: clock, resolver: resolver)
-        case .dotGrid(let grid): DotGridView(layer: grid, levels: resolver.levels(grid.values), scale: scale)
-        case .dotBars(let bars): DotBarsView(layer: bars, resolver: resolver, scale: scale)
+        case .dotGrid(let grid):
+            DotGridView(layer: grid, levels: resolver.levels(grid.values), scale: scale, mirrored: mirrored)
+        case .dotBars(let bars): DotBarsView(layer: bars, resolver: resolver, scale: scale, mirrored: mirrored)
         case .ring(let ring): RingView(layer: ring, progress: resolver.number(ring.progress) ?? 0, scale: scale)
-        case .forecastRow(let row): ForecastRowView(layer: row, resolver: resolver, scale: scale)
+        case .forecastRow(let row): ForecastRowView(layer: row, resolver: resolver, scale: scale, mirrored: mirrored)
         case .button(let button): ButtonLayerView(layer: button, resolver: resolver)
         case .unknown: Color.clear
         }

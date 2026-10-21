@@ -108,7 +108,10 @@ jobs:
       - name: Generate project
         run: xcodegen generate
 
-      - name: UI smoke test (Simulator)
+      - name: App tests (renders, snapshots) and UI smoke test (Simulator)
+        env:
+          # Passed to the test process as SNAPSHOT_DIR (ADR-010).
+          TEST_RUNNER_SNAPSHOT_DIR: ${{ github.workspace }}/ios/build/snapshots
         run: |
           UDID=$(xcrun simctl list devices available -j | python3 scripts/pick-simulator.py)
           xcodebuild test \
@@ -125,11 +128,20 @@ jobs:
           python3 - <<'PY'
           import json
           s = json.load(open("build/summary.json"))
-          print(f"UI tests: {s['passedTests']} passed, {s['failedTests']} failed, {s['skippedTests']} skipped of {s['totalTestCount']}")
+          print(f"App and UI tests: {s['passedTests']} passed, {s['failedTests']} failed, {s['skippedTests']} skipped of {s['totalTestCount']}")
           for f in s.get("testFailures", []):
               print(f"FAILED {f.get('testIdentifierString', f.get('testName'))}: {f.get('failureText')}")
-          assert s["totalTestCount"] >= 2 and s["failedTests"] == 0, "expected at least 2 passing UI tests"
+          assert s["totalTestCount"] >= 7 and s["failedTests"] == 0, "expected at least 7 app and UI tests, none failing"
           PY
+
+      - name: Upload snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshots
+          path: ios/build/snapshots
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Upload test results
         if: failure()

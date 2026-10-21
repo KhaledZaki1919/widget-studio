@@ -1,6 +1,7 @@
 included:
   - WidgetStudio
   - WidgetStudioWidgets
+  - WidgetStudioTests
   - WidgetStudioUITests
   - WidgetKitCore/Sources
   - WidgetKitCore/Tests

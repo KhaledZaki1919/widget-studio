@@ -275,10 +275,10 @@ public struct DotBarsLayer: Codable, Sendable, Equatable {
     public var values: String
     public var color: String
     public var offColor: String?
-    /// Comma-separated labels or a binding to labels.
-    public var labels: String?
+    /// Comma-separated labels (a string or `{en, ar}`), one per bar.
+    public var labels: LocalizedText?
 
-    public init(bars: Int, maxDots: Int, values: String, color: String, offColor: String? = nil, labels: String? = nil) {
+    public init(bars: Int, maxDots: Int, values: String, color: String, offColor: String? = nil, labels: LocalizedText? = nil) {
         self.bars = bars
         self.maxDots = maxDots
         self.values = values

@@ -52,6 +52,28 @@ if ! plutil -extract UILaunchScreen xml1 -o - "$BUNDLE/Info.plist" | grep -q "<d
 fi
 echo "UILaunchScreen: present"
 
+# Widgets can only use fonts declared in their own UIAppFonts (ADR-010): every declared font
+# must be in the bundle, in the app and in each extension.
+verify_fonts() {
+  local bundle="$1"
+  local count
+  count="$(plutil -extract UIAppFonts raw -o - "$bundle/Info.plist" 2>/dev/null || echo 0)"
+  if [ "$count" -eq 0 ]; then
+    echo "error: $(basename "$bundle") declares no UIAppFonts" >&2
+    exit 1
+  fi
+  for ((i = 0; i < count; i++)); do
+    font="$(plutil -extract "UIAppFonts.$i" raw -o - "$bundle/Info.plist")"
+    if [ ! -f "$bundle/$font" ]; then
+      echo "error: $(basename "$bundle") declares $font but doesn't contain it" >&2
+      exit 1
+    fi
+  done
+  echo "Fonts in $(basename "$bundle"): $count, all present"
+}
+verify_fonts "$BUNDLE"
+for appex in "$BUNDLE"/PlugIns/*.appex; do verify_fonts "$appex"; done
+
 # Verify each signed bundle really carries the App Group entitlement (brief §9).
 verify_entitlements() {
   local bundle="$1"
