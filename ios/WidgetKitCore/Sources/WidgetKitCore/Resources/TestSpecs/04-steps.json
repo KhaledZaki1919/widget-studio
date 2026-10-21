@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "test.health.steps",
+  "name": { "en": "Steps", "ar": "الخطوات" },
+  "family": "small",
+  "theme": "light",
+  "refresh": "hourly",
+  "background": { "type": "solid", "color": "#FFFFFF" },
+  "layers": [
+    { "type": "text", "value": { "en": "TOTAL STEPS", "ar": "إجمالي الخطوات" }, "font": { "family": "system", "size": 10, "weight": "semibold" }, "tracking": 1, "color": "#0E0E0E99", "frame": { "x": 16, "y": 16, "w": 138, "h": 14 }, "mirror": true },
+    { "type": "text", "value": "{{steps.today}}", "font": { "family": "dot", "size": 36, "weight": "bold" }, "color": "#0E0E0E", "frame": { "x": 14, "y": 32, "w": 142, "h": 44 }, "mirror": true },
+    { "type": "shape", "kind": "rect", "fill": "#0E0E0E1F", "frame": { "x": 16, "y": 92, "w": 138, "h": 1 } },
+    { "type": "text", "value": { "en": "STREAK", "ar": "أيام متتالية" }, "font": { "family": "system", "size": 10, "weight": "semibold" }, "tracking": 1, "color": "#0E0E0E99", "frame": { "x": 16, "y": 104, "w": 110, "h": 14 }, "mirror": true },
+    { "type": "text", "value": { "en": "{{steps.streak}} DAYS", "ar": "{{steps.streak}} أيام" }, "font": { "family": "dot", "size": 24, "weight": "bold" }, "color": "#0E0E0E", "frame": { "x": 14, "y": 120, "w": 112, "h": 32 }, "mirror": true },
+    { "type": "icon", "symbol": "figure.walk", "size": 16, "color": "#E31C24", "frame": { "x": 132, "y": 126, "w": 22, "h": 22 }, "mirror": true }
+  ]
+}

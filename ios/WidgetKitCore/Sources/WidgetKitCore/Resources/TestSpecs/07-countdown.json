@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "test.countdown",
+  "name": { "en": "Countdown", "ar": "عد تنازلي" },
+  "family": "small",
+  "theme": "dark",
+  "refresh": "daily",
+  "background": { "type": "solid", "color": "#E31C24" },
+  "fields": [
+    { "key": "title", "type": "text", "label": { "en": "Title", "ar": "العنوان" }, "default": "2027" },
+    { "key": "day", "type": "date", "label": { "en": "Date", "ar": "التاريخ" }, "default": "2027-01-01" }
+  ],
+  "layers": [
+    { "type": "text", "value": "{{field.title}}", "font": { "family": "dot", "size": 22, "weight": "bold" }, "color": "#FFFFFF", "frame": { "x": 16, "y": 16, "w": 138, "h": 26 }, "mirror": true },
+    { "type": "text", "value": "", "live": { "kind": "relative", "target": "{{field.day}}" }, "font": { "family": "system", "size": 20, "weight": "bold" }, "color": "#FFFFFF", "maxLines": 2, "frame": { "x": 16, "y": 60, "w": 138, "h": 56 }, "mirror": true },
+    { "type": "text", "value": "", "live": { "kind": "time" }, "font": { "family": "system-mono", "size": 11 }, "color": "#FFFFFFB3", "frame": { "x": 16, "y": 134, "w": 138, "h": 16 }, "mirror": true },
+    { "type": "button", "action": "open.app", "frame": { "x": 0, "y": 0, "w": 170, "h": 170 } }
+  ]
+}

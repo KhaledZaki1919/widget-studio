@@ -13,7 +13,7 @@ let package = Package(
         .target(
             name: "WidgetKitCore",
             // Fonts ship with their OFL license files, as the license requires.
-            resources: [.copy("Resources/Fonts")]
+            resources: [.copy("Resources/Fonts"), .copy("Resources/TestSpecs"), .copy("Resources/Spec")]
         ),
         .testTarget(name: "WidgetKitCoreTests", dependencies: ["WidgetKitCore"]),
     ],

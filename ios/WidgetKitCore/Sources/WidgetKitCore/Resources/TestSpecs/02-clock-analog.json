@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "test.clock.analog",
+  "name": { "en": "Round clock", "ar": "ساعة دائرية" },
+  "family": "small",
+  "theme": "light",
+  "refresh": "minute",
+  "background": { "type": "solid", "color": "#FFFFFF", "outerColor": "#E6E6E8" },
+  "layers": [
+    { "type": "analogClock", "style": "classic", "faceColor": "#FFFFFF", "tickColor": "#0E0E0E", "hourColor": "#0E0E0E", "minuteColor": "#0E0E0E", "accentColor": "#E31C24", "frame": { "x": 6, "y": 6, "w": 158, "h": 158 } }
+  ]
+}

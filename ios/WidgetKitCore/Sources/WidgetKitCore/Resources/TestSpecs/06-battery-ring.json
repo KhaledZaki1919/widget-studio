@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "test.device.battery",
+  "name": { "en": "Battery", "ar": "البطارية" },
+  "family": "small",
+  "theme": "dark",
+  "refresh": "hourly",
+  "background": { "type": "solid", "color": "#0E0E0E" },
+  "layers": [
+    { "type": "ring", "progress": "{{battery.level}}", "color": "#FFFFFF", "trackColor": "#FFFFFF26", "lineWidth": 10, "frame": { "x": 20, "y": 20, "w": 130, "h": 130 } },
+    { "type": "icon", "symbol": "bolt.fill", "size": 18, "color": "#E31C24", "frame": { "x": 73, "y": 46, "w": 24, "h": 24 } },
+    { "type": "text", "value": "{{battery.level}}%", "font": { "family": "dot", "size": 30, "weight": "bold" }, "color": "#FFFFFF", "align": "center", "frame": { "x": 30, "y": 72, "w": 110, "h": 36 } }
+  ]
+}

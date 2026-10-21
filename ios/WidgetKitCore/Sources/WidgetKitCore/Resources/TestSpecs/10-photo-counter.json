@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "test.photo.counter",
+  "name": { "en": "Photo and tasbeeh", "ar": "صورة وتسبيح" },
+  "family": "medium",
+  "theme": "light",
+  "refresh": "none",
+  "background": { "type": "solid", "color": "#FFFFFF" },
+  "fields": [
+    { "key": "photo", "type": "image", "label": { "en": "Photo", "ar": "الصورة" } },
+    { "key": "dhikr", "type": "text", "label": { "en": "Dhikr", "ar": "الذكر" }, "default": "سبحان الله" },
+    { "key": "torch", "type": "shortcut", "label": { "en": "Shortcut", "ar": "الاختصار" }, "default": "Torch" }
+  ],
+  "layers": [
+    { "type": "image", "source": "user_image", "fit": "fill", "mask": "roundedRect", "cornerRadius": 18, "filter": "mono", "frame": { "x": 10, "y": 10, "w": 150, "h": 150 }, "mirror": true },
+    { "type": "text", "value": "{{field.dhikr}}", "font": { "family": "arabic", "size": 16, "weight": "semibold" }, "color": "#0E0E0E", "align": "center", "frame": { "x": 176, "y": 16, "w": 172, "h": 24 }, "mirror": true },
+    { "type": "text", "value": "{{counter.value}}", "font": { "family": "dot", "size": 44, "weight": "bold" }, "color": "#0E0E0E", "align": "center", "frame": { "x": 176, "y": 44, "w": 172, "h": 54 } },
+    { "type": "shape", "kind": "capsule", "fill": "#E31C24", "frame": { "x": 186, "y": 110, "w": 70, "h": 42 }, "mirror": true },
+    { "type": "icon", "symbol": "plus", "size": 18, "color": "#FFFFFF", "frame": { "x": 186, "y": 110, "w": 70, "h": 42 }, "mirror": true },
+    { "type": "button", "action": "counter.increment", "frame": { "x": 186, "y": 110, "w": 70, "h": 42 }, "mirror": true },
+    { "type": "shape", "kind": "capsule", "fill": "#0E0E0E", "stroke": { "color": "#0E0E0E", "width": 1, "dash": [3, 3] }, "frame": { "x": 268, "y": 110, "w": 70, "h": 42 }, "mirror": true },
+    { "type": "icon", "symbol": "flashlight.on.fill", "size": 16, "color": "#FFFFFF", "frame": { "x": 268, "y": 110, "w": 70, "h": 42 }, "mirror": true },
+    { "type": "button", "action": "shortcut.run", "arg": "{{field.torch}}", "frame": { "x": 268, "y": 110, "w": 70, "h": 42 }, "mirror": true }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "test.prayer.next",
+  "name": { "en": "Next prayer", "ar": "الصلاة القادمة" },
+  "family": "medium",
+  "theme": "light",
+  "refresh": "minute",
+  "background": { "type": "solid", "color": "#FFFFFF" },
+  "layers": [
+    { "type": "text", "value": { "en": "NEXT PRAYER", "ar": "الصلاة القادمة" }, "font": { "family": "system", "size": 10, "weight": "semibold" }, "tracking": 1, "color": "#0E0E0E99", "frame": { "x": 16, "y": 18, "w": 170, "h": 14 }, "mirror": true },
+    { "type": "text", "value": "{{prayer.next.name}}", "font": { "family": "system", "size": 26, "weight": "bold" }, "color": "#0E0E0E", "frame": { "x": 16, "y": 36, "w": 170, "h": 34 }, "mirror": true },
+    { "type": "text", "value": "{{prayer.next.time}}", "font": { "family": "dot", "size": 34, "weight": "bold" }, "color": "#E31C24", "frame": { "x": 14, "y": 74, "w": 172, "h": 42 }, "mirror": true },
+    { "type": "icon", "symbol": "location.north.fill", "size": 14, "color": "#0E0E0E", "frame": { "x": 16, "y": 134, "w": 18, "h": 18 }, "mirror": true },
+    { "type": "text", "value": { "en": "Qibla {{qibla.bearing}}°", "ar": "القبلة {{qibla.bearing}}°" }, "font": { "family": "system", "size": 11, "weight": "medium" }, "color": "#0E0E0E99", "frame": { "x": 38, "y": 135, "w": 148, "h": 16 }, "mirror": true },
+    { "type": "shape", "kind": "rect", "fill": "#0E0E0E1F", "frame": { "x": 200, "y": 18, "w": 1, "h": 134 }, "mirror": true },
+    { "type": "text", "value": { "en": "Fajr", "ar": "الفجر" }, "font": { "family": "system", "size": 11 }, "color": "#0E0E0E", "frame": { "x": 216, "y": 18, "w": 70, "h": 20 }, "mirror": true },
+    { "type": "text", "value": "{{prayer.fajr}}", "font": { "family": "system-mono", "size": 11 }, "color": "#0E0E0E", "align": "trailing", "frame": { "x": 290, "y": 18, "w": 58, "h": 20 }, "mirror": true },
+    { "type": "text", "value": { "en": "Dhuhr", "ar": "الظهر" }, "font": { "family": "system", "size": 11 }, "color": "#0E0E0E", "frame": { "x": 216, "y": 46, "w": 70, "h": 20 }, "mirror": true },
+    { "type": "text", "value": "{{prayer.dhuhr}}", "font": { "family": "system-mono", "size": 11 }, "color": "#0E0E0E", "align": "trailing", "frame": { "x": 290, "y": 46, "w": 58, "h": 20 }, "mirror": true },
+    { "type": "text", "value": { "en": "Asr", "ar": "العصر" }, "font": { "family": "system", "size": 11 }, "color": "#0E0E0E", "frame": { "x": 216, "y": 74, "w": 70, "h": 20 }, "mirror": true },
+    { "type": "text", "value": "{{prayer.asr}}", "font": { "family": "system-mono", "size": 11 }, "color": "#0E0E0E", "align": "trailing", "frame": { "x": 290, "y": 74, "w": 58, "h": 20 }, "mirror": true },
+    { "type": "text", "value": { "en": "Maghrib", "ar": "المغرب" }, "font": { "family": "system", "size": 11 }, "color": "#0E0E0E", "frame": { "x": 216, "y": 102, "w": 70, "h": 20 }, "mirror": true },
+    { "type": "text", "value": "{{prayer.maghrib}}", "font": { "family": "system-mono", "size": 11 }, "color": "#0E0E0E", "align": "trailing", "frame": { "x": 290, "y": 102, "w": 58, "h": 20 }, "mirror": true },
+    { "type": "text", "value": { "en": "Isha", "ar": "العشاء" }, "font": { "family": "system", "size": 11 }, "color": "#0E0E0E", "frame": { "x": 216, "y": 130, "w": 70, "h": 20 }, "mirror": true },
+    { "type": "text", "value": "{{prayer.isha}}", "font": { "family": "system-mono", "size": 11 }, "color": "#0E0E0E", "align": "trailing", "frame": { "x": 290, "y": 130, "w": 58, "h": 20 }, "mirror": true }
+  ]
+}

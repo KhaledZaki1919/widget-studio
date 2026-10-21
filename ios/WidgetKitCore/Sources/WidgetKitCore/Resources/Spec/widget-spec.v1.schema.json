@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "widget-spec.v1.schema.json",
+  "title": "Widget Studio spec v1",
+  "description": "Structure of a widget spec (brief §4). SpecValidator enforces further rules: binding whitelist, field references, icon whitelist, frames clamped to the canvas, AI-mode limits.",
+  "type": "object",
+  "required": ["schemaVersion", "id", "name", "family", "background", "layers"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "enum": [1] },
+    "id": { "type": "string", "pattern": "^[a-z0-9._-]{1,64}$" },
+    "name": { "$ref": "#/$defs/localizedPair" },
+    "family": { "type": "string", "enum": ["small", "medium", "large"] },
+    "theme": { "type": "string", "enum": ["light", "dark"] },
+    "refresh": { "type": "string", "enum": ["none", "minute", "hourly", "daily"] },
+    "background": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string", "enum": ["solid", "gradient"] },
+        "color": { "$ref": "#/$defs/color" },
+        "colors": { "type": "array", "items": { "$ref": "#/$defs/color" }, "minItems": 2, "maxItems": 4 },
+        "angle": { "type": "number", "minimum": -360, "maximum": 360 },
+        "outerColor": { "$ref": "#/$defs/color" }
+      }
+    },
+    "fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "type", "label"],
+        "properties": {
+          "key": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*$" },
+          "type": { "type": "string", "enum": ["text", "number", "date", "color", "image", "timezone", "city", "shortcut", "url"] },
+          "label": { "$ref": "#/$defs/localizedPair" },
+          "default": { "type": "string", "maxLength": 200 }
+        }
+      }
+    },
+    "layers": { "type": "array", "minItems": 1, "maxItems": 30, "items": { "$ref": "#/$defs/layer" } }
+  },
+  "$defs": {
+    "color": { "type": "string", "pattern": "^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$" },
+    "localizedPair": {
+      "type": "object",
+      "required": ["en", "ar"],
+      "properties": {
+        "en": { "type": "string", "maxLength": 200 },
+        "ar": { "type": "string", "maxLength": 200 }
+      }
+    },
+    "text": {
+      "anyOf": [
+        { "type": "string", "maxLength": 200 },
+        { "$ref": "#/$defs/localizedPair" }
+      ]
+    },
+    "frame": {
+      "type": "object",
+      "required": ["x", "y", "w", "h"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "w": { "type": "number", "exclusiveMinimum": 0 },
+        "h": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "layer": {
+      "type": "object",
+      "required": ["type", "frame"],
+      "properties": {
+        "type": { "type": "string", "enum": ["text", "image", "shape", "icon", "analogClock", "dotGrid", "dotBars", "ring", "forecastRow", "button"] },
+        "frame": { "$ref": "#/$defs/frame" },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "mirror": { "type": "boolean" },
+        "value": { "$ref": "#/$defs/text" },
+        "font": {
+          "type": "object",
+          "required": ["family", "size"],
+          "properties": {
+            "family": { "type": "string", "enum": ["system", "system-rounded", "system-serif", "system-mono", "dot", "arabic"] },
+            "size": { "type": "number", "minimum": 6, "maximum": 200 },
+            "weight": { "type": "string", "enum": ["ultraLight", "thin", "light", "regular", "medium", "semibold", "bold", "heavy", "black"] }
+          }
+        },
+        "color": { "$ref": "#/$defs/color" },
+        "align": { "type": "string", "enum": ["leading", "center", "trailing"] },
+        "maxLines": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "tracking": { "type": "number", "minimum": -10, "maximum": 40 },
+        "live": {
+          "type": "object",
+          "required": ["kind"],
+          "properties": {
+            "kind": { "type": "string", "enum": ["timer", "relative", "time"] },
+            "target": { "type": "string" }
+          }
+        },
+        "source": { "type": "string", "pattern": "^(user_image|asset:[a-z0-9._-]+)$" },
+        "fit": { "type": "string", "enum": ["fill", "fit"] },
+        "mask": { "type": "string", "enum": ["rect", "roundedRect", "circle"] },
+        "cornerRadius": { "type": "number", "minimum": 0, "maximum": 200 },
+        "filter": { "type": "string", "enum": ["none", "mono", "halftone"] },
+        "kind": { "type": "string", "enum": ["rect", "roundedRect", "circle", "capsule"] },
+        "fill": { "$ref": "#/$defs/color" },
+        "stroke": {
+          "type": "object",
+          "required": ["color", "width"],
+          "properties": {
+            "color": { "$ref": "#/$defs/color" },
+            "width": { "type": "number", "minimum": 0, "maximum": 40 },
+            "dash": { "type": "array", "items": { "type": "number", "minimum": 0, "maximum": 100 }, "maxItems": 8 }
+          }
+        },
+        "symbol": { "type": "string" },
+        "size": { "type": "number", "minimum": 4, "maximum": 200 },
+        "style": { "type": "string", "enum": ["classic", "dot"] },
+        "faceColor": { "$ref": "#/$defs/color" },
+        "tickColor": { "$ref": "#/$defs/color" },
+        "hourColor": { "$ref": "#/$defs/color" },
+        "minuteColor": { "$ref": "#/$defs/color" },
+        "accentColor": { "$ref": "#/$defs/color" },
+        "timezone": { "type": "string" },
+        "rows": { "type": "integer", "minimum": 1, "maximum": 40 },
+        "cols": { "type": "integer", "minimum": 1, "maximum": 40 },
+        "dotSize": { "type": "number", "minimum": 0.5, "maximum": 60 },
+        "gap": { "type": "number", "minimum": 0, "maximum": 60 },
+        "onColor": { "$ref": "#/$defs/color" },
+        "offColor": { "$ref": "#/$defs/color" },
+        "values": { "type": "string" },
+        "bars": { "type": "integer", "minimum": 1, "maximum": 31 },
+        "maxDots": { "type": "integer", "minimum": 1, "maximum": 24 },
+        "labels": { "type": "string" },
+        "progress": { "type": "string" },
+        "trackColor": { "$ref": "#/$defs/color" },
+        "lineWidth": { "type": "number", "minimum": 0.5, "maximum": 60 },
+        "days": { "type": "integer", "minimum": 1, "maximum": 7 },
+        "action": { "type": "string", "enum": ["counter.increment", "counter.reset", "stopwatch.toggle", "shortcut.run", "open.url", "open.app"] },
+        "arg": { "type": "string" }
+      }
+    }
+  }
+}

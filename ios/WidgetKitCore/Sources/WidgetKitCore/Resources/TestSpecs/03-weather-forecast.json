@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "test.weather.forecast",
+  "name": { "en": "Forecast", "ar": "توقعات الطقس" },
+  "family": "medium",
+  "theme": "dark",
+  "refresh": "hourly",
+  "background": { "type": "solid", "color": "#0E0E0E" },
+  "fields": [
+    { "key": "city", "type": "city", "label": { "en": "City", "ar": "المدينة" }, "default": "Cairo" }
+  ],
+  "layers": [
+    { "type": "icon", "symbol": "{{weather.symbol}}", "size": 26, "color": "#FFFFFF", "frame": { "x": 16, "y": 16, "w": 30, "h": 30 }, "mirror": true },
+    { "type": "text", "value": "{{weather.temp}}°", "font": { "family": "dot", "size": 34, "weight": "bold" }, "color": "#FFFFFF", "frame": { "x": 52, "y": 10, "w": 100, "h": 42 }, "mirror": true },
+    { "type": "text", "value": "{{field.city}}", "font": { "family": "system", "size": 12, "weight": "semibold" }, "color": "#FFFFFF", "align": "trailing", "frame": { "x": 200, "y": 14, "w": 148, "h": 16 }, "mirror": true },
+    { "type": "text", "value": "{{weather.cond}} · {{weather.hi}}° / {{weather.lo}}°", "font": { "family": "system", "size": 11 }, "color": "#FFFFFF99", "align": "trailing", "frame": { "x": 160, "y": 32, "w": 188, "h": 14 }, "mirror": true },
+    { "type": "forecastRow", "days": 6, "color": "#FFFFFF", "frame": { "x": 12, "y": 70, "w": 340, "h": 88 } }
+  ]
+}
