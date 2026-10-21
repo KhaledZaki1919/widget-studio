@@ -17,11 +17,15 @@ public enum FontRegistry {
         defer { lock.unlock() }
         guard !registered else { return }
         registered = true
-        let urls = Bundle.module.urls(forResourcesWithExtension: "ttf", subdirectory: "Fonts")
-            ?? Bundle.module.urls(forResourcesWithExtension: "ttf", subdirectory: nil) ?? []
-        for url in urls {
+        for url in bundledFontURLs {
             CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
         }
+    }
+
+    /// The `.ttf` files in the package's resource bundle.
+    public static var bundledFontURLs: [URL] {
+        Bundle.module.urls(forResourcesWithExtension: "ttf", subdirectory: "Fonts")
+            ?? Bundle.module.urls(forResourcesWithExtension: "ttf", subdirectory: nil) ?? []
     }
 
     /// True when `text` has Arabic letters, which switch any family to `arabic`.

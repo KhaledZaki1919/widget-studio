@@ -1,0 +1,113 @@
+import Foundation
+import Testing
+@testable import WidgetKitCore
+
+private func spec(fields: [FieldSpec] = []) -> WidgetSpec {
+    WidgetSpec(
+        id: "test.render", name: .localized(en: "Test", ar: "اختبار"), family: .small,
+        background: .solid("#000000"), fields: fields,
+        layers: [Layer(frame: Frame(x: 0, y: 0, w: 10, h: 10), content: .shape(ShapeLayer(kind: .rect, fill: "#FFFFFF")))]
+    )
+}
+
+/// 2026-10-21 14:05 UTC, a Wednesday.
+private let fixedDate = Date(timeIntervalSince1970: 1_792_591_500)
+private let utc = TimeZone(identifier: "UTC") ?? .current
+
+private func resolver(_ spec: WidgetSpec = spec(), language: String = "en", data: DataSnapshot = .sample(now: fixedDate),
+                      fields: [String: String] = [:]) -> BindingResolver {
+    BindingResolver(spec: spec, context: RenderContext(date: fixedDate, language: language, timeZone: utc,
+                                                       fieldValues: fields, data: data))
+}
+
+struct BindingResolverTests {
+    @Test func rendersTimeWithLatinDigits() {
+        #expect(resolver().render("{{time.hh}}:{{time.mm}}") == "14:05")
+        #expect(resolver(language: "ar").render("{{time.hh}}:{{time.mm}}") == "14:05")
+        #expect(resolver().render("{{time.h}}") == "2")
+        #expect(resolver().render("{{date.d}}") == "21")
+    }
+
+    @Test func weekdayFollowsTheLanguage() {
+        #expect(resolver().render("{{date.EEEE}}") == "Wednesday")
+        #expect(resolver(language: "ar").render("{{date.EEEE}}") == "الأربعاء")
+    }
+
+    @Test func numbersAndMissingValues() {
+        #expect(resolver().render("{{weather.temp}}°") == "30°")
+        #expect(resolver().render("{{steps.today}}") == "5,543")
+        #expect(resolver().render("{{battery.level}}%") == "87%")
+        #expect(resolver(data: DataSnapshot()).render("{{weather.temp}}°") == "--°")
+        #expect(resolver().render("{{nonsense}}") == "--")
+    }
+
+    @Test func ringProgressComesFromNumbers() {
+        #expect(resolver().number("{{battery.level}}") == 0.87)
+        #expect(resolver().number("0.25") == 0.25)
+        #expect(resolver(data: DataSnapshot()).number("{{battery.level}}") == nil)
+    }
+
+    @Test func fieldsUseUserValueThenDefault() {
+        let fields = [FieldSpec(key: "city", type: .city, label: .plain("City"), default: "Cairo")]
+        #expect(resolver(spec(fields: fields)).render("{{field.city}}") == "Cairo")
+        #expect(resolver(spec(fields: fields), fields: ["city": "Alexandria"]).render("{{field.city}}") == "Alexandria")
+    }
+
+    @Test func dateFieldAndTimezoneTime() {
+        let fields = [
+            FieldSpec(key: "day", type: .date, label: .plain("Day"), default: "2026-12-31"),
+            FieldSpec(key: "zone", type: .timezone, label: .plain("Zone"), default: "Asia/Tokyo"),
+        ]
+        let resolver = resolver(spec(fields: fields))
+        #expect(resolver.date("{{field.day}}") != nil)
+        #expect(resolver.render("{{tz.zone.time}}") == "23:05")
+    }
+
+    @Test func gmtOffsets() {
+        #expect(BindingResolver.offset(utc, at: fixedDate) == "GMT")
+        #expect(BindingResolver.offset(TimeZone(secondsFromGMT: 7200) ?? utc, at: fixedDate) == "GMT+2")
+        #expect(BindingResolver.offset(TimeZone(secondsFromGMT: -12600) ?? utc, at: fixedDate) == "GMT-3:30")
+    }
+
+    @Test func levelsFromBindingListOrPattern() {
+        #expect(resolver().levels("{{sleep.week}}").count == 7)
+        #expect(resolver().levels("0.5,1") == [0.5, 1])
+        #expect(resolver().levels("01 10") == [0, 1, 1, 0])
+    }
+}
+
+struct SpecTimelineTests {
+    private var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = utc
+        return calendar
+    }
+
+    @Test func minuteRefreshBuilds60Entries() {
+        let schedule = SpecTimeline.schedule(for: .minute, from: fixedDate, calendar: calendar)
+        #expect(schedule.dates.count == 60)
+        #expect(schedule.dates.first == fixedDate)
+        #expect(schedule.reloadAfter == fixedDate.addingTimeInterval(60 * 60))
+    }
+
+    @Test func hourlyAndDailyReloadAtTheNextBoundary() {
+        #expect(SpecTimeline.schedule(for: .hourly, from: fixedDate, calendar: calendar).reloadAfter
+            == fixedDate.addingTimeInterval(55 * 60))
+        let daily = SpecTimeline.schedule(for: .daily, from: fixedDate, calendar: calendar)
+        #expect(daily.dates == [fixedDate])
+        #expect(daily.reloadAfter == calendar.startOfDay(for: fixedDate).addingTimeInterval(86_400))
+        #expect(SpecTimeline.schedule(for: .none, from: fixedDate, calendar: calendar).reloadAfter == nil)
+    }
+}
+
+struct FontRegistryTests {
+    @Test func arabicTextIsDetected() {
+        #expect(FontRegistry.containsArabic("الأربعاء"))
+        #expect(!FontRegistry.containsArabic("12:45 PM"))
+    }
+
+    @Test func bundledFontsArePresent() {
+        let fonts = FontRegistry.bundledFontURLs
+        #expect(fonts.count == 5)
+    }
+}
