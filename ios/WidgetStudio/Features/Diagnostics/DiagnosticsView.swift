@@ -28,6 +28,7 @@ struct DiagnosticsView: View {
                 Text("diag.share.footer")
             }
         }
+        .accessibilityIdentifier("ax.diag.list")
         .navigationTitle("diag.title")
         .onAppear(perform: model.refresh)
         .onChange(of: scenePhase) { _, phase in

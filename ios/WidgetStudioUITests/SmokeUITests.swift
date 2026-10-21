@@ -20,7 +20,14 @@ final class SmokeUITests: XCTestCase {
         let link = app.buttons["ax.home.diagnostics"]
         XCTAssertTrue(link.waitForExistence(timeout: 15))
         link.tap()
-        XCTAssertTrue(app.buttons["ax.diag.writeValue"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.collectionViews["ax.diag.list"].waitForExistence(timeout: 10))
+        // List cells exist only on screen, so scroll down to the App Group button.
+        let write = app.buttons["ax.diag.writeValue"]
+        for _ in 0..<6 where !write.exists {
+            app.collectionViews["ax.diag.list"].swipeUp()
+        }
+        XCTAssertTrue(write.waitForExistence(timeout: 5))
+        write.tap()
     }
 
     @MainActor
