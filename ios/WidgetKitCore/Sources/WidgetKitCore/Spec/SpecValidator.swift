@@ -13,6 +13,17 @@ public struct SpecIssue: Error, Sendable, Equatable, CustomStringConvertible {
     public var description: String { path.isEmpty ? message : "\(path): \(message)" }
 }
 
+/// Every issue of one failed validation (a `Result` failure must be an `Error`).
+public struct SpecIssues: Error, Sendable, Equatable, CustomStringConvertible {
+    public let issues: [SpecIssue]
+
+    public init(_ issues: [SpecIssue]) {
+        self.issues = issues
+    }
+
+    public var description: String { SpecValidator.describe(issues) }
+}
+
 /// Validation rules of brief §4.6. Pure Swift, so the app, the widget and the tests share it.
 /// `validate` returns the spec with frames clamped to the canvas, or every issue found.
 public struct SpecValidator: Sendable {
@@ -34,20 +45,20 @@ public struct SpecValidator: Sendable {
         self.mode = mode
     }
 
-    public func validate(data: Data) -> Result<WidgetSpec, [SpecIssue]> {
+    public func validate(data: Data) -> Result<WidgetSpec, SpecIssues> {
         do {
             return validate(try JSONDecoder().decode(WidgetSpec.self, from: data))
         } catch let error as DecodingError {
-            return .failure([Self.issue(from: error)])
+            return .failure(SpecIssues([Self.issue(from: error)]))
         } catch {
-            return .failure([SpecIssue("", "not valid JSON")])
+            return .failure(SpecIssues([SpecIssue("", "not valid JSON")]))
         }
     }
 
-    public func validate(_ spec: WidgetSpec) -> Result<WidgetSpec, [SpecIssue]> {
+    public func validate(_ spec: WidgetSpec) -> Result<WidgetSpec, SpecIssues> {
         var check = Check(spec: spec, mode: mode)
         check.run()
-        guard check.issues.isEmpty else { return .failure(check.issues) }
+        guard check.issues.isEmpty else { return .failure(SpecIssues(check.issues)) }
         var normalized = spec
         let canvas = spec.family.canvas
         for index in normalized.layers.indices {
@@ -107,7 +118,7 @@ private struct Check {
         if spec.schemaVersion != 1 { fail("schemaVersion", "must be 1") }
         if !Self.isValidID(spec.id) { fail("id", "use lowercase letters, digits, dots, dashes or underscores (max 64)") }
         if case .plain = spec.name { fail("name", "needs both \"en\" and \"ar\"") }
-        spec.name.allValues.forEach { text(path: "name", $0, allowBindings: false) }
+        for value in spec.name.allValues { text(path: "name", value, allowBindings: false) }
         checkBackground()
         checkFields()
         if spec.layers.isEmpty { fail("layers", "needs at least one layer") }
@@ -170,7 +181,7 @@ private struct Check {
             fail(path, "unknown binding {{\(raw)}}")
             return
         }
-        if mode == .ai, ![.time, .weather].contains(name.group) {
+        if mode == .ai, name.group != .time, name.group != .weather {
             fail(path, "binding {{\(raw)}} is not allowed in AI output")
         }
         let kind: Bindings.Kind
@@ -225,7 +236,7 @@ private struct Check {
             let path = "fields[\(index)]"
             if !Bindings.isValidKey(field.key) { fail("\(path).key", "letters, digits and underscores, starting with a letter") }
             if !keys.insert(field.key).inserted { fail("\(path).key", "duplicate key \"\(field.key)\"") }
-            field.label.allValues.forEach { text(path: "\(path).label", $0, allowBindings: false) }
+            for value in field.label.allValues { text(path: "\(path).label", value, allowBindings: false) }
             guard let value = field.default else { continue }
             if value.count > SpecValidator.maxTextLength { fail("\(path).default", "at most \(SpecValidator.maxTextLength) characters") }
             switch field.type {
@@ -241,6 +252,7 @@ private struct Check {
         }
     }
 
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     mutating func checkLayer(_ layer: Layer, path: String) {
         let frame = layer.frame
         if ![frame.x, frame.y, frame.w, frame.h].allSatisfy(\.isFinite) || frame.w <= 0 || frame.h <= 0 {

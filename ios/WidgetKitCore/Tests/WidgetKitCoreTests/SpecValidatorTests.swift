@@ -31,7 +31,7 @@ private func layer(_ type: String, _ properties: [String: Any], frame: [String: 
     properties.merging(["type": type, "frame": frame]) { _, new in new }
 }
 
-private func validate(_ spec: [String: Any], mode: SpecValidator.Mode = .standard) throws -> Result<WidgetSpec, [SpecIssue]> {
+private func validate(_ spec: [String: Any], mode: SpecValidator.Mode = .standard) throws -> Result<WidgetSpec, SpecIssues> {
     SpecValidator(mode: mode).validate(data: try JSONSerialization.data(withJSONObject: spec))
 }
 
@@ -40,7 +40,7 @@ private func issues(layers: [[String: Any]], fields: [[String: Any]]? = nil, mod
     var spec = exampleSpec()
     spec["layers"] = layers
     if let fields { spec["fields"] = fields }
-    if case .failure(let issues) = try validate(spec, mode: mode) { return issues }
+    if case .failure(let failure) = try validate(spec, mode: mode) { return failure.issues }
     return []
 }
 
@@ -108,7 +108,7 @@ struct SpecValidatorTests {
     }
 
     @Test func invalidJSONIsReported() {
-        #expect(SpecValidator().validate(data: Data("{not json".utf8)) == .failure([SpecIssue("", "not valid JSON")]))
+        #expect(SpecValidator().validate(data: Data("{not json".utf8)) == .failure(SpecIssues([SpecIssue("", "not valid JSON")])))
     }
 
     @Test func gradientNeeds2To4Colors() throws {
@@ -319,7 +319,7 @@ struct SpecValidatorTests {
     }
 
     private func specIssues(_ spec: [String: Any]) throws -> [SpecIssue] {
-        if case .failure(let issues) = try validate(spec) { return issues }
+        if case .failure(let failure) = try validate(spec) { return failure.issues }
         return []
     }
 }
