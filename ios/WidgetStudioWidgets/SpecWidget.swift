@@ -97,7 +97,7 @@ struct TemplateQuery: EntityStringQuery {
             query.isEmpty || (spec.name.allValues + (spec.category?.title.allValues ?? []))
                 .contains { $0.lowercased().contains(query) }
         }
-        return IntentItemCollection(items: matches.map { IntentItem(TemplateEntity(spec: $0)) })
+        return IntentItemCollection(items: matches.map(TemplateEntity.init(spec:)))
     }
 }
 

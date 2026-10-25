@@ -153,3 +153,56 @@ Never hardcode the bundle ID, team prefix or group at runtime. No Keychain shari
 **4. Layout fixes**
 - **World clocks:** the stray GMT offset is gone, and the steps grid is a real month calendar (`MonthGrid`: 7 columns from the calendar's first weekday, padding before day 1).
 - **Forecast:** the icon no longer overlaps the temperature, and "°" is drawn in the system font inside dot text.
+
+### ADR-011 — Template library (M2): spec extensions, sizes, widget picker
+**Status:** Accepted (2026-10-25).
+**Context:** TEMPLATES.md defines the Mono set. Several templates can't be expressed in the brief's spec v1:
+- light/dark variants with an editable accent;
+- the stopwatch's idle and running states;
+- the next prayer column in red;
+- the Qibla arrow;
+- "today" in red on the month grid and the best night in red;
+- user-picked tile icons;
+- big-numeral countdowns.
+
+**Decision: optional additions to spec v1** (existing specs stay valid; validator, schema export and tests updated):
+- **Color tokens:** `@bg @fg @muted @accent @outer @line @dim @onAccent`. Values are the TEMPLATES.md style table plus `line`/`dim` for dividers and unlit dots. They resolve per theme (`WidgetSpec.resolvingTokens(theme:)`, an exact JSON round trip). `RenderContext.theme` overrides the spec's theme (detail previews, the widget's Appearance option). M3's accent editor will override `@accent`.
+- **Layer `when`:** `"{{b}}"` (truthy), `"!{{b}}"` or `"{{b}} == value"`. Unknown or missing values are falsy.
+- **Layer `rotation`:** degrees, a number or a number binding.
+- **`highlightColor`:** on `dotGrid`, cells with level ≥ 2 (`MonthGrid` marks today with 2); on `dotBars`, the highest bar.
+- **Field type `icon`:** whitelisted SF Symbols. Timezone defaults may be empty (= not set).
+- **Bindings:** `steps.month`, `counter.progress` (counter ÷ the spec's `target` number field), `prayer.next.key`, `days.<dateField>` (whole days left; used for big dot countdowns, because a live timer would show "1639:12:33" for a date months away).
+- **Top-level `category`:** time, weather, health, prayer, countdown, photo, tiles, counters. Template ids may be camelCase (TEMPLATES.md).
+- **Arabic sizing:** Arabic text in a Latin family is set 1 pt larger (TEMPLATES.md: "Arabic labels: same sizes +1").
+- **Icon whitelist:** `"bluetooth"` removed, because it isn't an SF Symbol and rendered empty. Tile symbols added (hotspot, dark mode, rotation lock, calculator, TV, NFC, …).
+
+**Library:**
+- 28 templates in `Resources/Templates/<id>.json`:
+  - every template in TEMPLATES.md;
+  - `mono.location.coords`, since location in the widget is verified (ADR-005).
+- Focus Today and Stopwatch sit under Countdown (TEMPLATES.md "Focus & Countdown").
+- Sample data until M4.
+- The photo layers show a placeholder until M3 adds photo picking. The halftone filter is applied when saving (M3).
+- Sleep Week shows day initials only; per-night durations need a second label row (later).
+
+**Sizes:** a template is designed for one family. It also offers every larger family, scaled uniformly and centered, with the background filling the widget (`SpecFamily.supportedFamilies`). The detail screen previews each supported size in light and dark.
+
+**Widget:**
+- Kind `WidgetStudioSpec` is kept, so placed widgets survive.
+- The `SelectTemplateIntent` picks any bundled template. Edit Widget groups templates by category (`IntentItemCollection` sections) and searches names in both languages (`EntityStringQuery`).
+- An Appearance parameter: template default, match system, light or dark.
+- Defaults per size: small `mono.clock.digital`, medium `mono.weather.forecast`, large `mono.prayer.day`.
+- A template designed for a larger size than the widget is drawn shrunk; the picker can't filter by widget size.
+
+**App:** Home is the Library. The M1 test designs moved into Diagnostics. The check widget stays in the bundle.
+
+**Tests:**
+- Package:
+  - all 28 valid; ids = file names; catalog order;
+  - bilingual names, labels and literal texts;
+  - every visible binding resolves;
+  - tokens resolve in both themes;
+  - stopwatch and prayer-day conditions.
+- App:
+  - every template through `SpecWidgetContent` in each supported size, both languages and both themes;
+  - a snapshot per template and language.

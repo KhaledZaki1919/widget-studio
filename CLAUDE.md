@@ -15,12 +15,12 @@ The product brief is `widget-app-brief.md` (template catalog: `TEMPLATES.md`, vi
 | Path | What |
 |---|---|
 | `ios/project.yml` | XcodeGen spec (app + widget extension + tests). Never hand-edit the generated `.xcodeproj` |
-| `ios/WidgetStudio/` | App target: `App/` (entry, root), `Features/<Area>/` (Diagnostics, TestSpecs, …), `Resources/` |
-| `ios/WidgetStudioWidgets/` | Widget extension: `SpecWidget` (renders a spec, AppIntent configuration) and the `ProbeWidget` check widget |
+| `ios/WidgetStudio/` | App target: `App/` (entry, root), `Features/<Area>/` (Library: home, detail, previews; Diagnostics with TestSpecs; …), `Resources/` |
+| `ios/WidgetStudioWidgets/` | Widget extension: `SpecWidget` (any bundled template, picked in Edit Widget: grouped, searchable, Appearance option) and the `ProbeWidget` check widget |
 | `ios/WidgetStudioTests/` | App-hosted unit tests: font availability, RTL invariants, every spec through the widget view, snapshots (`Snapshots/<id>.<lang>.png`) |
 | `ios/WidgetStudioUITests/` | Simulator UI smoke tests |
 | `ios/Fonts/` | Doto (static instances) + IBM Plex Sans Arabic, OFL; bundled in app and widget, declared in `UIAppFonts` (ADR-010) |
-| `ios/WidgetKitCore/` | Swift package shared by app + extension: `Environment/` (App Group resolver, profile), `Probe/`, `Spec/` (models, bindings, validator, icon whitelist, test spec loader), `Render/` (SpecView, layer views, binding resolver, fonts, timelines), `Resources/` (TestSpecs, Spec schema). **Unit tests live here** |
+| `ios/WidgetKitCore/` | Swift package shared by app + extension: `Environment/` (App Group resolver, profile), `Probe/`, `Spec/` (models, bindings, validator, icon whitelist, test spec loader), `Render/` (SpecView, layer views, binding resolver, fonts, timelines), `Resources/` (Templates: the Mono library, TestSpecs, Spec schema); `TemplateLibrary` loads templates. **Unit tests live here** |
 | `ios/Config/` | Entitlements (written by XcodeGen from `project.yml`) |
 | `ios/scripts/` | `build-ipa.sh`, `check-strings.py`, `pick-simulator.py` |
 | `scripts/secret-scan.sh` | Secret scan, run before push and in CI |
@@ -63,6 +63,7 @@ SwiftLint is a separate, non-blocking job. Superseded runs are cancelled.
 - **Layout:** leading/trailing only; test RTL and LTR.
 - **RTL in specs (ADR-010):** never flip anything like an image and never set `layoutDirection` on a `List`/UIKit-backed view to preview Arabic. Inside `SpecView` only `mirror: true` layers change: position, alignment, item order. Glyphs, digits and clocks keep their shape.
 - **Fonts (ADR-010):** reference bundled fonts by PostScript name only (`FontRegistry`); every font file goes in `ios/Fonts` and both `UIAppFonts` lists. No runtime registration, no CoreText variation fonts.
+- **Templates (ADR-011):** one JSON per template in `Resources/Templates/<id>.json`, colors as tokens (`@bg`, `@fg`, `@accent`…), every visible text `{en, ar}`, and `catalogOrder` in `TemplateLibrary` updated. Spec extensions (`when`, `rotation`, `highlightColor`, `icon` fields, new bindings) are listed in ADR-011.
 - **Snapshots:** an intended visual change means re-recording references from the `snapshots` artifact (`ios/WidgetStudioTests/Snapshots/README.md`); look at the renders before committing them.
 - **Sideloading (ADR-004):** never hardcode the bundle ID, team prefix or App Group at runtime. Use `AppGroupResolver.resolve()`. The widget extension never calls the network for AI and never reads the Keychain.
 - **Data on the device only:** write shared files through `FileProtection.write`. Secrets only in the Keychain.
