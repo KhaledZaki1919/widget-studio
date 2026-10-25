@@ -149,7 +149,14 @@ struct DesignEditingTests {
         context?.fill(CGRect(x: 0, y: 0, width: 2, height: 1))
         let red = try #require(context?.makeImage())
         let gray = try #require(ImageProcessing.mono(red))
-        let values = try #require(ImageProcessing.luminance(gray))
-        #expect(abs(values[0] - 0.2126) < 0.02)
+        // Equal channels = gray. (The exact level depends on color management, so only a range.)
+        var pixel = [UInt8](repeating: 0, count: 4)
+        pixel.withUnsafeMutableBytes { buffer in
+            let check = CGContext(data: buffer.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                                  space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+            check?.draw(gray, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+        }
+        #expect(abs(Int(pixel[0]) - Int(pixel[1])) <= 2 && abs(Int(pixel[1]) - Int(pixel[2])) <= 2, "\(pixel)")
+        #expect((25...140).contains(Int(pixel[0])), "\(pixel)")
     }
 }
