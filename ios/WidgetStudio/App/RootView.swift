@@ -40,9 +40,15 @@ struct RootView: View {
         }
         .onAppear(perform: AppInfo.touchHeartbeat)
         .onOpenURL { url in
-            if url.scheme == "widgetstudio", url.host() == "diagnostics" {
+            guard url.scheme == "widgetstudio" else { return }
+            switch url.host() {
+            case "diagnostics":
                 appState.tab = .library
                 showDiagnostics = true
+            case "mywidgets":
+                appState.tab = .myWidgets
+            default:
+                break
             }
         }
     }

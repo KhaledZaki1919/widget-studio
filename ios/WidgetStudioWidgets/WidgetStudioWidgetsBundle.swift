@@ -2,11 +2,16 @@ import SwiftUI
 import WidgetKit
 import WidgetKitCore
 
-/// One widget per template (ADR-013), grouped by category in library order, then the check
-/// widget. Category bundles keep each block within the 10-widget limit of the builder.
+/// Store mode (default, ADR-014): one widget per template (ADR-013) in category bundles, one
+/// "My widget" per size, and the check widget. Developer mode (WS_DEVELOPER): the configurable
+/// widget for saved designs and templates, and the check widget. Each block stays within the
+/// builder's limit of 10 widgets.
 @main
 struct WidgetStudioWidgetsBundle: WidgetBundle {
     var body: some Widget {
+        #if WS_DEVELOPER
+        DeveloperWidgets().body
+        #else
         TimeTemplateWidgets().body
         WeatherTemplateWidgets().body
         HealthTemplateWidgets().body
@@ -15,7 +20,9 @@ struct WidgetStudioWidgetsBundle: WidgetBundle {
         PhotoTemplateWidgets().body
         TilesTemplateWidgets().body
         CounterTemplateWidgets().body
-        // Kept for install checks (Diagnostics, ADR-005); large shows the template widgets' log.
+        MyWidgets().body
+        #endif
+        // Kept for install checks (Diagnostics, ADR-005); large shows the widget step log.
         ProbeWidget()
     }
 }
