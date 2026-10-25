@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.prayer.next",
+  "category": "prayer",
+  "name": { "en": "Next Prayer", "ar": "الصلاة القادمة" },
+  "family": "small",
+  "theme": "light",
+  "refresh": "minute",
+  "background": { "type": "solid", "color": "@bg" },
+  "layers": [
+    { "type": "text", "value": { "en": "NEXT PRAYER", "ar": "الصلاة القادمة" }, "font": { "family": "system", "size": 9, "weight": "semibold" }, "tracking": 1, "color": "@muted", "frame": { "x": 16, "y": 16, "w": 138, "h": 12 }, "mirror": true },
+    { "type": "text", "value": "{{prayer.next.name}}", "font": { "family": "arabic", "size": 24, "weight": "bold" }, "color": "@fg", "frame": { "x": 16, "y": 32, "w": 138, "h": 34 }, "mirror": true },
+    { "type": "text", "value": "{{prayer.next.time}}", "font": { "family": "dot", "size": 34, "weight": "bold" }, "color": "@fg", "frame": { "x": 14, "y": 72, "w": 142, "h": 44 }, "mirror": true },
+    { "type": "text", "value": "", "live": { "kind": "relative", "target": "{{prayer.next.time}}" }, "font": { "family": "system", "size": 12, "weight": "semibold" }, "color": "@accent", "frame": { "x": 16, "y": 130, "w": 138, "h": 18 }, "mirror": true }
+  ]
+}

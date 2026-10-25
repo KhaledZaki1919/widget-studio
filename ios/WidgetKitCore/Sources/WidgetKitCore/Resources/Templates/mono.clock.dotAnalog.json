@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.clock.dotAnalog",
+  "category": "time",
+  "name": { "en": "Dot Clock", "ar": "ساعة نقط" },
+  "family": "small",
+  "theme": "dark",
+  "refresh": "minute",
+  "background": { "type": "solid", "color": "@bg", "outerColor": "@outer" },
+  "layers": [
+    { "type": "analogClock", "style": "dot", "faceColor": "@bg", "tickColor": "@fg", "hourColor": "@fg", "minuteColor": "@fg", "accentColor": "@fg", "frame": { "x": 6, "y": 6, "w": 158, "h": 158 } },
+    { "type": "shape", "kind": "circle", "fill": "@accent", "frame": { "x": 64, "y": 141, "w": 9, "h": 9 } }
+  ]
+}

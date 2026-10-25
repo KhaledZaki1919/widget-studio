@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.weather.hiLo",
+  "category": "weather",
+  "name": { "en": "High / Low", "ar": "العظمى والصغرى" },
+  "family": "small",
+  "theme": "light",
+  "refresh": "hourly",
+  "background": { "type": "solid", "color": "@bg", "outerColor": "@outer" },
+  "layers": [
+    { "type": "icon", "symbol": "arrow.up", "size": 18, "color": "@fg", "frame": { "x": 38, "y": 50, "w": 24, "h": 30 }, "mirror": true },
+    { "type": "text", "value": "{{weather.hi}}°", "font": { "family": "dot", "size": 30, "weight": "bold" }, "color": "@fg", "frame": { "x": 64, "y": 44, "w": 76, "h": 40 }, "mirror": true },
+    { "type": "icon", "symbol": "arrow.down", "size": 18, "color": "@muted", "frame": { "x": 38, "y": 92, "w": 24, "h": 30 }, "mirror": true },
+    { "type": "text", "value": "{{weather.lo}}°", "font": { "family": "dot", "size": 30, "weight": "bold" }, "color": "@muted", "frame": { "x": 64, "y": 86, "w": 76, "h": 40 }, "mirror": true }
+  ]
+}

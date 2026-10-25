@@ -4,25 +4,11 @@ import Foundation
 /// every layer type, both themes, all three families and both languages. They are bundled, so
 /// the widget can show them even without an App Group (ADR-005 device findings).
 public enum TestSpecs {
-    public struct Entry: Sendable {
-        public let fileName: String
-        public let result: Result<WidgetSpec, SpecIssues>
-
-        public var spec: WidgetSpec? { try? result.get() }
-    }
+    public typealias Entry = BundledSpecs.Entry
 
     /// Every bundled test spec, validated, sorted by file name.
     public static func load() -> [Entry] {
-        let urls = Bundle.module.urls(forResourcesWithExtension: "json", subdirectory: "TestSpecs") ?? []
-        return urls.sorted { $0.lastPathComponent < $1.lastPathComponent }.map { url in
-            let result: Result<WidgetSpec, SpecIssues>
-            if let data = try? Data(contentsOf: url) {
-                result = SpecValidator().validate(data: data)
-            } else {
-                result = .failure(SpecIssues([SpecIssue("", "unreadable file")]))
-            }
-            return Entry(fileName: url.lastPathComponent, result: result)
-        }
+        BundledSpecs.load(folder: "TestSpecs")
     }
 
     /// Only the valid specs.

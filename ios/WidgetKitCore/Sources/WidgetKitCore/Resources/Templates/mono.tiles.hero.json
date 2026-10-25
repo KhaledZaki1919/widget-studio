@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.tiles.hero",
+  "category": "tiles",
+  "name": { "en": "Big Tile", "ar": "زرار كبير" },
+  "family": "small",
+  "theme": "light",
+  "refresh": "none",
+  "background": { "type": "solid", "color": "@outer" },
+  "fields": [
+    { "key": "icon", "type": "icon", "label": { "en": "Icon", "ar": "الأيقونة" }, "default": "rotate.right" },
+    { "key": "label", "type": "text", "label": { "en": "Label", "ar": "الاسم" }, "default": { "en": "Auto Rotate", "ar": "تدوير تلقائي" } },
+    { "key": "shortcut", "type": "shortcut", "label": { "en": "Shortcut", "ar": "الاختصار" }, "default": "Rotation Lock" }
+  ],
+  "layers": [
+    { "type": "shape", "kind": "circle", "fill": "@fg", "frame": { "x": 6, "y": 6, "w": 158, "h": 158 } },
+    { "type": "icon", "symbol": "{{field.icon}}", "size": 26, "color": "@bg", "frame": { "x": 65, "y": 42, "w": 40, "h": 40 } },
+    { "type": "text", "value": "{{field.label}}", "font": { "family": "system", "size": 13, "weight": "semibold" }, "color": "@bg", "align": "center", "maxLines": 2, "frame": { "x": 30, "y": 88, "w": 110, "h": 40 } },
+    { "type": "shape", "kind": "circle", "fill": "@accent", "frame": { "x": 80, "y": 134, "w": 10, "h": 10 } },
+    { "type": "button", "action": "shortcut.run", "arg": "{{field.shortcut}}", "frame": { "x": 0, "y": 0, "w": 170, "h": 170 } }
+  ]
+}

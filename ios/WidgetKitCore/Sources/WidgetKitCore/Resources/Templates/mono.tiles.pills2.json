@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.tiles.pills2",
+  "category": "tiles",
+  "name": { "en": "2 Tiles", "ar": "زرارين" },
+  "family": "small",
+  "theme": "light",
+  "refresh": "none",
+  "background": { "type": "solid", "color": "@outer" },
+  "fields": [
+    { "key": "icon1", "type": "icon", "label": { "en": "Tile 1 icon", "ar": "أيقونة الزر ١" }, "default": "flashlight.on.fill" },
+    { "key": "label1", "type": "text", "label": { "en": "Tile 1 label", "ar": "اسم الزر ١" }, "default": { "en": "Torch", "ar": "الكشاف" } },
+    { "key": "shortcut1", "type": "shortcut", "label": { "en": "Tile 1 Shortcut", "ar": "اختصار الزر ١" }, "default": "Torch" },
+    { "key": "icon2", "type": "icon", "label": { "en": "Tile 2 icon", "ar": "أيقونة الزر ٢" }, "default": "wifi" },
+    { "key": "label2", "type": "text", "label": { "en": "Tile 2 label", "ar": "اسم الزر ٢" }, "default": { "en": "Wi-Fi", "ar": "واي فاي" } },
+    { "key": "shortcut2", "type": "shortcut", "label": { "en": "Tile 2 Shortcut", "ar": "اختصار الزر ٢" }, "default": "Wi-Fi" }
+  ],
+  "layers": [
+    { "type": "shape", "kind": "capsule", "fill": "@bg", "frame": { "x": 8, "y": 12, "w": 154, "h": 68 } },
+    { "type": "shape", "kind": "circle", "fill": "@outer", "frame": { "x": 18, "y": 22, "w": 48, "h": 48 }, "mirror": true },
+    { "type": "icon", "symbol": "{{field.icon1}}", "size": 18, "color": "@fg", "frame": { "x": 18, "y": 22, "w": 48, "h": 48 }, "mirror": true },
+    { "type": "text", "value": "{{field.label1}}", "font": { "family": "system", "size": 13, "weight": "semibold" }, "color": "@fg", "frame": { "x": 74, "y": 36, "w": 80, "h": 20 }, "mirror": true },
+    { "type": "button", "action": "shortcut.run", "arg": "{{field.shortcut1}}", "frame": { "x": 8, "y": 12, "w": 154, "h": 68 } },
+
+    { "type": "shape", "kind": "capsule", "fill": "@accent", "frame": { "x": 8, "y": 90, "w": 154, "h": 68 } },
+    { "type": "shape", "kind": "circle", "fill": "#FFFFFF33", "frame": { "x": 18, "y": 100, "w": 48, "h": 48 }, "mirror": true },
+    { "type": "icon", "symbol": "{{field.icon2}}", "size": 18, "color": "@onAccent", "frame": { "x": 18, "y": 100, "w": 48, "h": 48 }, "mirror": true },
+    { "type": "text", "value": "{{field.label2}}", "font": { "family": "system", "size": 13, "weight": "semibold" }, "color": "@onAccent", "frame": { "x": 74, "y": 114, "w": 80, "h": 20 }, "mirror": true },
+    { "type": "button", "action": "shortcut.run", "arg": "{{field.shortcut2}}", "frame": { "x": 8, "y": 90, "w": 154, "h": 68 } }
+  ]
+}

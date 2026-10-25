@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.countdown.red",
+  "category": "countdown",
+  "name": { "en": "Countdown", "ar": "العد التنازلي" },
+  "family": "small",
+  "theme": "light",
+  "refresh": "daily",
+  "background": { "type": "solid", "color": "@accent" },
+  "fields": [
+    { "key": "title", "type": "text", "label": { "en": "Event", "ar": "المناسبة" }, "default": { "en": "New Year", "ar": "رأس السنة" } },
+    { "key": "date", "type": "date", "label": { "en": "Date", "ar": "التاريخ" }, "default": "2027-01-01" }
+  ],
+  "layers": [
+    { "type": "text", "value": { "en": "COUNTDOWN", "ar": "عد تنازلي" }, "font": { "family": "system", "size": 9, "weight": "semibold" }, "tracking": 1, "color": "@onAccent", "opacity": 0.8, "frame": { "x": 16, "y": 16, "w": 138, "h": 12 }, "mirror": true },
+    { "type": "text", "value": "{{field.title}}", "font": { "family": "system", "size": 16, "weight": "bold" }, "color": "@onAccent", "maxLines": 2, "frame": { "x": 16, "y": 32, "w": 138, "h": 44 }, "mirror": true },
+    { "type": "text", "value": "{{days.date}}", "font": { "family": "dot", "size": 48, "weight": "black" }, "color": "@onAccent", "frame": { "x": 12, "y": 86, "w": 146, "h": 52 }, "mirror": true },
+    { "type": "text", "value": { "en": "DAYS LEFT", "ar": "يوم متبقٍ" }, "font": { "family": "system", "size": 9, "weight": "semibold" }, "tracking": 1, "color": "@onAccent", "opacity": 0.8, "frame": { "x": 16, "y": 140, "w": 138, "h": 12 }, "mirror": true },
+    { "type": "button", "action": "open.app", "frame": { "x": 0, "y": 0, "w": 170, "h": 170 } }
+  ]
+}

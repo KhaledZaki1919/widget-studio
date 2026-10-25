@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.tiles.pills4",
+  "category": "tiles",
+  "name": { "en": "4 Tiles", "ar": "٤ زراير" },
+  "family": "medium",
+  "theme": "light",
+  "refresh": "none",
+  "background": { "type": "solid", "color": "@outer" },
+  "fields": [
+    { "key": "icon1", "type": "icon", "label": { "en": "Tile 1 icon", "ar": "أيقونة الزر ١" }, "default": "flashlight.on.fill" },
+    { "key": "label1", "type": "text", "label": { "en": "Tile 1 label", "ar": "اسم الزر ١" }, "default": { "en": "Torch", "ar": "الكشاف" } },
+    { "key": "shortcut1", "type": "shortcut", "label": { "en": "Tile 1 Shortcut", "ar": "اختصار الزر ١" }, "default": "Torch" },
+    { "key": "icon2", "type": "icon", "label": { "en": "Tile 2 icon", "ar": "أيقونة الزر ٢" }, "default": "wifi" },
+    { "key": "label2", "type": "text", "label": { "en": "Tile 2 label", "ar": "اسم الزر ٢" }, "default": { "en": "Wi-Fi", "ar": "واي فاي" } },
+    { "key": "shortcut2", "type": "shortcut", "label": { "en": "Tile 2 Shortcut", "ar": "اختصار الزر ٢" }, "default": "Wi-Fi" },
+    { "key": "icon3", "type": "icon", "label": { "en": "Tile 3 icon", "ar": "أيقونة الزر ٣" }, "default": "circle.lefthalf.filled" },
+    { "key": "label3", "type": "text", "label": { "en": "Tile 3 label", "ar": "اسم الزر ٣" }, "default": { "en": "Dark mode", "ar": "الوضع الداكن" } },
+    { "key": "shortcut3", "type": "shortcut", "label": { "en": "Tile 3 Shortcut", "ar": "اختصار الزر ٣" }, "default": "Dark Mode" },
+    { "key": "icon4", "type": "icon", "label": { "en": "Tile 4 icon", "ar": "أيقونة الزر ٤" }, "default": "airplane" },
+    { "key": "label4", "type": "text", "label": { "en": "Tile 4 label", "ar": "اسم الزر ٤" }, "default": { "en": "Airplane", "ar": "وضع الطيران" } },
+    { "key": "shortcut4", "type": "shortcut", "label": { "en": "Tile 4 Shortcut", "ar": "اختصار الزر ٤" }, "default": "Airplane Mode" }
+  ],
+  "layers": [
+    { "type": "shape", "kind": "capsule", "fill": "@bg", "frame": { "x": 8, "y": 12, "w": 170, "h": 68 }, "mirror": true },
+    { "type": "icon", "symbol": "{{field.icon1}}", "size": 17, "color": "@fg", "frame": { "x": 16, "y": 22, "w": 48, "h": 48 }, "mirror": true },
+    { "type": "text", "value": "{{field.label1}}", "font": { "family": "system", "size": 13, "weight": "semibold" }, "color": "@fg", "frame": { "x": 66, "y": 36, "w": 104, "h": 20 }, "mirror": true },
+    { "type": "button", "action": "shortcut.run", "arg": "{{field.shortcut1}}", "frame": { "x": 8, "y": 12, "w": 170, "h": 68 }, "mirror": true },
+
+    { "type": "shape", "kind": "capsule", "fill": "@accent", "frame": { "x": 186, "y": 12, "w": 170, "h": 68 }, "mirror": true },
+    { "type": "icon", "symbol": "{{field.icon2}}", "size": 17, "color": "@onAccent", "frame": { "x": 194, "y": 22, "w": 48, "h": 48 }, "mirror": true },
+    { "type": "text", "value": "{{field.label2}}", "font": { "family": "system", "size": 13, "weight": "semibold" }, "color": "@onAccent", "frame": { "x": 244, "y": 36, "w": 104, "h": 20 }, "mirror": true },
+    { "type": "button", "action": "shortcut.run", "arg": "{{field.shortcut2}}", "frame": { "x": 186, "y": 12, "w": 170, "h": 68 }, "mirror": true },
+
+    { "type": "shape", "kind": "capsule", "fill": "@fg", "frame": { "x": 8, "y": 90, "w": 170, "h": 68 }, "mirror": true },
+    { "type": "icon", "symbol": "{{field.icon3}}", "size": 17, "color": "@bg", "frame": { "x": 16, "y": 100, "w": 48, "h": 48 }, "mirror": true },
+    { "type": "text", "value": "{{field.label3}}", "font": { "family": "system", "size": 13, "weight": "semibold" }, "color": "@bg", "frame": { "x": 66, "y": 114, "w": 104, "h": 20 }, "mirror": true },
+    { "type": "button", "action": "shortcut.run", "arg": "{{field.shortcut3}}", "frame": { "x": 8, "y": 90, "w": 170, "h": 68 }, "mirror": true },
+
+    { "type": "shape", "kind": "capsule", "fill": "@bg", "frame": { "x": 186, "y": 90, "w": 170, "h": 68 }, "mirror": true },
+    { "type": "icon", "symbol": "{{field.icon4}}", "size": 17, "color": "@fg", "frame": { "x": 194, "y": 100, "w": 48, "h": 48 }, "mirror": true },
+    { "type": "text", "value": "{{field.label4}}", "font": { "family": "system", "size": 13, "weight": "semibold" }, "color": "@fg", "frame": { "x": 244, "y": 114, "w": 104, "h": 20 }, "mirror": true },
+    { "type": "button", "action": "shortcut.run", "arg": "{{field.shortcut4}}", "frame": { "x": 186, "y": 90, "w": 170, "h": 68 }, "mirror": true }
+  ]
+}

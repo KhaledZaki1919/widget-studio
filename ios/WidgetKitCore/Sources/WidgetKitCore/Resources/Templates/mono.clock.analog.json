@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.clock.analog",
+  "category": "time",
+  "name": { "en": "Analog Clock", "ar": "ساعة عقارب" },
+  "family": "small",
+  "theme": "light",
+  "refresh": "minute",
+  "background": { "type": "solid", "color": "@bg", "outerColor": "@outer" },
+  "layers": [
+    { "type": "analogClock", "style": "classic", "faceColor": "@bg", "tickColor": "@fg", "hourColor": "@fg", "minuteColor": "@fg", "accentColor": "@accent", "frame": { "x": 6, "y": 6, "w": 158, "h": 158 } }
+  ]
+}

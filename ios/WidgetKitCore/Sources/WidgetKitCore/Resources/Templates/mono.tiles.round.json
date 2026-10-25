@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.tiles.round",
+  "category": "tiles",
+  "name": { "en": "Round Tiles", "ar": "زراير دائرية" },
+  "family": "small",
+  "theme": "light",
+  "refresh": "none",
+  "background": { "type": "solid", "color": "@outer" },
+  "fields": [
+    { "key": "icon1", "type": "icon", "label": { "en": "Tile 1 icon", "ar": "أيقونة الزر ١" }, "default": "qrcode" },
+    { "key": "shortcut1", "type": "shortcut", "label": { "en": "Tile 1 Shortcut", "ar": "اختصار الزر ١" }, "default": "Scan QR" },
+    { "key": "icon2", "type": "icon", "label": { "en": "Tile 2 icon", "ar": "أيقونة الزر ٢" }, "default": "camera.fill" },
+    { "key": "shortcut2", "type": "shortcut", "label": { "en": "Tile 2 Shortcut", "ar": "اختصار الزر ٢" }, "default": "Camera" },
+    { "key": "icon3", "type": "icon", "label": { "en": "Tile 3 icon", "ar": "أيقونة الزر ٣" }, "default": "wifi" },
+    { "key": "shortcut3", "type": "shortcut", "label": { "en": "Tile 3 Shortcut", "ar": "اختصار الزر ٣" }, "default": "Wi-Fi" },
+    { "key": "icon4", "type": "icon", "label": { "en": "Tile 4 icon", "ar": "أيقونة الزر ٤" }, "default": "mic.slash.fill" },
+    { "key": "shortcut4", "type": "shortcut", "label": { "en": "Tile 4 Shortcut", "ar": "اختصار الزر ٤" }, "default": "Mute" }
+  ],
+  "layers": [
+    { "type": "shape", "kind": "circle", "fill": "@bg", "frame": { "x": 10, "y": 10, "w": 72, "h": 72 }, "mirror": true },
+    { "type": "icon", "symbol": "{{field.icon1}}", "size": 20, "color": "@fg", "frame": { "x": 10, "y": 10, "w": 72, "h": 72 }, "mirror": true },
+    { "type": "button", "action": "shortcut.run", "arg": "{{field.shortcut1}}", "frame": { "x": 10, "y": 10, "w": 72, "h": 72 }, "mirror": true },
+
+    { "type": "shape", "kind": "circle", "fill": "@fg", "frame": { "x": 88, "y": 10, "w": 72, "h": 72 }, "mirror": true },
+    { "type": "icon", "symbol": "{{field.icon2}}", "size": 20, "color": "@bg", "frame": { "x": 88, "y": 10, "w": 72, "h": 72 }, "mirror": true },
+    { "type": "button", "action": "shortcut.run", "arg": "{{field.shortcut2}}", "frame": { "x": 88, "y": 10, "w": 72, "h": 72 }, "mirror": true },
+
+    { "type": "shape", "kind": "circle", "fill": "@fg", "frame": { "x": 10, "y": 88, "w": 72, "h": 72 }, "mirror": true },
+    { "type": "icon", "symbol": "{{field.icon3}}", "size": 20, "color": "@bg", "frame": { "x": 10, "y": 88, "w": 72, "h": 72 }, "mirror": true },
+    { "type": "button", "action": "shortcut.run", "arg": "{{field.shortcut3}}", "frame": { "x": 10, "y": 88, "w": 72, "h": 72 }, "mirror": true },
+
+    { "type": "shape", "kind": "circle", "fill": "@accent", "frame": { "x": 88, "y": 88, "w": 72, "h": 72 }, "mirror": true },
+    { "type": "icon", "symbol": "{{field.icon4}}", "size": 20, "color": "@onAccent", "frame": { "x": 88, "y": 88, "w": 72, "h": 72 }, "mirror": true },
+    { "type": "button", "action": "shortcut.run", "arg": "{{field.shortcut4}}", "frame": { "x": 88, "y": 88, "w": 72, "h": 72 }, "mirror": true }
+  ]
+}

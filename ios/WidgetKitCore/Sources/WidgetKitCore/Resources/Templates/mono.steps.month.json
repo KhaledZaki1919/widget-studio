@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.steps.month",
+  "category": "health",
+  "name": { "en": "Steps Month", "ar": "شهر الخطوات" },
+  "family": "small",
+  "theme": "dark",
+  "refresh": "hourly",
+  "background": { "type": "solid", "color": "@bg" },
+  "fields": [
+    { "key": "goal", "type": "number", "label": { "en": "Daily goal", "ar": "الهدف اليومي" }, "default": "8000" }
+  ],
+  "layers": [
+    { "type": "text", "value": "{{steps.month}}", "font": { "family": "dot", "size": 24, "weight": "bold" }, "color": "@fg", "frame": { "x": 14, "y": 12, "w": 142, "h": 30 }, "mirror": true },
+    { "type": "text", "value": { "en": "STEPS · {{date.MMM}}", "ar": "خطوات {{date.MMM}}" }, "font": { "family": "system", "size": 9, "weight": "semibold" }, "tracking": 1, "color": "@muted", "frame": { "x": 16, "y": 42, "w": 138, "h": 12 }, "mirror": true },
+    { "type": "dotGrid", "rows": 6, "cols": 7, "dotSize": 11, "gap": 6, "onColor": "@fg", "offColor": "@dim", "highlightColor": "@accent", "values": "{{steps.monthGrid}}", "frame": { "x": 14, "y": 60, "w": 142, "h": 100 }, "mirror": true }
+  ]
+}

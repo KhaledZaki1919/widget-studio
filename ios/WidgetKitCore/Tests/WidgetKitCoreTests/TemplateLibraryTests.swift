@@ -1,0 +1,125 @@
+import Foundation
+import Testing
+@testable import WidgetKitCore
+
+/// The Mono library (TEMPLATES.md, ADR-011).
+struct TemplateLibraryTests {
+    @Test func everyTemplateIsValid() {
+        let entries = TemplateLibrary.load()
+        #expect(entries.count == 28)
+        for entry in entries {
+            if case .failure(let failure) = entry.result {
+                Issue.record("\(entry.fileName): \(failure.description)")
+            }
+        }
+    }
+
+    @Test func idsMatchFileNamesAndTheCatalog() {
+        for entry in TemplateLibrary.load() {
+            guard let spec = entry.spec else { continue }
+            #expect(entry.fileName == "\(spec.id).json")
+        }
+        let ids = TemplateLibrary.all().map(\.id)
+        #expect(ids == TemplateLibrary.catalogOrder)
+    }
+
+    @Test func everyCategoryHasTemplates() {
+        for category in SpecCategory.allCases {
+            #expect(!TemplateLibrary.templates(in: category).isEmpty, "\(category) is empty")
+        }
+        #expect(TemplateLibrary.all().allSatisfy { $0.category != nil })
+    }
+
+    /// Arabic and English everywhere: names, field labels, and every text with literal words.
+    @Test func everyTemplateIsBilingual() {
+        for spec in TemplateLibrary.all() {
+            #expect(Self.isPair(spec.name), "\(spec.id): name")
+            for field in spec.fields {
+                #expect(Self.isPair(field.label), "\(spec.id): label of \(field.key)")
+            }
+            for (index, layer) in spec.layers.enumerated() {
+                switch layer.content {
+                case .text(let text):
+                    if case .plain(let value) = text.value {
+                        #expect(!Self.hasWords(value), "\(spec.id) layers[\(index)]: \"\(value)\" needs en and ar")
+                    }
+                case .dotBars(let bars):
+                    if case .plain(let value)? = bars.labels {
+                        #expect(!Self.hasWords(value), "\(spec.id) layers[\(index)]: labels need en and ar")
+                    }
+                default:
+                    break
+                }
+            }
+        }
+    }
+
+    /// Visible text never shows "--" with the sample data, in either language.
+    @Test func everyVisibleBindingResolvesWithSampleData() {
+        for spec in TemplateLibrary.all() {
+            for language in ["en", "ar"] {
+                let resolver = BindingResolver(spec: spec, context: RenderContext(language: language, data: .sample()))
+                for layer in spec.layers where layer.when.map(resolver.isSatisfied) ?? true {
+                    guard case .text(let text) = layer.content, text.live == nil else { continue }
+                    let value = resolver.render(text.value.resolved(language: language))
+                    #expect(!value.contains(BindingResolver.missing), "\(spec.id) [\(language)]: \(value)")
+                }
+            }
+        }
+    }
+
+    @Test func tokensResolveInBothThemes() {
+        for spec in TemplateLibrary.all() {
+            for theme in SpecTheme.allCases {
+                let resolved = spec.resolvingTokens(theme: theme)
+                let json = String(decoding: (try? JSONEncoder().encode(resolved)) ?? Data(), as: UTF8.self)
+                #expect(!json.contains("\"@"), "\(spec.id) \(theme): unresolved token")
+                #expect(SpecValidator().validate(resolved).isSuccess, "\(spec.id) \(theme): invalid after resolving")
+            }
+        }
+    }
+
+    @Test func stopwatchShowsExactlyOneState() {
+        guard let spec = TemplateLibrary.template(id: "mono.stopwatch") else {
+            Issue.record("missing mono.stopwatch")
+            return
+        }
+        var idle = DataSnapshot.sample()
+        idle.stopwatchStart = nil
+        let running = BindingResolver(spec: spec, context: RenderContext(data: .sample()))
+        let stopped = BindingResolver(spec: spec, context: RenderContext(data: idle))
+        let conditional = spec.layers.compactMap(\.when)
+        #expect(conditional.filter(running.isSatisfied).count == 3)
+        #expect(conditional.filter(stopped.isSatisfied).count == 2)
+    }
+
+    @Test func prayerDayHighlightsOneColumn() {
+        guard let spec = TemplateLibrary.template(id: "mono.prayer.day") else {
+            Issue.record("missing mono.prayer.day")
+            return
+        }
+        let resolver = BindingResolver(spec: spec, context: RenderContext(data: .sample()))
+        #expect(spec.layers.compactMap(\.when).filter(resolver.isSatisfied).count == 1)
+    }
+
+    static func isPair(_ text: LocalizedText) -> Bool {
+        if case .localized = text { return true }
+        return false
+    }
+
+    /// Letters outside `{{…}}` (digits, symbols and Arabic-only text don't count).
+    static func hasWords(_ value: String) -> Bool {
+        let literal = Bindings.tokenize(value).compactMap { token -> String? in
+            if case .literal(let text) = token { return text }
+            return nil
+        }.joined()
+        return !FontRegistry.containsArabic(literal) && literal.unicodeScalars.contains { CharacterSet.letters.contains($0) }
+    }
+}
+
+extension Result {
+    var isSuccess: Bool {
+        if case .success = self { return true }
+        return false
+    }
+}

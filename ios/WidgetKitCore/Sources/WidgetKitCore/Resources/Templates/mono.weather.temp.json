@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.weather.temp",
+  "category": "weather",
+  "name": { "en": "Temperature", "ar": "الحرارة" },
+  "family": "small",
+  "theme": "light",
+  "refresh": "hourly",
+  "background": { "type": "solid", "color": "@accent", "outerColor": "@outer" },
+  "layers": [
+    { "type": "icon", "symbol": "{{weather.symbol}}", "size": 22, "color": "@onAccent", "frame": { "x": 69, "y": 32, "w": 32, "h": 30 } },
+    { "type": "text", "value": "{{weather.temp}}°", "font": { "family": "dot", "size": 46, "weight": "black" }, "color": "@onAccent", "align": "center", "frame": { "x": 20, "y": 62, "w": 130, "h": 52 } },
+    { "type": "text", "value": "{{weather.cond}}", "font": { "family": "system", "size": 10, "weight": "medium" }, "color": "@onAccent", "opacity": 0.85, "align": "center", "frame": { "x": 30, "y": 116, "w": 110, "h": 14 } }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.sleep.week",
+  "category": "health",
+  "name": { "en": "Sleep Week", "ar": "نوم الأسبوع" },
+  "family": "medium",
+  "theme": "light",
+  "refresh": "daily",
+  "background": { "type": "solid", "color": "@bg" },
+  "layers": [
+    { "type": "text", "value": { "en": "LAST NIGHT", "ar": "الليلة الماضية" }, "font": { "family": "system", "size": 9, "weight": "semibold" }, "tracking": 1, "color": "@muted", "frame": { "x": 16, "y": 18, "w": 130, "h": 12 }, "mirror": true },
+    { "type": "text", "value": "{{sleep.lastNight}}", "font": { "family": "dot", "size": 28, "weight": "bold" }, "color": "@fg", "frame": { "x": 14, "y": 32, "w": 136, "h": 38 }, "mirror": true },
+    { "type": "icon", "symbol": "moon.stars.fill", "size": 16, "color": "@accent", "frame": { "x": 14, "y": 130, "w": 24, "h": 24 }, "mirror": true },
+    { "type": "text", "value": { "en": "BEST NIGHT IN RED", "ar": "أفضل ليلة بالأحمر" }, "font": { "family": "system", "size": 8, "weight": "medium" }, "tracking": 1, "color": "@muted", "frame": { "x": 42, "y": 136, "w": 110, "h": 12 }, "mirror": true },
+    { "type": "dotBars", "bars": 7, "maxDots": 9, "values": "{{sleep.week}}", "color": "@fg", "offColor": "@dim", "highlightColor": "@accent", "labels": { "en": "S,M,T,W,T,F,S", "ar": "ح,ن,ث,ر,خ,ج,س" }, "frame": { "x": 160, "y": 14, "w": 190, "h": 142 }, "mirror": true }
+  ]
+}

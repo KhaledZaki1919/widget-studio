@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.countdown.trip",
+  "category": "countdown",
+  "name": { "en": "Trip Board", "ar": "رحلة" },
+  "family": "medium",
+  "theme": "dark",
+  "refresh": "minute",
+  "background": { "type": "solid", "color": "@bg" },
+  "fields": [
+    { "key": "line1", "type": "text", "label": { "en": "Place", "ar": "المكان" }, "default": { "en": "CAIRO AIRPORT", "ar": "مطار القاهرة" } },
+    { "key": "line2", "type": "text", "label": { "en": "Flight or event", "ar": "الرحلة أو الحدث" }, "default": { "en": "FLIGHT XY 123", "ar": "رحلة XY 123" } },
+    { "key": "line3", "type": "text", "label": { "en": "Route", "ar": "المسار" }, "default": { "en": "CAI TO DXB", "ar": "من CAI إلى DXB" } },
+    { "key": "date", "type": "date", "label": { "en": "Departure", "ar": "موعد الإقلاع" }, "default": "2026-12-20T16:45:00Z" },
+    { "key": "start", "type": "text", "label": { "en": "Start time", "ar": "وقت البداية" }, "default": "16:45" },
+    { "key": "end", "type": "text", "label": { "en": "End time", "ar": "وقت النهاية" }, "default": "20:15" }
+  ],
+  "layers": [
+    { "type": "text", "value": "{{field.line1}}", "font": { "family": "system-mono", "size": 13, "weight": "medium" }, "color": "@fg", "frame": { "x": 16, "y": 14, "w": 332, "h": 18 }, "mirror": true },
+    { "type": "text", "value": "{{field.line2}}", "font": { "family": "system-mono", "size": 13, "weight": "medium" }, "color": "@fg", "frame": { "x": 16, "y": 34, "w": 332, "h": 18 }, "mirror": true },
+    { "type": "text", "value": "{{field.line3}}", "font": { "family": "system-mono", "size": 13, "weight": "medium" }, "color": "@fg", "frame": { "x": 16, "y": 54, "w": 332, "h": 18 }, "mirror": true },
+    { "type": "text", "value": "", "live": { "kind": "relative", "target": "{{field.date}}" }, "font": { "family": "system-mono", "size": 13, "weight": "bold" }, "color": "@accent", "frame": { "x": 16, "y": 74, "w": 332, "h": 18 }, "mirror": true },
+    { "type": "shape", "kind": "capsule", "fill": "@line", "frame": { "x": 16, "y": 112, "w": 332, "h": 1.5 } },
+    { "type": "icon", "symbol": "airplane", "size": 13, "color": "@fg", "frame": { "x": 14, "y": 128, "w": 22, "h": 22 }, "mirror": true },
+    { "type": "text", "value": "{{field.line1}}", "font": { "family": "system", "size": 11, "weight": "medium" }, "color": "@muted", "frame": { "x": 40, "y": 132, "w": 180, "h": 14 }, "mirror": true },
+    { "type": "text", "value": "{{field.start}} – {{field.end}}", "font": { "family": "system-mono", "size": 11, "weight": "medium" }, "color": "@fg", "align": "trailing", "frame": { "x": 228, "y": 132, "w": 120, "h": 14 }, "mirror": true }
+  ]
+}

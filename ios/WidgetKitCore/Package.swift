@@ -12,7 +12,7 @@ let package = Package(
     targets: [
         .target(
             name: "WidgetKitCore",
-            resources: [.copy("Resources/TestSpecs"), .copy("Resources/Spec")]
+            resources: [.copy("Resources/TestSpecs"), .copy("Resources/Templates"), .copy("Resources/Spec")]
         ),
         .testTarget(name: "WidgetKitCoreTests", dependencies: ["WidgetKitCore"]),
     ],

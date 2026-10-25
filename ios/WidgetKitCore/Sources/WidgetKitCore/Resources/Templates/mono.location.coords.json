@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.location.coords",
+  "category": "weather",
+  "name": { "en": "Coordinates", "ar": "الإحداثيات" },
+  "family": "small",
+  "theme": "light",
+  "refresh": "hourly",
+  "background": { "type": "solid", "color": "@bg", "outerColor": "@outer" },
+  "layers": [
+    { "type": "icon", "symbol": "location.north.fill", "size": 11, "color": "@accent", "frame": { "x": 30, "y": 50, "w": 18, "h": 18 }, "mirror": true },
+    { "type": "text", "value": { "en": "{{location.lat}}° N", "ar": "{{location.lat}}° ش" }, "font": { "family": "system-mono", "size": 12, "weight": "medium" }, "color": "@fg", "frame": { "x": 52, "y": 50, "w": 96, "h": 18 }, "mirror": true },
+    { "type": "icon", "symbol": "globe", "size": 11, "color": "@fg", "frame": { "x": 30, "y": 76, "w": 18, "h": 18 }, "mirror": true },
+    { "type": "text", "value": { "en": "{{location.lon}}° E", "ar": "{{location.lon}}° ق" }, "font": { "family": "system-mono", "size": 12, "weight": "medium" }, "color": "@fg", "frame": { "x": 52, "y": 76, "w": 96, "h": 18 }, "mirror": true },
+    { "type": "icon", "symbol": "mountain.2.fill", "size": 10, "color": "@fg", "frame": { "x": 30, "y": 102, "w": 18, "h": 18 }, "mirror": true },
+    { "type": "text", "value": { "en": "{{location.alt}} m", "ar": "{{location.alt}} م" }, "font": { "family": "system-mono", "size": 12, "weight": "medium" }, "color": "@fg", "frame": { "x": 52, "y": 102, "w": 96, "h": 18 }, "mirror": true }
+  ]
+}

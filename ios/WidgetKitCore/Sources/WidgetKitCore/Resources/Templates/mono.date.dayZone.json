@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.date.dayZone",
+  "category": "time",
+  "name": { "en": "Day & Zone", "ar": "اليوم والتوقيت" },
+  "family": "small",
+  "theme": "light",
+  "refresh": "minute",
+  "background": { "type": "solid", "color": "@bg" },
+  "fields": [
+    { "key": "zone", "type": "timezone", "label": { "en": "Time zone (optional)", "ar": "المنطقة الزمنية (اختياري)" }, "default": "" }
+  ],
+  "layers": [
+    { "type": "text", "value": "{{date.EEEE}}", "font": { "family": "system", "size": 13, "weight": "semibold" }, "color": "@fg", "frame": { "x": 16, "y": 16, "w": 138, "h": 18 }, "mirror": true },
+    { "type": "shape", "kind": "capsule", "fill": "@line", "frame": { "x": 16, "y": 40, "w": 138, "h": 1.5 } },
+    { "type": "text", "value": { "en": "LOCAL TIME", "ar": "التوقيت المحلي" }, "when": "!{{field.zone}}", "font": { "family": "system", "size": 9, "weight": "semibold" }, "tracking": 1, "color": "@muted", "frame": { "x": 16, "y": 100, "w": 138, "h": 12 }, "mirror": true },
+    { "type": "text", "value": "{{tz.offset}}", "when": "!{{field.zone}}", "font": { "family": "dot", "size": 32, "weight": "bold" }, "color": "@fg", "frame": { "x": 14, "y": 114, "w": 142, "h": 40 }, "mirror": true },
+    { "type": "text", "value": "{{field.zone}}", "when": "{{field.zone}}", "font": { "family": "system", "size": 9, "weight": "semibold" }, "color": "@muted", "frame": { "x": 16, "y": 100, "w": 138, "h": 12 }, "mirror": true },
+    { "type": "text", "value": "{{tz.zone.time}}", "when": "{{field.zone}}", "font": { "family": "dot", "size": 32, "weight": "bold" }, "color": "@fg", "frame": { "x": 14, "y": 114, "w": 142, "h": 40 }, "mirror": true }
+  ]
+}

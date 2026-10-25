@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.stopwatch",
+  "category": "countdown",
+  "name": { "en": "Stopwatch", "ar": "ساعة إيقاف" },
+  "family": "small",
+  "theme": "light",
+  "refresh": "none",
+  "background": { "type": "solid", "color": "@outer" },
+  "layers": [
+    { "type": "shape", "kind": "circle", "fill": "@accent", "when": "!{{stopwatch.running}}", "frame": { "x": 8, "y": 8, "w": 154, "h": 154 } },
+    { "type": "text", "value": { "en": "REC", "ar": "ابدأ" }, "when": "!{{stopwatch.running}}", "font": { "family": "dot", "size": 26, "weight": "black" }, "color": "@onAccent", "align": "center", "frame": { "x": 20, "y": 66, "w": 130, "h": 38 } },
+    { "type": "shape", "kind": "circle", "fill": "@bg", "when": "{{stopwatch.running}}", "frame": { "x": 8, "y": 8, "w": 154, "h": 154 } },
+    { "type": "shape", "kind": "circle", "fill": "@accent", "when": "{{stopwatch.running}}", "frame": { "x": 79, "y": 46, "w": 12, "h": 12 } },
+    { "type": "text", "value": "", "live": { "kind": "timer", "target": "{{stopwatch.start}}" }, "when": "{{stopwatch.running}}", "font": { "family": "dot", "size": 22, "weight": "bold" }, "color": "@fg", "align": "center", "frame": { "x": 18, "y": 70, "w": 134, "h": 32 } },
+    { "type": "button", "action": "stopwatch.toggle", "frame": { "x": 0, "y": 0, "w": 170, "h": 170 } }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.photo.circle",
+  "category": "photo",
+  "name": { "en": "Photo Circle", "ar": "صورة دائرية" },
+  "family": "small",
+  "theme": "light",
+  "refresh": "none",
+  "background": { "type": "solid", "color": "@outer" },
+  "fields": [
+    { "key": "photo", "type": "image", "label": { "en": "Photo", "ar": "الصورة" } }
+  ],
+  "layers": [
+    { "type": "image", "source": "user_image", "fit": "fill", "mask": "circle", "frame": { "x": 6, "y": 6, "w": 158, "h": 158 } }
+  ]
+}

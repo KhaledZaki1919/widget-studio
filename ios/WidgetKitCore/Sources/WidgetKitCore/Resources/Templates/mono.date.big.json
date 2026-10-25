@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.date.big",
+  "category": "time",
+  "name": { "en": "Big Date", "ar": "التاريخ" },
+  "family": "small",
+  "theme": "light",
+  "refresh": "daily",
+  "background": { "type": "solid", "color": "@bg" },
+  "layers": [
+    { "type": "text", "value": "{{date.EEEE}}", "font": { "family": "system", "size": 10, "weight": "semibold" }, "tracking": 1, "color": "@muted", "align": "center", "frame": { "x": 10, "y": 24, "w": 150, "h": 14 } },
+    { "type": "text", "value": "{{date.d}}", "font": { "family": "system-serif", "size": 80 }, "color": "@fg", "align": "center", "frame": { "x": 10, "y": 40, "w": 150, "h": 90 } },
+    { "type": "text", "value": "{{date.MMM}}", "font": { "family": "system", "size": 11, "weight": "medium" }, "color": "@accent", "align": "center", "frame": { "x": 10, "y": 132, "w": 150, "h": 16 } }
+  ]
+}

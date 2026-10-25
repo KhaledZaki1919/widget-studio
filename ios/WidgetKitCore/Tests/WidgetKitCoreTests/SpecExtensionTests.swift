@@ -102,7 +102,7 @@ struct RotationAndBindingTests {
     }
 
     @Test func rotationDecodesFromANumber() throws {
-        let json = #"{"type":"shape","kind":"circle","fill":"#FFFFFF","rotation":90,"frame":{"x":0,"y":0,"w":1,"h":1}}"#
+        let json = ##"{"type":"shape","kind":"circle","fill":"#FFFFFF","rotation":90,"frame":{"x":0,"y":0,"w":1,"h":1}}"##
         let layer = try JSONDecoder().decode(Layer.self, from: Data(json.utf8))
         #expect(layer.rotation == "90")
     }

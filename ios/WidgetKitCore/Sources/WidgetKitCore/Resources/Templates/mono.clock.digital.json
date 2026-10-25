@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "mono.clock.digital",
+  "category": "time",
+  "name": { "en": "Dot Digital", "ar": "ساعة رقمية" },
+  "family": "small",
+  "theme": "light",
+  "refresh": "minute",
+  "background": { "type": "solid", "color": "@bg" },
+  "layers": [
+    { "type": "text", "value": "{{time.hh}}", "font": { "family": "dot", "size": 60, "weight": "black" }, "color": "@fg", "align": "center", "frame": { "x": 10, "y": 14, "w": 150, "h": 66 } },
+    { "type": "shape", "kind": "capsule", "fill": "@line", "frame": { "x": 40, "y": 84, "w": 90, "h": 2 } },
+    { "type": "text", "value": "{{time.mm}}", "font": { "family": "dot", "size": 60, "weight": "black" }, "color": "@fg", "align": "center", "frame": { "x": 10, "y": 90, "w": 150, "h": 66 } }
+  ]
+}
