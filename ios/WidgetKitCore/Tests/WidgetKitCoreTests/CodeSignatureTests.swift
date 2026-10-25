@@ -9,8 +9,8 @@ private enum MachO {
 
     static func codeDirectory(identifier: String, team: String?, adHoc: Bool) -> [UInt8] {
         let header = 52
-        let identBytes = Array(identifier.utf8) + [0]
-        let teamBytes = team.map { Array($0.utf8) + [0] } ?? []
+        let identBytes: [UInt8] = Array(identifier.utf8) + [0]
+        let teamBytes: [UInt8] = team.map { Array($0.utf8) + [UInt8(0)] } ?? []
         var blob = be32(0xFADE_0C02) + be32(UInt32(header + identBytes.count + teamBytes.count))
         blob += be32(0x20200)                       // version
         blob += be32(adHoc ? 0x2 : 0)               // flags

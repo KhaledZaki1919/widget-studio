@@ -139,8 +139,15 @@ final class DiagnosticsModel {
 
     /// Plain English text for the share sheet, to paste back to Claude (not localized on purpose).
     var reportText: String {
-        let report = widgetReport
-        let lines: [String] = [
+        // Built in parts: one array literal with all lines is too much for the type checker.
+        var lines = buildLines
+        lines += signings.flatMap(Self.reportLines)
+        lines += statusLines
+        return lines.joined(separator: "\n")
+    }
+
+    private var buildLines: [String] {
+        [
             "Widget Studio diagnostics \(AppInfo.versionText) · \(Date.now.formatted(.iso8601))",
             "iOS \(UIDevice.current.systemVersion) · \(UIDevice.current.model)",
             "",
@@ -150,7 +157,12 @@ final class DiagnosticsModel {
             "Team: \(profile?.teamIdentifiers.joined(separator: ", ") ?? "?")",
             "Profile App Groups: \(profile.map { $0.appGroups.isEmpty ? "none" : $0.appGroups.joined(separator: ", ") } ?? "no profile")",
             "Profile entitlements: \(profile?.entitlementKeys.joined(separator: ", ") ?? "?")",
-        ] + signings.flatMap(Self.reportLines) + [
+        ]
+    }
+
+    private var statusLines: [String] {
+        let report = widgetReport
+        return [
             "",
             "[App Group]",
             "Resolved group: \(store.appGroupID ?? "none (app's own container)")"
@@ -179,7 +191,6 @@ final class DiagnosticsModel {
             "[Battery]",
             "App: \(battery.reportText)",
         ]
-        return lines.joined(separator: "\n")
     }
 }
 
