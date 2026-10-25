@@ -1,6 +1,8 @@
 # CLAUDE.md — Widget Studio
 
-Home-screen widget builder for iOS 17+ (native Swift / SwiftUI). Arabic default (RTL) + English. Every widget is a **spec JSON + optional user image**, drawn by one renderer shared by the app preview and the widget. Templates are bundled; an optional AI flow uses the user's own key (BYOK). No backend, no accounts, no analytics. Sideloaded with a free Apple ID for now; App Store later.
+Home-screen widget builder for iOS 17+ (native Swift / SwiftUI). Arabic default (RTL) + English. Every widget is a **spec JSON + optional user image**, drawn by one renderer shared by the app preview and the widget. Templates are bundled; an optional AI flow uses the user's own key (BYOK). No backend, no accounts, no analytics. App Store later.
+
+**Install method (owner, since M2):** every IPA is installed with **Fast Store**, a paid signing store that re-signs the app and the widget extension with its own certificate and profile. No Sideloadly. The store decides bundle IDs, team, profile and entitlements (the App Group was not granted in the M2 test), so never assume the compiled values at runtime (ADR-004) and check Diagnostics → Signing when a capability fails.
 
 The product brief is `widget-app-brief.md` (template catalog: `TEMPLATES.md`, visual reference: `docs/reference/widgets-reference.jpg`). Read them before changing behavior. Decisions live in `docs/decisions.md`.
 
@@ -40,17 +42,21 @@ python3 scripts/check-strings.py          # fails on missing ar/en translations 
 swiftlint lint
 ```
 **CI** (`ios.yml`), on push to `main`, PRs and manual runs:
-1. secret scan + localization check + compile-only build (all errors, full `xcodebuild.log` artifact);
-2. `WidgetKitCore` unit tests, then app tests (renders, RTL invariants, snapshots) + UI smoke test on the Simulator; every render goes to the `snapshots` artifact;
-3. unsigned IPA → artifact `WidgetStudio-ipa` (30 days). `build-ipa.sh` fails if the app or the widget lacks the App Group entitlement or a font declared in `UIAppFonts`.
+1. **every push:** secret scan + localization check + compile-only build (all errors, full `xcodebuild.log` artifact), and `WidgetKitCore` unit tests (`swift test`);
+2. **only when the head commit message contains `[full]` or `[ipa]`** (or a manual run): app tests on the Simulator (renders, RTL invariants, snapshots, every template through the widget view) + UI smoke tests; every render goes to the `snapshots` artifact;
+3. **only with `[ipa]`** (or a manual run), after everything above is green: unsigned IPA → artifact `WidgetStudio-ipa` (30 days). `build-ipa.sh` fails if the app or the widget lacks the App Group entitlement or a font declared in `UIAppFonts`.
 
-Docs-only commits (`**.md`, `docs/**`) skip CI.
+Docs-only commits (`**.md`, `docs/**`) skip CI. SwiftLint is a separate, non-blocking job. Superseded runs are cancelled.
 
-SwiftLint is a separate, non-blocking job. Superseded runs are cancelled.
+**Build rule (owner, since M2):**
+- Do **not** build an IPA after each fix. Commit each fix and push; that runs compile + unit tests only. Fix all errors per commit.
+- Use `[full]` on a commit when the change needs the Simulator tests (rendering, UI); it never builds an IPA.
+- Build the IPA **once**, with `[ipa]` in the commit message, only after **all** requested fixes are done and every test is green. Then tell the owner the IPA is ready; they test everything in one go.
 
 **After each push:**
-1. Poll the run in the **foreground**, capped at 8 minutes per wait (`timeout 400 gh run watch <id> --exit-status`, Bash tool timeout ~480000 ms so the call can never be moved to the background). Never start a background watcher (low-memory PC).
-2. On failure, read `gh run view <id> --log-failed`, fix **all** errors in one commit, push, and watch again until green.
+1. Poll the run in the **foreground**, at most 7 minutes per wait (`timeout 400 gh run watch <id> --exit-status`, Bash tool timeout ~480000 ms so the call can never be moved to the background). Never start a background watcher (low-memory PC).
+2. Fetch logs in a **separate call**, never chained after a watch: `gh run view <id> --log-failed` (or `--job <id> --log`).
+3. On failure, fix **all** errors in one commit, push, and watch again until green.
 
 ## Conventions
 **Swift / iOS**

@@ -1,6 +1,8 @@
-# iOS CI (ADR-003, ADR-006). Order: secret scan + compile-only build (all errors, full log as
-# artifact) -> WidgetKitCore tests + Simulator smoke test -> unsigned IPA. SwiftLint runs in
-# parallel and never blocks. Docs-only commits skip the workflow; superseded runs are cancelled.
+# iOS CI (ADR-003, ADR-006, build rule in CLAUDE.md).
+# Every push: secret scan + compile-only build (all errors, full log as artifact) and the
+# WidgetKitCore unit tests. With [full] or [ipa] in the head commit message: Simulator app and
+# UI tests. With [ipa] only: the unsigned IPA. SwiftLint runs in parallel and never blocks.
+# Docs-only commits skip the workflow; superseded runs are cancelled.
 name: iOS
 
 on:
@@ -85,11 +87,11 @@ jobs:
           command -v swiftlint || brew install swiftlint
           swiftlint lint --quiet
 
-  test:
-    name: Tests
-    needs: build
+  # Every push: package unit tests, in parallel with the compile job.
+  unit:
+    name: Unit tests (WidgetKitCore)
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -101,6 +103,20 @@ jobs:
 
       - name: WidgetKitCore tests
         run: swift test --package-path WidgetKitCore
+
+  # Build rule (CLAUDE.md): Simulator tests only with [full] or [ipa] in the head commit
+  # message, or a manual run.
+  test:
+    name: App and UI tests (Simulator)
+    needs: [build, unit]
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[full]') ||
+      contains(github.event.head_commit.message, '[ipa]')
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -151,10 +167,13 @@ jobs:
           path: ios/build/TestResults.xcresult
           retention-days: 7
 
+  # Build rule (CLAUDE.md): one IPA, only with [ipa] (or a manual run), after every test is green.
   ipa:
     name: Unsigned IPA
-    needs: test
-    if: github.event_name != 'pull_request'
+    needs: [build, unit, test]
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[ipa]'))
     runs-on: macos-15
     timeout-minutes: 30
     steps:
