@@ -23,6 +23,8 @@ final class DiagnosticsModel {
     private(set) var healthRunning = false
     private(set) var battery: ProbeOutcome = .notRun
     private(set) var widgetReloadedAt: Date?
+    /// What the signer (Fast Store) gave the app and each extension (ADR-012).
+    private(set) var signings: [BundleSigning] = []
 
     private let location = LocationPermission()
 
@@ -35,6 +37,7 @@ final class DiagnosticsModel {
     /// Re-reads everything, refreshes the app heartbeat and asks the widget to reload.
     func refresh() {
         profileStatus = ProvisioningProfile.inspect()
+        signings = BundleSigning.all()
         store = AppGroupResolver.resolve()
         candidates = AppGroupResolver.candidates()
         let probeStore = ProbeStore(location: store)
@@ -104,6 +107,27 @@ final class DiagnosticsModel {
         }
     }
 
+    /// Plain-text lines for one bundle's signing (app or extension).
+    static func reportLines(_ signing: BundleSigning) -> [String] {
+        let signature = signing.signature
+        let profile = signing.profile.profile
+        return [
+            "",
+            "[Signing: \(signing.name)]",
+            "Bundle ID: \(signing.bundleID ?? "?")",
+            "Signed identifier: \(signature?.identifier ?? "?")",
+            "Signed team: \(signature.map { $0.teamID ?? ($0.isAdHoc ? "none (ad hoc)" : "none") } ?? "unsigned or unreadable")",
+            "Signed application-identifier: \(signature?.applicationIdentifier ?? "none")",
+            "Signed App Groups: \(signature.map { $0.appGroups.isEmpty ? "none" : $0.appGroups.joined(separator: ", ") } ?? "?")",
+            "Signed entitlements: \(signature.map { $0.entitlementKeys.isEmpty ? "none" : $0.entitlementKeys.joined(separator: ", ") } ?? "?")",
+            "Profile: \(describe(signing.profile))",
+            "Profile team: \(profile?.teamIdentifiers.joined(separator: ", ") ?? "?")",
+            "Profile expires: \(profile?.expirationDate.map { $0.formatted(.iso8601) } ?? "?")",
+            "Profile App Groups: \(profile.map { $0.appGroups.isEmpty ? "none" : $0.appGroups.joined(separator: ", ") } ?? "?")",
+            "Profile entitlements: \(profile.map { $0.entitlementKeys.joined(separator: ", ") } ?? "?")",
+        ]
+    }
+
     /// "group.a (altAppGroups), group.b (compiled)"
     var candidatesText: String {
         candidates.isEmpty ? "none" : candidates.map { "\($0.id) (\($0.source.rawValue))" }.joined(separator: ", ")
@@ -126,6 +150,7 @@ final class DiagnosticsModel {
             "Team: \(profile?.teamIdentifiers.joined(separator: ", ") ?? "?")",
             "Profile App Groups: \(profile.map { $0.appGroups.isEmpty ? "none" : $0.appGroups.joined(separator: ", ") } ?? "no profile")",
             "Profile entitlements: \(profile?.entitlementKeys.joined(separator: ", ") ?? "?")",
+        ] + signings.flatMap(Self.reportLines) + [
             "",
             "[App Group]",
             "Resolved group: \(store.appGroupID ?? "none (app's own container)")"

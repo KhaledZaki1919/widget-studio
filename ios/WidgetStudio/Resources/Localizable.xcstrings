@@ -732,6 +732,125 @@
         }
       }
     },
+    "diag.signing.bundleID": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "معرّف الحزمة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bundle ID"
+          }
+        }
+      }
+    },
+    "diag.signing.entitlements": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الصلاحيات الموقَّعة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signed entitlements"
+          }
+        }
+      }
+    },
+    "diag.signing.expires": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انتهاء الملف"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profile expires"
+          }
+        }
+      }
+    },
+    "diag.signing.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«الموقَّع» يُقرأ من توقيع الملف التنفيذي نفسه، و«الملف» من ملف التوقيع المرفق. متجر التوقيع (Fast Store) يحدد الاثنين."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Signed” is read from the executable’s own code signature, “Profile” from the embedded provisioning profile. The signing store (Fast Store) decides both."
+          }
+        }
+      }
+    },
+    "diag.signing.groups": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المجموعات الموقَّعة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signed App Groups"
+          }
+        }
+      }
+    },
+    "diag.signing.identifier": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المعرّف الموقَّع"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signed identifier"
+          }
+        }
+      }
+    },
+    "diag.signing.team": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الفريق الموقِّع"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signed team"
+          }
+        }
+      }
+    },
     "diag.team": {
       "extractionState": "manual",
       "localizations": {

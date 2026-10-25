@@ -18,6 +18,9 @@ struct DiagnosticsView: View {
                 Text("diag.testSpecs.footer")
             }
             buildSection
+            ForEach(model.signings, id: \.name) { signing in
+                signingSection(signing)
+            }
             appGroupSection
             widgetSection
             locationSection
@@ -53,6 +56,28 @@ struct DiagnosticsView: View {
             valueRow("diag.profileGroups", model.profile.map { $0.appGroups.isEmpty ? "—" : $0.appGroups.joined(separator: "\n") } ?? "—")
             valueRow("diag.entitlements", model.profile?.entitlementKeys.joined(separator: "\n") ?? "—")
         }
+    }
+
+    /// What the signing store gave one bundle: signed identity and entitlements, and the profile.
+    private func signingSection(_ signing: BundleSigning) -> some View {
+        let signature = signing.signature
+        let profile = signing.profile.profile
+        return Section {
+            valueRow("diag.signing.bundleID", signing.bundleID ?? "—")
+            valueRow("diag.signing.identifier", signature?.identifier ?? "—")
+            valueRow("diag.signing.team", signature.map { $0.teamID ?? ($0.isAdHoc ? "ad hoc" : "—") } ?? "—")
+            valueRow("diag.signing.groups", signature.map { $0.appGroups.isEmpty ? "—" : $0.appGroups.joined(separator: "\n") } ?? "—")
+            valueRow("diag.signing.entitlements", signature.map { $0.entitlementKeys.isEmpty ? "—" : $0.entitlementKeys.joined(separator: "\n") } ?? "—")
+            valueRow("diag.profile", DiagnosticsModel.describe(signing.profile))
+            valueRow("diag.team", profile?.teamIdentifiers.joined(separator: ", ") ?? "—")
+            valueRow("diag.signing.expires", profile?.expirationDate.map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "—")
+            valueRow("diag.profileGroups", profile.map { $0.appGroups.isEmpty ? "—" : $0.appGroups.joined(separator: "\n") } ?? "—")
+        } header: {
+            Text(verbatim: signing.name)
+        } footer: {
+            Text("diag.signing.footer")
+        }
+        .accessibilityIdentifier("ax.diag.signing.\(signing.name)")
     }
 
     private var appGroupSection: some View {
