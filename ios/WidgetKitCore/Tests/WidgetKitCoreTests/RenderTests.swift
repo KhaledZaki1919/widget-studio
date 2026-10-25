@@ -72,6 +72,14 @@ struct BindingResolverTests {
         #expect(resolver.render("{{tz.zone.time}}") == "23:05")
     }
 
+    @Test func timesShowInTheRenderTimeZone() {
+        // Prayer times come from sample data built in UTC here; they must print in that zone.
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = utc
+        let data = DataSnapshot.sample(now: fixedDate, calendar: calendar)
+        #expect(resolver(data: data).render("{{prayer.fajr}}") == "04:32")
+    }
+
     @Test func gmtOffsets() {
         #expect(BindingResolver.offset(utc, at: fixedDate) == "GMT")
         #expect(BindingResolver.offset(TimeZone(secondsFromGMT: 7200) ?? utc, at: fixedDate) == "GMT+2")
@@ -82,6 +90,26 @@ struct BindingResolverTests {
         #expect(resolver().levels("{{sleep.week}}").count == 7)
         #expect(resolver().levels("0.5,1") == [0.5, 1])
         #expect(resolver().levels("01 10") == [0, 1, 1, 0])
+    }
+}
+
+struct BidiTextTests {
+    private let lri = "\u{2066}"
+    private let pdi = "\u{2069}"
+
+    @Test func numbersInArabicTextAreIsolated() {
+        #expect(BidiText.isolatingNumbers("غائم · 33° / 21°") == "غائم · \(lri)33°\(pdi) / \(lri)21°\(pdi)")
+        #expect(BidiText.isolatingNumbers("القبلة 136°") == "القبلة \(lri)136°\(pdi)")
+        #expect(BidiText.isolatingNumbers("الساعة 12:30، ثم") == "الساعة \(lri)12:30\(pdi)، ثم")
+    }
+
+    @Test func trailingSeparatorsStayOutside() {
+        #expect(BidiText.isolatingNumbers("أيام 5, 6") == "أيام \(lri)5\(pdi), \(lri)6\(pdi)")
+    }
+
+    @Test func latinTextIsUnchanged() {
+        #expect(BidiText.isolatingNumbers("Partly cloudy · 33° / 21°") == "Partly cloudy · 33° / 21°")
+        #expect(BidiText.isolatingNumbers("5,543") == "5,543")
     }
 }
 

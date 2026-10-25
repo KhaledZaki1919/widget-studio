@@ -14,7 +14,7 @@
   "layers": [
     { "type": "image", "source": "user_image", "fit": "fill", "mask": "roundedRect", "cornerRadius": 18, "filter": "mono", "frame": { "x": 10, "y": 10, "w": 150, "h": 150 }, "mirror": true },
     { "type": "text", "value": "{{field.dhikr}}", "font": { "family": "arabic", "size": 16, "weight": "semibold" }, "color": "#0E0E0E", "align": "center", "frame": { "x": 176, "y": 16, "w": 172, "h": 24 }, "mirror": true },
-    { "type": "text", "value": "{{counter.value}}", "font": { "family": "dot", "size": 44, "weight": "bold" }, "color": "#0E0E0E", "align": "center", "frame": { "x": 176, "y": 44, "w": 172, "h": 54 } },
+    { "type": "text", "value": "{{counter.value}}", "font": { "family": "dot", "size": 44, "weight": "bold" }, "color": "#0E0E0E", "align": "center", "frame": { "x": 176, "y": 44, "w": 172, "h": 54 }, "mirror": true },
     { "type": "shape", "kind": "capsule", "fill": "#E31C24", "frame": { "x": 186, "y": 110, "w": 70, "h": 42 }, "mirror": true },
     { "type": "icon", "symbol": "plus", "size": 18, "color": "#FFFFFF", "frame": { "x": 186, "y": 110, "w": 70, "h": 42 }, "mirror": true },
     { "type": "button", "action": "counter.increment", "frame": { "x": 186, "y": 110, "w": 70, "h": 42 }, "mirror": true },

@@ -9,7 +9,7 @@
   "layers": [
     { "type": "text", "value": "{{date.EEEE}}", "font": { "family": "system", "size": 12, "weight": "medium" }, "color": "#FFFFFFB3", "frame": { "x": 16, "y": 18, "w": 120, "h": 16 }, "mirror": true },
     { "type": "shape", "kind": "circle", "fill": "#E31C24", "frame": { "x": 142, "y": 21, "w": 10, "h": 10 }, "mirror": true },
-    { "type": "text", "value": "{{time.hh}}", "font": { "family": "dot", "size": 56, "weight": "bold" }, "color": "#FFFFFF", "frame": { "x": 12, "y": 42, "w": 146, "h": 58 } },
-    { "type": "text", "value": "{{time.mm}}", "font": { "family": "dot", "size": 56, "weight": "bold" }, "color": "#E31C24", "frame": { "x": 12, "y": 98, "w": 146, "h": 58 } }
+    { "type": "text", "value": "{{time.hh}}", "font": { "family": "dot", "size": 56, "weight": "bold" }, "color": "#FFFFFF", "frame": { "x": 12, "y": 42, "w": 146, "h": 58 }, "mirror": true },
+    { "type": "text", "value": "{{time.mm}}", "font": { "family": "dot", "size": 56, "weight": "bold" }, "color": "#E31C24", "frame": { "x": 12, "y": 98, "w": 146, "h": 58 }, "mirror": true }
   ]
 }

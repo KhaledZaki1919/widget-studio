@@ -106,3 +106,50 @@ Never hardcode the bundle ID, team prefix or group at runtime. No Keychain shari
 - **Buttons** are `Link`s to `widgetstudio://action/<action>?spec=<id>&arg=<value>` until the interactive AppIntents arrive (M4).
 - **Data:** M1 renders `DataSnapshot.sample` (Cairo); real providers replace it in M4.
 - **Widget:** the spec widget uses `AppIntentConfiguration` to pick a **bundled** spec, because the App Group doesn't work on Sideloadly installs (ADR-005). Its timeline follows the spec's `refresh`, and content margins are disabled so the canvas fills the widget.
+
+### ADR-010 — RTL without flipping, fonts through UIAppFonts, render tests (M1 device fixes)
+**Status:** Accepted (2026-10-25). Fixes from the M1 device test.
+
+**1. RTL**
+- **Problem:** in Arabic, the gallery mirrored everything like an image: text, digits, clocks and the segmented control. Forcing `layoutDirection = .rightToLeft` on a `List` inside an LTR app makes its UIKit cells flip.
+- **Rule:** nothing in a spec is ever flipped. `SpecView` lays out the canvas left-to-right and sets no direction per layer. In Arabic, a layer with `mirror: true`:
+  - moves to the mirrored frame;
+  - swaps its own alignment (leading ↔ trailing);
+  - reverses its item order: forecast days, week bars and labels, calendar rows.
+
+  Glyphs, digits and clock hands keep their shape. Mirroring a number's *position* is fine (the digital clock and the tasbeeh counter do it).
+- **Arabic text:**
+  - Field defaults and `dotBars.labels` may be `{en, ar}`.
+  - Sample data has Arabic values.
+  - Live texts get the spec's locale (`ar_EG@numbers=latn`) and time zone.
+  - Tracking is ignored for Arabic text, because it breaks letter joining.
+  - Number runs inside Arabic text are wrapped in LTR isolates (`BidiText`), so "33° / 21°" isn't reordered.
+  - Date bindings print in the render's time zone.
+
+**2. Widget showed only the redacted placeholder**
+- **What was ruled out:** the IPA was inspected. The extension contained the package resource bundle and valid App Intents metadata.
+- **What changed:** the renderer used fonts that only exist in-process:
+  - Doto, registered at runtime with `CTFontManagerRegisterFontsForURL`;
+  - a CoreText variation font (`Font(CTFont)` with a `wght` axis), created anew for every text in every entry (up to 60 entries).
+
+  The usual way for widgets to get custom fonts is to bundle the files in the extension and declare them in `UIAppFonts`. A runtime-registered variable font may not survive WidgetKit's rendering, and per-entry instances strain the ~30 MB budget.
+- **Fix:**
+  - All fonts live in `ios/Fonts`, are bundled in the app **and** the extension, are declared in each `UIAppFonts`, and are referenced only by PostScript name.
+  - Doto ships as three static instances (Regular 400, Bold 700, Black 900, ROND 0), built from the OFL variable font by the manual workflow `.github/workflows/fonts.yml` (fontTools). Doto has no Reserved Font Name. IBM Plex (RFN "Plex") ships unmodified.
+  - `build-ipa.sh` fails if a bundle lacks a font it declares.
+  - Formatters are cached, and the widget loads the specs once per process.
+- **Not yet confirmed on device.** If the widget still shows the placeholder, read the extension's crash or memory report (Settings → Privacy & Security → Analytics & Improvements → Analytics Data → `WidgetStudioWidgets-…` or `JetsamEvent-…`).
+
+**3. Render tests (app-hosted `WidgetStudioTests`, Simulator)**
+- **RTL invariants, no references needed:**
+  - Layers without `mirror` must render pixel-identically in English, in Arabic, and in Arabic inside an RTL host.
+  - An Arabic render with `mirror` must equal an English render of the hand-mirrored spec.
+- **Every test spec renders through `SpecWidgetContent`,** the widget's own view (moved into the package for this), in every size and both languages. The render must not be blank.
+- **Snapshots:**
+  - One reference PNG per spec and language, in `WidgetStudioTests/Snapshots`.
+  - Renders use a fixed date (2026-10-21 14:05 Cairo), sample data and frozen live text.
+  - Every render is uploaded as the `snapshots` artifact. A missing reference skips (recorded); a mismatch above 0.2 % of pixels fails and writes a diff image.
+
+**4. Layout fixes**
+- **World clocks:** the stray GMT offset is gone, and the steps grid is a real month calendar (`MonthGrid`: 7 columns from the calendar's first weekday, padding before day 1).
+- **Forecast:** the icon no longer overlaps the temperature, and "°" is drawn in the system font inside dot text.

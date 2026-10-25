@@ -9,10 +9,12 @@ struct TextLayerView: View {
 
     var body: some View {
         let raw = layer.value.resolved(language: resolver.context.language)
-        let value = resolver.render(raw)
+        let value = BidiText.isolatingNumbers(resolver.render(raw))
+        let arabic = FontRegistry.containsArabic(value)
         content(value)
             .font(FontRegistry.font(layer.font, size: layer.font.size * scale, for: value))
-            .tracking((layer.tracking ?? 0) * scale)
+            // Letter spacing breaks Arabic letter joining, so tracking applies to Latin text only.
+            .tracking(arabic ? 0 : (layer.tracking ?? 0) * scale)
             .foregroundStyle(Color(hex: layer.color))
             .multilineTextAlignment(textAlignment)
             .lineLimit(layer.maxLines ?? 1)

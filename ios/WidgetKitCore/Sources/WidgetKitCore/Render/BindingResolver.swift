@@ -34,9 +34,17 @@ public struct BindingResolver {
         Bindings.tokenize(template).map { token in
             switch token {
             case .literal(let text): text
-            case .binding(let name): value(of: name)?.display ?? Self.missing
+            case .binding(let name): value(of: name).map(display) ?? Self.missing
             }
         }.joined()
+    }
+
+    /// Text for a value; times show in the render's time zone (prayer times, stopwatch start).
+    public func display(_ value: Value) -> String {
+        if case .date(let date) = value {
+            return FormatterCache.date("HH:mm", locale: "en_US_POSIX", zone: context.timeZone).string(from: date)
+        }
+        return value.display
     }
 
     /// Resolves `text` when it is exactly one binding.

@@ -46,6 +46,7 @@ public struct SpecView: View {
         .environment(\.layoutDirection, .leftToRight)
         // Live texts (time, relative, timer) format in the spec's language with Latin digits.
         .environment(\.locale, Locale(identifier: context.localeIdentifier))
+        .environment(\.timeZone, context.timeZone)
         .environment(\.colorScheme, spec.theme == .dark ? .dark : .light)
     }
 }
