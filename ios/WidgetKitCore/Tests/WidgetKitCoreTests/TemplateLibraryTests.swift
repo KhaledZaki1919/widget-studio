@@ -102,6 +102,50 @@ struct TemplateLibraryTests {
         #expect(spec.layers.compactMap(\.when).filter(resolver.isSatisfied).count == 1)
     }
 
+    // MARK: Widget loading (ADR-012)
+
+    @Test func loadsOneTemplateByID() throws {
+        let spec = try TemplateLibrary.load(id: "mono.weather.forecast").get()
+        #expect(spec.family == .medium)
+    }
+
+    @Test func unknownOrUnsafeIDsAreProblemsNotCrashes() {
+        for id in ["mono.nope", "../TestSpecs/01-clock-digital", "", "mono/clock"] {
+            guard case .failure(let failure) = TemplateLibrary.load(id: id) else {
+                Issue.record("\(id) loaded")
+                continue
+            }
+            #expect(failure.description.contains("not in the library"))
+        }
+    }
+
+    @Test func widgetSizesListOnlyTemplatesThatFit() {
+        #expect(TemplateLibrary.fitting(.small).allSatisfy { $0.family == .small })
+        #expect(TemplateLibrary.fitting(.medium).allSatisfy { $0.family != .large })
+        #expect(TemplateLibrary.fitting(.large).count == TemplateLibrary.all().count)
+        #expect(TemplateLibrary.fitting(.medium).contains { $0.family == .medium })
+    }
+
+    @Test func defaultTemplatesExistAndFit() throws {
+        for size in SpecFamily.allCases {
+            let spec = try TemplateLibrary.load(id: TemplateLibrary.defaultID(for: size)).get()
+            #expect(spec.family.rank <= size.rank, "\(size)")
+        }
+    }
+
+    @Test func widgetLogKeepsTheLastLines() {
+        WidgetLog.clear()
+        for index in 0..<(WidgetLog.capacity + 5) {
+            WidgetLog.add("line \(index)")
+        }
+        let lines = WidgetLog.last(100)
+        #expect(lines.count == WidgetLog.capacity)
+        #expect(lines.last?.hasSuffix("line \(WidgetLog.capacity + 4)") == true)
+        #expect(WidgetLog.last(2).count == 2)
+        WidgetLog.clear()
+        #expect(WidgetLog.last(5).isEmpty)
+    }
+
     static func isPair(_ text: LocalizedText) -> Bool {
         if case .localized = text { return true }
         return false

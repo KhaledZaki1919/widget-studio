@@ -72,7 +72,8 @@ public enum SpecFamily: String, Codable, Sendable, CaseIterable {
         SpecFamily.allCases.filter { $0.rank >= rank }
     }
 
-    var rank: Int {
+    /// small 0, medium 1, large 2.
+    public var rank: Int {
         switch self {
         case .small: 0
         case .medium: 1

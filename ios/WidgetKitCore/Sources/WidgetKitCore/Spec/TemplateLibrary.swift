@@ -40,7 +40,34 @@ public enum TemplateLibrary {
     }
 
     public static func template(id: String) -> WidgetSpec? {
-        all().first { $0.id == id }
+        try? load(id: id).get()
+    }
+
+    /// Loads and validates only `Templates/<id>.json`: what a widget timeline needs, without
+    /// decoding the other 27 templates (ADR-012).
+    public static func load(id: String) -> Result<WidgetSpec, SpecIssues> {
+        guard SpecValidatorID.isValid(id),
+              let url = Bundle.module.url(forResource: id, withExtension: "json", subdirectory: "Templates") else {
+            return .failure(SpecIssues([SpecIssue("", "template \(id) is not in the library")]))
+        }
+        guard let data = try? Data(contentsOf: url) else {
+            return .failure(SpecIssues([SpecIssue("", "template \(id) can't be read")]))
+        }
+        return SpecValidator().validate(data: data)
+    }
+
+    /// Templates that fit a widget of `size` (own size or smaller, never shrunk), in library order.
+    public static func fitting(_ size: SpecFamily) -> [WidgetSpec] {
+        all().filter { $0.family.rank <= size.rank }
+    }
+
+    /// The template a new widget of `size` shows before the user picks one.
+    public static func defaultID(for size: SpecFamily) -> String {
+        switch size {
+        case .small: "mono.clock.digital"
+        case .medium: "mono.weather.forecast"
+        case .large: "mono.prayer.day"
+        }
     }
 
     public static func templates(in category: SpecCategory) -> [WidgetSpec] {

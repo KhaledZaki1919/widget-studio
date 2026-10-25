@@ -13,7 +13,8 @@ struct ProbeWidget: Widget {
         }
         .configurationDisplayName("widget.probe.name")
         .description("widget.probe.description")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        // Large shows the template widgets' step log (ADR-012).
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
 
@@ -22,6 +23,8 @@ struct ProbeEntry: TimelineEntry {
     /// The App Group this extension resolved; nil when it fell back to its own container.
     let groupID: String?
     let report: WidgetReport?
+    /// The last lines of `WidgetLog` (template widget steps).
+    var log: [String] = []
 
     var isShared: Bool { groupID != nil }
 }
@@ -35,7 +38,7 @@ struct ProbeProvider: TimelineProvider {
         // The widget gallery needs an answer quickly: show the last saved report.
         let location = AppGroupResolver.resolve()
         completion(ProbeEntry(date: .now, groupID: location.appGroupID,
-                              report: ProbeStore(location: location).readWidgetReport()))
+                              report: ProbeStore(location: location).readWidgetReport(), log: WidgetLog.last(16)))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<ProbeEntry>) -> Void) {
@@ -60,7 +63,7 @@ struct ProbeProvider: TimelineProvider {
             battery: WidgetProbes.battery()
         )
         try? store.writeWidgetReport(report)
-        return ProbeEntry(date: report.date, groupID: location.appGroupID, report: report)
+        return ProbeEntry(date: report.date, groupID: location.appGroupID, report: report, log: WidgetLog.last(16))
     }
 }
 
@@ -94,11 +97,37 @@ struct ProbeWidgetView: View {
             row("widget.probe.group", ok: entry.isShared, detail: groupDetail)
             row("widget.probe.location", ok: entry.report?.location.isOK, detail: detail(entry.report?.location))
             row("widget.probe.battery", ok: entry.report?.battery.isOK, detail: detail(entry.report?.battery))
+            if family == .systemLarge {
+                logView
+            }
         }
         .foregroundStyle(.white)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .containerBackground(Color(white: 0.055), for: .widget)
         .widgetURL(URL(string: "widgetstudio://diagnostics"))
+    }
+
+    /// The template widgets' last steps, newest at the bottom (system fonts only, so it renders
+    /// whatever breaks the template widgets).
+    private var logView: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Divider().overlay(Color.white.opacity(0.3)).padding(.vertical, 4)
+            Text("widget.probe.log")
+                .font(.caption2.weight(.semibold))
+            if entry.log.isEmpty {
+                Text("widget.probe.log.empty")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(Array(entry.log.enumerated()), id: \.offset) { _, line in
+                Text(verbatim: line)
+                    .font(.system(size: 8, design: .monospaced))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .environment(\.layoutDirection, .leftToRight)
     }
 
     /// The app's test value when the widget can read it.

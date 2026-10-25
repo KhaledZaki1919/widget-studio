@@ -137,6 +137,40 @@
         }
       }
     },
+    "widget.probe.log": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سجل ودجت القوالب"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Template widget log"
+          }
+        }
+      }
+    },
+    "widget.probe.log.empty": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يوجد سجل بعد. أضف ودجت قالب ثم افتح التشخيص في التطبيق."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No log yet. Add a template widget, then open Diagnostics in the app."
+          }
+        }
+      }
+    },
     "widget.probe.name": {
       "extractionState": "manual",
       "localizations": {
@@ -188,7 +222,24 @@
         }
       }
     },
-    "widget.spec.appearance": {
+    "widget.problem.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر عرض القالب"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t show this template"
+          }
+        }
+      }
+    },
+    "widget.template.appearance": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
@@ -205,24 +256,24 @@
         }
       }
     },
-    "widget.spec.description": {
+    "widget.template.description": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "اختر أي قالب من المكتبة: اضغط مطولًا على الودجت ثم «تعديل الودجت»."
+            "value": "قالب من المكتبة يناسب هذا المقاس. اضغط مطولًا ثم «تعديل الودجت» لاختياره."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pick any template from the library: long-press the widget, then Edit Widget."
+            "value": "A library template that fits this size. Long-press, then Edit Widget to pick one."
           }
         }
       }
     },
-    "widget.spec.entity": {
+    "widget.template.entity": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
@@ -239,7 +290,7 @@
         }
       }
     },
-    "widget.spec.intent.description": {
+    "widget.template.intent.description": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
@@ -256,7 +307,7 @@
         }
       }
     },
-    "widget.spec.intent.title": {
+    "widget.template.intent.title": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
@@ -273,7 +324,7 @@
         }
       }
     },
-    "widget.spec.name": {
+    "widget.template.name": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
@@ -290,7 +341,7 @@
         }
       }
     },
-    "widget.spec.param": {
+    "widget.template.param": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
@@ -303,6 +354,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "Template"
+          }
+        }
+      }
+    },
+    "widget.test.fonts.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تشخيص: يعرض الخطوط المضمّنة فقط."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnostics: shows only the bundled fonts."
+          }
+        }
+      }
+    },
+    "widget.test.fonts.name": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختبار · الخطوط"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test · Fonts"
+          }
+        }
+      }
+    },
+    "widget.test.template.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تشخيص: قالب ثابت بدون إعداد."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnostics: a fixed template without configuration."
+          }
+        }
+      }
+    },
+    "widget.test.template.name": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختبار · قالب"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test · Template"
           }
         }
       }

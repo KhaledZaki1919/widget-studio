@@ -99,6 +99,17 @@ public struct SpecValidator: Sendable {
     }
 }
 
+/// Spec and template IDs: letters, digits, dots, dashes, underscores; camelCase allowed
+/// (`mono.clock.dotAnalog`, TEMPLATES.md). Also keeps file lookups inside the resource folder.
+enum SpecValidatorID {
+    static func isValid(_ id: String) -> Bool {
+        !id.isEmpty && id.count <= 64 && id.unicodeScalars.allSatisfy {
+            ("a"..."z").contains($0) || ("A"..."Z").contains($0) || ("0"..."9").contains($0)
+                || $0 == "." || $0 == "-" || $0 == "_"
+        }
+    }
+}
+
 /// Collects issues for one spec.
 private struct Check {
     let spec: WidgetSpec
@@ -128,12 +139,8 @@ private struct Check {
         }
     }
 
-    /// Template IDs are camelCase (`mono.clock.dotAnalog`, TEMPLATES.md).
     static func isValidID(_ id: String) -> Bool {
-        !id.isEmpty && id.count <= 64 && id.unicodeScalars.allSatisfy {
-            ("a"..."z").contains($0) || ("A"..."Z").contains($0) || ("0"..."9").contains($0)
-                || $0 == "." || $0 == "-" || $0 == "_"
-        }
+        SpecValidatorID.isValid(id)
     }
 
     // MARK: Values
