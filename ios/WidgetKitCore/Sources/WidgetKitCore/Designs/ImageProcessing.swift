@@ -108,9 +108,14 @@ public enum ImageProcessing {
             return true
         }
         guard drawn else { return nil }
-        return stride(from: 0, to: pixels.count, by: 4).map { index in
-            (0.2126 * Double(pixels[index]) + 0.7152 * Double(pixels[index + 1]) + 0.0722 * Double(pixels[index + 2])) / 255
+        var gray = [Double](repeating: 0, count: width * height)
+        for pixel in 0..<(width * height) {
+            let red: Double = Double(pixels[pixel * 4])
+            let green: Double = Double(pixels[pixel * 4 + 1])
+            let blue: Double = Double(pixels[pixel * 4 + 2])
+            gray[pixel] = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255
         }
+        return gray
     }
 
     static func draw(size: CGSize, _ body: (CGContext) -> Void) -> CGImage? {
