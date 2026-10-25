@@ -106,10 +106,13 @@ struct DesignEditingTests {
         let countdown = try template("mono.countdown.red")
         let date = Date(timeIntervalSince1970: 1_792_591_500)
         let utc = TimeZone(identifier: "UTC") ?? .current
-        #expect(DesignEditing.dateValue(date, for: try #require(countdown.field("date")), timeZone: utc) == "2026-10-21")
-        #expect(DesignEditing.dateValue(date, for: try #require(trip.field("date")), timeZone: utc) == "2026-10-21T14:05:00Z")
-        #expect(DesignEditing.isBilingual(try #require(trip.field("line1"))))
-        #expect(!DesignEditing.isBilingual(try #require(trip.field("date"))))
+        let countdownDate = try #require(countdown.field("date"))
+        let tripDate = try #require(trip.field("date"))
+        let tripLine = try #require(trip.field("line1"))
+        #expect(DesignEditing.dateValue(date, for: countdownDate, timeZone: utc) == "2026-10-21")
+        #expect(DesignEditing.dateValue(date, for: tripDate, timeZone: utc) == "2026-10-21T14:05:00Z")
+        #expect(DesignEditing.isBilingual(tripLine))
+        #expect(!DesignEditing.isBilingual(tripDate))
     }
 
     // MARK: Photos
@@ -131,10 +134,10 @@ struct DesignEditingTests {
         let design = SavedDesign.new(from: try template("mono.photo.halftone"), language: "en")
         let slot = try #require(design.imageLayer)
         #expect(slot.layer.filter == .halftone)
-        let dark = try #require(ImageProcessing.prepare(try #require(solid(width: 600, height: 600, gray: 0.1)),
-                                                        frame: slot.frame, layer: slot.layer))
-        let light = try #require(ImageProcessing.prepare(try #require(solid(width: 600, height: 600, gray: 0.95)),
-                                                         frame: slot.frame, layer: slot.layer))
+        let darkPhoto = try #require(solid(width: 600, height: 600, gray: 0.1))
+        let lightPhoto = try #require(solid(width: 600, height: 600, gray: 0.95))
+        let dark = try #require(ImageProcessing.prepare(darkPhoto, frame: slot.frame, layer: slot.layer))
+        let light = try #require(ImageProcessing.prepare(lightPhoto, frame: slot.frame, layer: slot.layer))
         #expect(darkShare(dark) > 0.6)
         #expect(darkShare(light) < 0.1)
     }
