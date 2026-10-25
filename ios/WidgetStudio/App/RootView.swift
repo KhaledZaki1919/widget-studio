@@ -2,42 +2,29 @@ import SwiftUI
 import WidgetKit
 import WidgetKitCore
 
-/// Home until the template library arrives in M2: the M1 test designs and Diagnostics.
-/// Diagnostics opens from the visible link (until M6), a long press on the version, or the
-/// check widget (`widgetstudio://diagnostics`).
+/// Home is the template library (M2). Diagnostics (with the M1 test designs) opens from the
+/// toolbar button (until M6), a long press on the version, or the check widget
+/// (`widgetstudio://diagnostics`).
 struct RootView: View {
     @State private var showDiagnostics = false
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    Text("home.m1.body")
-                        .foregroundStyle(.secondary)
-                    NavigationLink("home.testSpecs") {
-                        TestSpecsView()
+            LibraryView(onLongPressVersion: { showDiagnostics = true })
+                .navigationTitle("library.title")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showDiagnostics = true
+                        } label: {
+                            Label("home.diagnostics", systemImage: "stethoscope")
+                        }
+                        .accessibilityIdentifier("ax.home.diagnostics")
                     }
-                    .accessibilityIdentifier("ax.home.testSpecs")
-                    NavigationLink("home.diagnostics") {
-                        DiagnosticsView()
-                    }
-                    .accessibilityIdentifier("ax.home.diagnostics")
                 }
-                Section {
-                    LabeledContent("home.version", value: AppInfo.versionText)
-                        .contentShape(Rectangle())
-                        .onLongPressGesture { showDiagnostics = true }
-                        .accessibilityIdentifier("ax.home.version")
-                } header: {
-                    Text("home.section.about")
-                } footer: {
-                    Text("home.version.footer")
+                .navigationDestination(isPresented: $showDiagnostics) {
+                    DiagnosticsView()
                 }
-            }
-            .navigationTitle("home.title")
-            .navigationDestination(isPresented: $showDiagnostics) {
-                DiagnosticsView()
-            }
         }
         .onAppear(perform: AppInfo.touchHeartbeat)
         .onOpenURL { url in

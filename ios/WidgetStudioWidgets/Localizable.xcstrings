@@ -1,6 +1,74 @@
 {
   "sourceLanguage": "ar",
   "strings": {
+    "widget.appearance.dark": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "داكن"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dark"
+          }
+        }
+      }
+    },
+    "widget.appearance.light": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فاتح"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Light"
+          }
+        }
+      }
+    },
+    "widget.appearance.system": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حسب النظام"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Match system"
+          }
+        }
+      }
+    },
+    "widget.appearance.template": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حسب القالب"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Template default"
+          }
+        }
+      }
+    },
     "widget.probe.battery": {
       "extractionState": "manual",
       "localizations": {
@@ -120,19 +188,36 @@
         }
       }
     },
+    "widget.spec.appearance": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المظهر"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appearance"
+          }
+        }
+      }
+    },
     "widget.spec.description": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "يعرض أحد التصاميم التجريبية. اضغط مطولًا ثم «تعديل الودجت» لاختيار تصميم."
+            "value": "اختر أي قالب من المكتبة: اضغط مطولًا على الودجت ثم «تعديل الودجت»."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Shows one of the test designs. Long-press, then Edit Widget to pick one."
+            "value": "Pick any template from the library: long-press the widget, then Edit Widget."
           }
         }
       }
@@ -143,13 +228,13 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "تصميم"
+            "value": "قالب"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Design"
+            "value": "Template"
           }
         }
       }
@@ -160,13 +245,13 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "التصميم الذي يعرضه الودجت."
+            "value": "القالب الذي يعرضه الودجت."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The design this widget shows."
+            "value": "The template this widget shows."
           }
         }
       }
@@ -177,13 +262,13 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "اختيار التصميم"
+            "value": "اختيار القالب"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose design"
+            "value": "Choose template"
           }
         }
       }
@@ -194,13 +279,13 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "تصميم تجريبي"
+            "value": "Widget Studio"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Test design"
+            "value": "Widget Studio"
           }
         }
       }
@@ -211,13 +296,13 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "التصميم"
+            "value": "القالب"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Design"
+            "value": "Template"
           }
         }
       }

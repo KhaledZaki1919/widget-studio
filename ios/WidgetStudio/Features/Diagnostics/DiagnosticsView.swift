@@ -9,6 +9,14 @@ struct DiagnosticsView: View {
 
     var body: some View {
         List {
+            Section {
+                NavigationLink("diag.testSpecs") {
+                    TestSpecsView()
+                }
+                .accessibilityIdentifier("ax.diag.testSpecs")
+            } footer: {
+                Text("diag.testSpecs.footer")
+            }
             buildSection
             appGroupSection
             widgetSection

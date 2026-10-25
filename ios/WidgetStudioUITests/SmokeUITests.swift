@@ -30,12 +30,42 @@ final class SmokeUITests: XCTestCase {
         write.tap()
     }
 
-    /// The test designs gallery renders specs in both languages.
+    /// The library filters by category and opens a template's detail with every supported size.
+    @MainActor
+    private func browsesLibrary(language: String) {
+        let app = launch(language: language)
+        let chip = app.buttons["ax.library.chip.prayer"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 15))
+        chip.tap()
+        let template = app.buttons["ax.library.template.mono.prayer.day"]
+        XCTAssertTrue(template.waitForExistence(timeout: 10))
+        // Other categories are hidden while a chip is selected.
+        XCTAssertFalse(app.buttons["ax.library.template.mono.clock.analog"].exists)
+        template.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["ax.detail.preview.medium"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["ax.detail.preview.large"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["ax.detail.preview.small"].exists)
+    }
+
+    @MainActor
+    func testBrowsesLibraryInEnglish() {
+        browsesLibrary(language: "en")
+    }
+
+    @MainActor
+    func testBrowsesLibraryInArabic() {
+        browsesLibrary(language: "ar")
+    }
+
+    /// The test designs gallery (now under Diagnostics) renders specs in both languages.
     @MainActor
     func testTestDesignsRenderInBothLanguages() {
         let app = launch(language: "en")
-        let link = app.buttons["ax.home.testSpecs"]
-        XCTAssertTrue(link.waitForExistence(timeout: 15))
+        let diagnostics = app.buttons["ax.home.diagnostics"]
+        XCTAssertTrue(diagnostics.waitForExistence(timeout: 15))
+        diagnostics.tap()
+        let link = app.buttons["ax.diag.testSpecs"]
+        XCTAssertTrue(link.waitForExistence(timeout: 10))
         link.tap()
         XCTAssertTrue(app.collectionViews["ax.specs.list"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.descendants(matching: .any)["ax.specs.preview.test.clock.digital"].waitForExistence(timeout: 10))

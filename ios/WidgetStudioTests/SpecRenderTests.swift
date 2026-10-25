@@ -79,12 +79,42 @@ final class SpecRenderTests: XCTestCase {
         }
     }
 
+    /// Every template renders through `SpecWidgetContent` in every size it supports, in both
+    /// languages and both themes, and the result isn't blank (M2).
+    func testEveryTemplateRendersThroughTheWidgetView() throws {
+        let templates = TemplateLibrary.all()
+        XCTAssertEqual(templates.count, 28)
+        for spec in templates {
+            for family in spec.family.supportedFamilies {
+                for language in languages {
+                    for theme in SpecTheme.allCases {
+                        var context = Snapshot.context(language: language)
+                        context.theme = theme
+                        let image = Snapshot.render(SpecWidgetContent(spec: spec, context: context), size: family.canvas)
+                        let rendered = try XCTUnwrap(image, "\(spec.id) didn't render (\(family), \(language), \(theme))")
+                        XCTAssertGreaterThan(Pixels.distinctColors(rendered), 1,
+                                             "\(spec.id) rendered blank (\(family), \(language), \(theme))")
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: Snapshots
 
-    /// One reference image per spec and language (`Snapshots/<id>.<lang>.png`).
+    /// One reference image per template and language, in its default theme (`Snapshots/<id>.<lang>.png`).
+    func testTemplateSnapshots() throws {
+        try assertSnapshots(TemplateLibrary.all())
+    }
+
+    /// One reference image per test spec and language (`Snapshots/<id>.<lang>.png`).
     func testSpecSnapshots() throws {
+        try assertSnapshots(TestSpecs.all())
+    }
+
+    private func assertSnapshots(_ specs: [WidgetSpec]) throws {
         var missing: [String] = []
-        for spec in TestSpecs.all() {
+        for spec in specs {
             for language in languages {
                 let name = "\(spec.id).\(language)"
                 let image = try XCTUnwrap(Snapshot.render(SpecView(spec: spec, context: Snapshot.context(language: language)),

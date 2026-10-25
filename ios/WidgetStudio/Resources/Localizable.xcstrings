@@ -35,6 +35,193 @@
         }
       }
     },
+    "detail.appearance": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المظهر"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appearance"
+          }
+        }
+      }
+    },
+    "detail.dark": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "داكن"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dark"
+          }
+        }
+      }
+    },
+    "detail.fields": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "قابل للتعديل"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editable"
+          }
+        }
+      }
+    },
+    "detail.fields.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعديل هذه الحقول يأتي مع المحرّر في M3."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editing these fields comes with the editor in M3."
+          }
+        }
+      }
+    },
+    "detail.howTo.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط مطولًا على الشاشة الرئيسية ← + ← Widget Studio ← اختر المقاس ← إضافة. ثم اضغط مطولًا على الودجت ← «تعديل الودجت» واختر هذا القالب."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Long-press the Home Screen → + → Widget Studio → pick a size → Add Widget. Then long-press the widget → Edit Widget and choose this template."
+          }
+        }
+      }
+    },
+    "detail.howTo.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إضافة للشاشة الرئيسية"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add to the Home Screen"
+          }
+        }
+      }
+    },
+    "detail.light": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فاتح"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Light"
+          }
+        }
+      }
+    },
+    "detail.sampleData": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "البيانات المعروضة تجريبية؛ البيانات الحقيقية (الطقس، الصحة، الصلاة) تأتي في M4."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The data shown is sample data; real weather, health and prayer data come in M4."
+          }
+        }
+      }
+    },
+    "detail.size.large": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "كبير"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Large"
+          }
+        }
+      }
+    },
+    "detail.size.medium": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "متوسط"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Medium"
+          }
+        }
+      }
+    },
+    "detail.size.small": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "صغير"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Small"
+          }
+        }
+      }
+    },
     "diag.battery.app": {
       "extractionState": "manual",
       "localizations": {
@@ -562,6 +749,40 @@
         }
       }
     },
+    "diag.testSpecs": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التصاميم التجريبية (M1)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test designs (M1)"
+          }
+        }
+      }
+    },
+    "diag.testSpecs.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التصاميم العشرة لاختبار المحرّك، بالعربية والإنجليزية."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The 10 renderer test designs, in Arabic and English."
+          }
+        }
+      }
+    },
     "diag.title": {
       "extractionState": "manual",
       "localizations": {
@@ -766,104 +987,36 @@
         }
       }
     },
-    "home.m1.body": {
+    "library.all": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "نسخة اختبار المحرّك (M1): عرض ١٠ تصاميم تجريبية بنفس محرّك الودجت. مكتبة القوالب قادمة في M2."
+            "value": "الكل"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Renderer test build (M1): 10 test designs drawn by the same renderer as the widget. The template library comes in M2."
+            "value": "All"
           }
         }
       }
     },
-    "home.section.about": {
+    "library.title": {
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "حول التطبيق"
+            "value": "القوالب"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "About"
-          }
-        }
-      }
-    },
-    "home.testSpecs": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "التصاميم التجريبية"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Test designs"
-          }
-        }
-      }
-    },
-    "home.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Widget Studio"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Widget Studio"
-          }
-        }
-      }
-    },
-    "home.version": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "الإصدار"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Version"
-          }
-        }
-      }
-    },
-    "home.version.footer": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "اضغط مطولًا على الإصدار لفتح التشخيص."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Long-press the version to open Diagnostics."
+            "value": "Templates"
           }
         }
       }

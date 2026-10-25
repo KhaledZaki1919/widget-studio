@@ -38,7 +38,7 @@ public struct SpecView: View {
                             let frame = mirrored ? layer.frame.mirrored(canvasWidth: canvas.width) : layer.frame
                             LayerView(layer: layer, resolver: resolver, scale: scale, mirrored: mirrored)
                                 .frame(width: frame.w * scale, height: frame.h * scale)
-                                .rotationEffect(.degrees(layer.rotation.flatMap(resolver.number) ?? 0))
+                                .modifier(LayerRotation(degrees: layer.rotation.flatMap(resolver.number)))
                                 .opacity(layer.opacity ?? 1)
                                 .position(x: (frame.x + frame.w / 2) * scale, y: (frame.y + frame.h / 2) * scale)
                         }
@@ -54,6 +54,19 @@ public struct SpecView: View {
         .environment(\.locale, Locale(identifier: context.localeIdentifier))
         .environment(\.timeZone, context.timeZone)
         .environment(\.colorScheme, spec.theme == .dark ? .dark : .light)
+    }
+}
+
+/// Rotates only layers that declare `rotation`, so the others render without an extra transform.
+private struct LayerRotation: ViewModifier {
+    let degrees: Double?
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if let degrees {
+            content.rotationEffect(.degrees(degrees))
+        } else {
+            content
+        }
     }
 }
 

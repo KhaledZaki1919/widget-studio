@@ -24,6 +24,9 @@ struct TestSpecsView: View {
                     switch entry.result {
                     case .success(let spec):
                         SpecPreview(spec: spec, language: language)
+                            .frame(maxWidth: spec.family == .small ? 200 : .infinity)
+                            .frame(maxWidth: .infinity)
+                            .accessibilityIdentifier("ax.specs.preview.\(spec.id)")
                             // Rebuild the TimelineView when the language changes.
                             .id("\(spec.id).\(language)")
                             .listRowInsets(EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12))
@@ -52,23 +55,3 @@ struct TestSpecsView: View {
     }
 }
 
-/// One spec at widget proportions, ticking every minute like the widget.
-struct SpecPreview: View {
-    let spec: WidgetSpec
-    let language: String
-
-    var body: some View {
-        let canvas = spec.family.canvas
-        TimelineView(.everyMinute) { timeline in
-            SpecView(spec: spec, context: RenderContext(
-                date: timeline.date, language: language, data: .sample(now: timeline.date)
-            ))
-        }
-        .aspectRatio(canvas.width / canvas.height, contentMode: .fit)
-        .frame(maxWidth: spec.family == .small ? 200 : .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
-        .frame(maxWidth: .infinity)
-        .accessibilityIdentifier("ax.specs.preview.\(spec.id)")
-    }
-}
