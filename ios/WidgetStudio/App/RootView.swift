@@ -2,33 +2,48 @@ import SwiftUI
 import WidgetKit
 import WidgetKitCore
 
-/// Home is the template library (M2). Diagnostics (with the M1 test designs) opens from the
-/// toolbar button (until M6), a long press on the version, or the check widget
-/// (`widgetstudio://diagnostics`).
+/// Two tabs: the template library and My widgets (M3). Diagnostics (with the M1 test designs)
+/// opens from the Library toolbar button (until M6), a long press on the version, or the check
+/// widget (`widgetstudio://diagnostics`).
 struct RootView: View {
+    @Environment(AppState.self) private var appState
     @State private var showDiagnostics = false
 
     var body: some View {
-        NavigationStack {
-            LibraryView(onLongPressVersion: { showDiagnostics = true })
-                .navigationTitle("library.title")
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            showDiagnostics = true
-                        } label: {
-                            Label("home.diagnostics", systemImage: "stethoscope")
+        @Bindable var appState = appState
+        TabView(selection: $appState.tab) {
+            NavigationStack {
+                LibraryView(onLongPressVersion: { showDiagnostics = true })
+                    .navigationTitle("library.title")
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                showDiagnostics = true
+                            } label: {
+                                Label("home.diagnostics", systemImage: "stethoscope")
+                            }
+                            .accessibilityIdentifier("ax.home.diagnostics")
                         }
-                        .accessibilityIdentifier("ax.home.diagnostics")
                     }
-                }
-                .navigationDestination(isPresented: $showDiagnostics) {
-                    DiagnosticsView()
-                }
+                    .navigationDestination(isPresented: $showDiagnostics) {
+                        DiagnosticsView()
+                    }
+            }
+            .tabItem { Label("tab.library", systemImage: "square.grid.2x2") }
+            .tag(AppState.Tab.library)
+
+            NavigationStack {
+                MyWidgetsView()
+            }
+            .tabItem { Label("tab.myWidgets", systemImage: "rectangle.stack") }
+            .tag(AppState.Tab.myWidgets)
         }
         .onAppear(perform: AppInfo.touchHeartbeat)
         .onOpenURL { url in
-            if url.scheme == "widgetstudio", url.host() == "diagnostics" { showDiagnostics = true }
+            if url.scheme == "widgetstudio", url.host() == "diagnostics" {
+                appState.tab = .library
+                showDiagnostics = true
+            }
         }
     }
 }

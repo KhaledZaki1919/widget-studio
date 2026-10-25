@@ -6,6 +6,8 @@ import WidgetKitCore
 struct TemplateDetailView: View {
     let spec: WidgetSpec
     @State private var theme: SpecTheme
+    /// A new design opened in the editor ("Customize", M3).
+    @State private var customizing: SavedDesign?
     private let language = RenderContext.preferredLanguage
 
     init(spec: WidgetSpec) {
@@ -16,6 +18,16 @@ struct TemplateDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                Button {
+                    customizing = SavedDesign.new(from: spec, language: language)
+                } label: {
+                    Label("detail.customize", systemImage: "slider.horizontal.3")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .accessibilityIdentifier("ax.detail.customize")
+
                 Picker("detail.appearance", selection: $theme) {
                     Text("detail.light").tag(SpecTheme.light)
                     Text("detail.dark").tag(SpecTheme.dark)
@@ -63,6 +75,9 @@ struct TemplateDetailView: View {
         }
         .navigationTitle(Text(verbatim: spec.name.resolved(language: language)))
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $customizing) { design in
+            EditorView(design: design, isNew: true)
+        }
     }
 
     static func sizeName(_ family: SpecFamily) -> LocalizedStringKey {

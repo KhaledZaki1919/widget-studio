@@ -10,7 +10,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 LANGS = ("ar", "en")
-KEY_PREFIXES = "common|home|diag|widget|specs|library|detail"
+KEY_PREFIXES = "common|home|diag|widget|specs|library|detail|editor|mywidgets|tab"
 # SF Symbol names (systemImage:/systemName:) look like keys but are icons, not text.
 KEY_RE = re.compile(r'(?<!systemImage: )(?<!systemName: )"((?:' + KEY_PREFIXES + r')\.[A-Za-z0-9_.]+)"')
 SKIP_DIRS = {"build", ".build", "DerivedData", "WidgetStudio.xcodeproj"}
