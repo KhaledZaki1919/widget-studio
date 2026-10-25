@@ -116,7 +116,7 @@ private struct Check {
 
     mutating func run() {
         if spec.schemaVersion != 1 { fail("schemaVersion", "must be 1") }
-        if !Self.isValidID(spec.id) { fail("id", "use lowercase letters, digits, dots, dashes or underscores (max 64)") }
+        if !Self.isValidID(spec.id) { fail("id", "use letters, digits, dots, dashes or underscores (max 64)") }
         if case .plain = spec.name { fail("name", "needs both \"en\" and \"ar\"") }
         for value in spec.name.allValues { text(path: "name", value, allowBindings: false) }
         checkBackground()
@@ -128,9 +128,11 @@ private struct Check {
         }
     }
 
+    /// Template IDs are camelCase (`mono.clock.dotAnalog`, TEMPLATES.md).
     static func isValidID(_ id: String) -> Bool {
         !id.isEmpty && id.count <= 64 && id.unicodeScalars.allSatisfy {
-            ("a"..."z").contains($0) || ("0"..."9").contains($0) || $0 == "." || $0 == "-" || $0 == "_"
+            ("a"..."z").contains($0) || ("A"..."Z").contains($0) || ("0"..."9").contains($0)
+                || $0 == "." || $0 == "-" || $0 == "_"
         }
     }
 
@@ -138,7 +140,9 @@ private struct Check {
 
     mutating func color(_ path: String, _ value: String?) {
         guard let value else { return }
-        if HexColor.parse(value) == nil { fail(path, "color must be #RRGGBB or #RRGGBBAA") }
+        if HexColor.parse(value) == nil && !SpecTokens.isToken(value) {
+            fail(path, "color must be #RRGGBB, #RRGGBBAA or a token (@\(SpecTokens.names.joined(separator: ", @")))")
+        }
     }
 
     mutating func number(_ path: String, _ value: Double?, in range: ClosedRange<Double>) {
@@ -186,22 +190,48 @@ private struct Check {
         }
         let kind: Bindings.Kind
         switch name {
-        case .field(let key), .timezoneTime(let key):
+        case .field(let key), .timezoneTime(let key), .daysUntil(let key):
             guard let field = spec.field(key) else {
                 fail(path, "{{\(raw)}} refers to a missing field")
                 return
             }
-            if case .timezoneTime = name {
+            switch name {
+            case .timezoneTime:
                 if field.type != .timezone { fail(path, "{{\(raw)}} needs a timezone field") }
                 kind = .text
-            } else {
-                kind = field.type == .date ? .date : field.type == .number ? .number : .text
+            case .daysUntil:
+                if field.type != .date { fail(path, "{{\(raw)}} needs a date field") }
+                kind = .number
+            default:
+                kind = Self.kind(of: field)
             }
         case .builtin:
+            if raw.trimmingCharacters(in: .whitespaces) == "counter.progress",
+               spec.field("target")?.type != .number {
+                fail(path, "{{counter.progress}} needs a number field with key \"target\"")
+            }
             kind = name.builtinKind ?? .text
         }
         guard let kinds, !kinds.contains(kind) else { return }
         fail(path, "{{\(raw)}} doesn't give the right kind of value here")
+    }
+
+    static func kind(of field: FieldSpec) -> Bindings.Kind {
+        switch field.type {
+        case .date: .date
+        case .number: .number
+        case .icon: .symbol
+        default: .text
+        }
+    }
+
+    /// A `when` condition: a known binding, optionally negated or compared with a value.
+    mutating func condition(path: String, _ text: String) {
+        guard let condition = SpecCondition(text) else {
+            fail(path, "use \"{{binding}}\", \"!{{binding}}\" or \"{{binding}} == value\"")
+            return
+        }
+        binding(path: path, condition.binding, expecting: nil)
     }
 
     /// A value that must be exactly one binding of an allowed kind, or a literal accepted by `literal`.
@@ -250,9 +280,11 @@ private struct Check {
         case .date: if FieldValues.date(value) == nil { fail(path, "must be an ISO 8601 date") }
         case .number: if Double(value) == nil { fail(path, "must be a number") }
         case .color: color(path, value)
-        case .timezone: if TimeZone(identifier: value) == nil { fail(path, "unknown time zone") }
+        // Empty means "not set" (e.g. Day & Zone shows the device zone until the user picks one).
+        case .timezone: if !value.isEmpty && TimeZone(identifier: value) == nil { fail(path, "unknown time zone") }
         // A user field may hold a URL (open.url), but a spec's default may not.
         case .url: if !value.isEmpty { fail(path, "URL fields can't have a default") }
+        case .icon: if !Icons.isAllowed(value) { fail(path, "\"\(value)\" is not in the icon whitelist") }
         case .text, .city, .shortcut, .image:
             if Self.containsURL(value) { fail(path, "remote URLs are not allowed in specs") }
         }
@@ -265,6 +297,12 @@ private struct Check {
             fail("\(path).frame", "w and h must be positive numbers")
         }
         number("\(path).opacity", layer.opacity, in: 0...1)
+        if let when = layer.when { condition(path: "\(path).when", when) }
+        if let rotation = layer.rotation {
+            bindingOrLiteral(path: "\(path).rotation", rotation, kinds: [.number]) { value in
+                Double(value).map { (-360...360).contains($0) } ?? false
+            }
+        }
 
         switch layer.content {
         case .unknown(let type):
@@ -314,6 +352,7 @@ private struct Check {
             number("\(path).gap", grid.gap, in: 0...60)
             color("\(path).onColor", grid.onColor)
             color("\(path).offColor", grid.offColor)
+            color("\(path).highlightColor", grid.highlightColor)
             bindingOrLiteral(path: "\(path).values", grid.values, kinds: [.levels]) { SpecLiterals.dotPattern($0) != nil }
         case .dotBars(let bars):
             count("\(path).bars", bars.bars, in: 1...31)
@@ -321,6 +360,7 @@ private struct Check {
             bindingOrLiteral(path: "\(path).values", bars.values, kinds: [.levels]) { SpecLiterals.levels($0) != nil }
             color("\(path).color", bars.color)
             color("\(path).offColor", bars.offColor)
+            color("\(path).highlightColor", bars.highlightColor)
             for labels in bars.labels?.allValues ?? [] { text(path: "\(path).labels", labels, expecting: [.text]) }
         case .ring(let ring):
             bindingOrLiteral(path: "\(path).progress", ring.progress, kinds: [.number]) { value in

@@ -26,10 +26,16 @@ public enum Bindings {
         "weather.temp": (.number, .weather), "weather.hi": (.number, .weather), "weather.lo": (.number, .weather),
         "weather.cond": (.text, .weather), "weather.symbol": (.symbol, .weather), "weather.city": (.text, .weather),
         "steps.today": (.number, .health), "steps.streak": (.number, .health), "steps.monthGrid": (.levels, .health),
+        // ADR-011: total of the current month.
+        "steps.month": (.number, .health),
         "sleep.lastNight": (.text, .health), "sleep.week": (.levels, .health),
         "counter.value": (.number, .app), "stopwatch.running": (.text, .app), "stopwatch.start": (.date, .app),
+        // ADR-011: counter / the spec's `target` number field, 0…1.
+        "counter.progress": (.number, .app),
         "focus.today": (.text, .app), "focus.week": (.levels, .app),
         "prayer.next.name": (.text, .prayer), "prayer.next.time": (.date, .prayer),
+        // ADR-011: fajr | dhuhr | asr | maghrib | isha, for `when` conditions.
+        "prayer.next.key": (.text, .prayer),
         "prayer.fajr": (.date, .prayer), "prayer.dhuhr": (.date, .prayer), "prayer.asr": (.date, .prayer),
         "prayer.maghrib": (.date, .prayer), "prayer.isha": (.date, .prayer), "qibla.bearing": (.number, .prayer),
         "location.lat": (.number, .location), "location.lon": (.number, .location), "location.alt": (.number, .location),
@@ -43,6 +49,8 @@ public enum Bindings {
         case field(String)
         /// `tz.<fieldKey>.time`: the current time in a timezone field.
         case timezoneTime(String)
+        /// `days.<dateFieldKey>`: whole days from today to a date field (ADR-011).
+        case daysUntil(String)
 
         public init?(_ raw: String) {
             let name = raw.trimmingCharacters(in: .whitespaces)
@@ -50,6 +58,10 @@ public enum Bindings {
                 let key = String(name.dropFirst("field.".count))
                 guard Bindings.isValidKey(key) else { return nil }
                 self = .field(key)
+            } else if name.hasPrefix("days.") {
+                let key = String(name.dropFirst("days.".count))
+                guard Bindings.isValidKey(key) else { return nil }
+                self = .daysUntil(key)
             } else if name.hasPrefix("tz."), name.hasSuffix(".time"), name.count > "tz..time".count {
                 let key = String(name.dropFirst(3).dropLast(5))
                 guard Bindings.isValidKey(key) else { return nil }
@@ -65,7 +77,7 @@ public enum Bindings {
             switch self {
             case .builtin(let name): Bindings.catalog[name]?.1 ?? .field
             case .field: .field
-            case .timezoneTime: .time
+            case .timezoneTime, .daysUntil: .time
             }
         }
 
@@ -74,6 +86,7 @@ public enum Bindings {
             switch self {
             case .builtin(let name): Bindings.catalog[name]?.0
             case .timezoneTime: .text
+            case .daysUntil: .number
             case .field: nil
             }
         }

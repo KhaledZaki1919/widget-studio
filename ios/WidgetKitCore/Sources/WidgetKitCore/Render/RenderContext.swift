@@ -42,11 +42,14 @@ public struct DataSnapshot: Sendable, Equatable {
     public struct Prayer: Sendable, Equatable {
         public var times: [String: Date]
         public var nextName: LocalizedText
+        /// `fajr` … `isha` (for `when: "{{prayer.next.key}} == asr"`).
+        public var nextKey: String
         public var nextTime: Date
 
-        public init(times: [String: Date], nextName: LocalizedText, nextTime: Date) {
+        public init(times: [String: Date], nextName: LocalizedText, nextKey: String, nextTime: Date) {
             self.times = times
             self.nextName = nextName
+            self.nextKey = nextKey
             self.nextTime = nextTime
         }
     }
@@ -54,6 +57,7 @@ public struct DataSnapshot: Sendable, Equatable {
     public var weather: Weather?
     public var stepsToday: Double?
     public var stepsStreak: Double?
+    public var stepsMonth: Double?
     /// A month calendar: one level 0…1 per cell, 7 cells per week, -1 for cells outside the month
     /// (see `MonthGrid`).
     public var stepsMonthGrid: [Double]?
@@ -91,15 +95,18 @@ public struct DataSnapshot: Sendable, Equatable {
         )
         data.stepsToday = 5_543
         data.stepsStreak = 3
-        // Varied levels for the days so far, nothing for the days still to come.
+        data.stepsMonth = 128_430
+        // Varied levels for the days so far, today highlighted (2), nothing for the days to come.
         let today = calendar.component(.day, from: now)
-        let perDay = (1...31).map { day -> Double in day > today ? 0 : [0.25, 1.0, 0.6, 0.9, 0.4, 1.0, 0.75][(day * 5) % 7] }
+        let perDay = (1...31).map { day -> Double in
+            day > today ? 0 : day == today ? 2 : [0.25, 1.0, 0.6, 0.9, 0.4, 1.0, 0.75][(day * 5) % 7]
+        }
         data.stepsMonthGrid = MonthGrid.levels(perDay: perDay, monthOf: now, calendar: calendar)
         data.sleepLastNight = .localized(en: "7h 20m", ar: "7س 20د")
         data.sleepWeek = [0.7, 0.85, 0.6, 0.9, 0.75, 0.5, 0.8]
         data.counter = 33
         data.stopwatchStart = now.addingTimeInterval(-754)
-        data.focusToday = .localized(en: "1h 45m", ar: "1س 45د")
+        data.focusToday = .localized(en: "6h 20m", ar: "6س 20د")
         data.focusWeek = [0.4, 0.8, 0.6, 1.0, 0.3, 0.0, 0.5]
         func at(_ hour: Int, _ minute: Int) -> Date {
             calendar.date(bySettingHour: hour, minute: minute, second: 0, of: now) ?? now
@@ -112,7 +119,7 @@ public struct DataSnapshot: Sendable, Equatable {
         ]
         let next = names.first { (times[$0.0] ?? now) > now } ?? names[0]
         let nextTime = times[next.0].map { $0 > now ? $0 : calendar.date(byAdding: .day, value: 1, to: $0) ?? $0 } ?? now
-        data.prayer = Prayer(times: times, nextName: next.1, nextTime: nextTime)
+        data.prayer = Prayer(times: times, nextName: next.1, nextKey: next.0, nextTime: nextTime)
         data.qiblaBearing = 136
         data.latitude = 30.04
         data.longitude = 31.24
@@ -135,6 +142,9 @@ public struct RenderContext {
     /// Renders live texts (relative, timer) as fixed text measured from `date`, because SwiftUI's
     /// live styles measure from the real clock. For snapshot tests only.
     public var freezesLiveText = false
+    /// Overrides the spec's theme (detail previews, the widget's Appearance option); color
+    /// tokens resolve for this theme (ADR-011).
+    public var theme: SpecTheme?
 
     public init(date: Date = .now, language: String = "ar", timeZone: TimeZone = .current,
                 fieldValues: [String: String] = [:], data: DataSnapshot = DataSnapshot(), userImage: CGImage? = nil) {

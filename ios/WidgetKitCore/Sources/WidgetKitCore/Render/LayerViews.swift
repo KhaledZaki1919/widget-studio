@@ -12,7 +12,9 @@ struct TextLayerView: View {
         let value = BidiText.isolatingNumbers(resolver.render(raw))
         let arabic = FontRegistry.containsArabic(value)
         content(value)
-            .font(FontRegistry.font(layer.font, size: layer.font.size * scale, for: value))
+            // Arabic text set in a Latin family falls back to `arabic` one point larger (TEMPLATES.md).
+            .font(FontRegistry.font(layer.font, size: (layer.font.size + (arabic && layer.font.family != "arabic" ? 1 : 0)) * scale,
+                                    for: value))
             // Letter spacing breaks Arabic letter joining, so tracking applies to Latin text only.
             .tracking(arabic ? 0 : (layer.tracking ?? 0) * scale)
             .foregroundStyle(Color(hex: layer.color))

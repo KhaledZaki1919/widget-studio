@@ -14,8 +14,9 @@ public struct SpecView: View {
     /// False inside a widget, which draws `SpecBackground` through `containerBackground`.
     let drawsBackground: Bool
 
+    /// `spec` may use color tokens; they are resolved here for `context.theme ?? spec.theme`.
     public init(spec: WidgetSpec, context: RenderContext, drawsBackground: Bool = true) {
-        self.spec = spec
+        self.spec = spec.resolvingTokens(theme: context.theme)
         self.context = context
         self.drawsBackground = drawsBackground
     }
@@ -23,23 +24,28 @@ public struct SpecView: View {
     public var body: some View {
         GeometryReader { proxy in
             let canvas = spec.family.canvas
+            // A spec shown in a larger widget is scaled uniformly and centered (ADR-011).
             let scale = min(proxy.size.width / canvas.width, proxy.size.height / canvas.height)
             let resolver = BindingResolver(spec: spec, context: context)
-            ZStack(alignment: .topLeading) {
+            ZStack {
                 if drawsBackground {
                     SpecBackground(spec: spec)
-                        .frame(width: canvas.width * scale, height: canvas.height * scale)
                 }
-                ForEach(Array(spec.layers.enumerated()), id: \.offset) { _, layer in
-                    let mirrored = context.isArabic && layer.mirror == true
-                    let frame = mirrored ? layer.frame.mirrored(canvasWidth: canvas.width) : layer.frame
-                    LayerView(layer: layer, resolver: resolver, scale: scale, mirrored: mirrored)
-                        .frame(width: frame.w * scale, height: frame.h * scale)
-                        .opacity(layer.opacity ?? 1)
-                        .position(x: (frame.x + frame.w / 2) * scale, y: (frame.y + frame.h / 2) * scale)
+                ZStack(alignment: .topLeading) {
+                    ForEach(Array(spec.layers.enumerated()), id: \.offset) { _, layer in
+                        if layer.when.map(resolver.isSatisfied) ?? true {
+                            let mirrored = context.isArabic && layer.mirror == true
+                            let frame = mirrored ? layer.frame.mirrored(canvasWidth: canvas.width) : layer.frame
+                            LayerView(layer: layer, resolver: resolver, scale: scale, mirrored: mirrored)
+                                .frame(width: frame.w * scale, height: frame.h * scale)
+                                .rotationEffect(.degrees(layer.rotation.flatMap(resolver.number) ?? 0))
+                                .opacity(layer.opacity ?? 1)
+                                .position(x: (frame.x + frame.w / 2) * scale, y: (frame.y + frame.h / 2) * scale)
+                        }
+                    }
                 }
+                .frame(width: canvas.width * scale, height: canvas.height * scale)
             }
-            .frame(width: canvas.width * scale, height: canvas.height * scale)
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
         // Absolute canvas coordinates, whatever the host's direction.
@@ -56,8 +62,9 @@ public struct SpecView: View {
 public struct SpecBackground: View {
     let spec: WidgetSpec
 
-    public init(spec: WidgetSpec) {
-        self.spec = spec
+    /// Resolves color tokens for `theme` (else the spec's own theme).
+    public init(spec: WidgetSpec, theme: SpecTheme? = nil) {
+        self.spec = spec.resolvingTokens(theme: theme)
     }
 
     public var body: some View {

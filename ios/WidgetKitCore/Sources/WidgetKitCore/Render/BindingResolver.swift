@@ -88,8 +88,36 @@ public struct BindingResolver {
         case .timezoneTime(let key):
             guard let zone = fieldValue(key).flatMap(TimeZone.init(identifier:)) else { return nil }
             return .text(format("HH:mm", zone: zone))
+        case .daysUntil(let key):
+            guard let target = fieldValue(key).flatMap(FieldValues.date) else { return nil }
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = context.timeZone
+            let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: context.date),
+                                               to: calendar.startOfDay(for: target)).day ?? 0
+            return number(Double(max(days, 0)), digits: 0)
         case .builtin(let name):
             return builtin(name)
+        }
+    }
+
+    /// Whether a layer's `when` condition holds (ADR-011). Unknown or missing values are falsy.
+    public func isSatisfied(_ text: String) -> Bool {
+        guard let condition = SpecCondition(text) else { return true }
+        let value = value(of: condition.binding)
+        switch condition.test {
+        case .truthy: return Self.isTruthy(value)
+        case .falsy: return !Self.isTruthy(value)
+        case .equals(let expected): return value.map(display) == expected
+        }
+    }
+
+    static func isTruthy(_ value: Value?) -> Bool {
+        switch value {
+        case .text(let text)?: !text.isEmpty && text != "0"
+        case .number(let number, _)?: number != 0
+        case .levels(let levels)?: !levels.isEmpty
+        case .date?: true
+        case nil: false
         }
     }
 
@@ -115,15 +143,20 @@ public struct BindingResolver {
         case "steps.today": return data.stepsToday.map { number($0, digits: 0, grouped: true) }
         case "steps.streak": return data.stepsStreak.map { number($0, digits: 0) }
         case "steps.monthGrid": return data.stepsMonthGrid.map(Value.levels)
+        case "steps.month": return data.stepsMonth.map { number($0, digits: 0, grouped: true) }
         case "sleep.lastNight": return data.sleepLastNight.map { .text($0.resolved(language: context.language)) }
         case "sleep.week": return data.sleepWeek.map(Value.levels)
         case "counter.value": return data.counter.map { number($0, digits: 0) }
+        case "counter.progress":
+            guard let count = data.counter, let target = fieldValue("target").flatMap(Double.init), target > 0 else { return nil }
+            return number(min(count / target, 1), digits: 2)
         case "stopwatch.running": return .text(data.stopwatchStart == nil ? "0" : "1")
         case "stopwatch.start": return data.stopwatchStart.map(Value.date)
         case "focus.today": return data.focusToday.map { .text($0.resolved(language: context.language)) }
         case "focus.week": return data.focusWeek.map(Value.levels)
         case "prayer.next.name": return data.prayer.map { .text($0.nextName.resolved(language: context.language)) }
         case "prayer.next.time": return data.prayer.map { .date($0.nextTime) }
+        case "prayer.next.key": return data.prayer.map { .text($0.nextKey) }
         case "qibla.bearing": return data.qiblaBearing.map { number($0, digits: 0) }
         case "location.lat": return data.latitude.map { number($0, digits: 2) }
         case "location.lon": return data.longitude.map { number($0, digits: 2) }

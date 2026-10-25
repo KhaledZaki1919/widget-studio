@@ -4,19 +4,28 @@ import Foundation
 public struct Layer: Codable, Sendable, Equatable {
     public var frame: Frame
     public var opacity: Double?
-    /// In RTL, mirrored horizontally. Numbers and clocks never set this.
+    /// In Arabic, the layer moves to the mirrored frame and swaps its alignment and item order;
+    /// its content is never flipped (ADR-010).
     public var mirror: Bool?
+    /// Draws the layer only when the condition holds (ADR-011): `"{{binding}}"` (truthy),
+    /// `"!{{binding}}"` (falsy) or `"{{binding}} == value"`.
+    public var when: String?
+    /// Degrees clockwise: a number literal or a number binding (`{{qibla.bearing}}`).
+    public var rotation: String?
     public var content: LayerContent
 
-    public init(frame: Frame, opacity: Double? = nil, mirror: Bool? = nil, content: LayerContent) {
+    public init(frame: Frame, opacity: Double? = nil, mirror: Bool? = nil, when: String? = nil,
+                rotation: String? = nil, content: LayerContent) {
         self.frame = frame
         self.opacity = opacity
         self.mirror = mirror
+        self.when = when
+        self.rotation = rotation
         self.content = content
     }
 
     enum CodingKeys: String, CodingKey {
-        case type, frame, opacity, mirror
+        case type, frame, opacity, mirror, when, rotation
     }
 
     public init(from decoder: Decoder) throws {
@@ -25,6 +34,8 @@ public struct Layer: Codable, Sendable, Equatable {
         frame = try container.decode(Frame.self, forKey: .frame)
         opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
         mirror = try container.decodeIfPresent(Bool.self, forKey: .mirror)
+        when = try container.decodeIfPresent(String.self, forKey: .when)
+        rotation = try Self.decodeNumberOrString(container, .rotation)
         switch type {
         case "text": content = .text(try TextLayer(from: decoder))
         case "image": content = .image(try ImageLayer(from: decoder))
@@ -46,6 +57,8 @@ public struct Layer: Codable, Sendable, Equatable {
         try container.encode(frame, forKey: .frame)
         try container.encodeIfPresent(opacity, forKey: .opacity)
         try container.encodeIfPresent(mirror, forKey: .mirror)
+        try container.encodeIfPresent(when, forKey: .when)
+        try container.encodeIfPresent(rotation, forKey: .rotation)
         switch content {
         case .text(let layer): try layer.encode(to: encoder)
         case .image(let layer): try layer.encode(to: encoder)
@@ -59,6 +72,16 @@ public struct Layer: Codable, Sendable, Equatable {
         case .button(let layer): try layer.encode(to: encoder)
         case .unknown: break
         }
+    }
+}
+
+extension Layer {
+    /// `rotation` may be written as a number (`45`) or a string (`"{{qibla.bearing}}"`).
+    static func decodeNumberOrString(_ container: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) throws -> String? {
+        if let number = try? container.decodeIfPresent(Double.self, forKey: key) {
+            return number.rounded() == number ? String(Int(number)) : String(number)
+        }
+        return try container.decodeIfPresent(String.self, forKey: key)
     }
 }
 
@@ -256,8 +279,11 @@ public struct DotGridLayer: Codable, Sendable, Equatable {
     public var offColor: String
     /// A binding to levels (`{{steps.monthGrid}}`) or a literal pattern of `0`/`1` digits.
     public var values: String
+    /// Cells with a level of 2 or more (today in `MonthGrid`) use this color (ADR-011).
+    public var highlightColor: String?
 
-    public init(rows: Int, cols: Int, dotSize: Double, gap: Double, onColor: String, offColor: String, values: String) {
+    public init(rows: Int, cols: Int, dotSize: Double, gap: Double, onColor: String, offColor: String, values: String,
+                highlightColor: String? = nil) {
         self.rows = rows
         self.cols = cols
         self.dotSize = dotSize
@@ -265,6 +291,7 @@ public struct DotGridLayer: Codable, Sendable, Equatable {
         self.onColor = onColor
         self.offColor = offColor
         self.values = values
+        self.highlightColor = highlightColor
     }
 }
 
@@ -277,14 +304,18 @@ public struct DotBarsLayer: Codable, Sendable, Equatable {
     public var offColor: String?
     /// Comma-separated labels (a string or `{en, ar}`), one per bar.
     public var labels: LocalizedText?
+    /// The highest bar's lit dots use this color ("best night", ADR-011).
+    public var highlightColor: String?
 
-    public init(bars: Int, maxDots: Int, values: String, color: String, offColor: String? = nil, labels: LocalizedText? = nil) {
+    public init(bars: Int, maxDots: Int, values: String, color: String, offColor: String? = nil, labels: LocalizedText? = nil,
+                highlightColor: String? = nil) {
         self.bars = bars
         self.maxDots = maxDots
         self.values = values
         self.color = color
         self.offColor = offColor
         self.labels = labels
+        self.highlightColor = highlightColor
     }
 }
 

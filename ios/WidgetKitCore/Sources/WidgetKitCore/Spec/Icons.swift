@@ -19,17 +19,21 @@ public enum Icons {
         // Prayer and location
         "location.fill": "location_on", "location.north.fill": "navigation", "safari.fill": "explore",
         "moon.haze.fill": "nights_stay", "building.columns.fill": "mosque", "map.fill": "map",
+        "mountain.2.fill": "landscape", "arrow.up.and.down": "height",
         // Device and tiles
         "battery.100": "battery_full", "battery.75": "battery_5_bar", "battery.50": "battery_3_bar",
         "battery.25": "battery_2_bar", "bolt.fill": "bolt", "wifi": "wifi", "antenna.radiowaves.left.and.right": "cell_tower",
         "airplane": "flight", "flashlight.on.fill": "flashlight_on", "moon.circle.fill": "dark_mode",
-        "bluetooth": "bluetooth", "qrcode": "qr_code", "camera.fill": "photo_camera", "mic.fill": "mic",
+        "personalhotspot": "wifi_tethering", "circle.lefthalf.filled": "contrast", "lock.rotation": "screen_lock_rotation",
+        "plus.forwardslash.minus": "calculate", "tv.fill": "tv", "wave.3.right": "nfc",
+        "qrcode": "qr_code", "camera.fill": "photo_camera", "mic.fill": "mic",
         "mic.slash.fill": "mic_off", "record.circle": "radio_button_checked", "rotate.right": "screen_rotation",
         "house.fill": "home", "music.note": "music_note", "play.fill": "play_arrow", "pause.fill": "pause",
         "headphones": "headphones", "phone.fill": "call", "message.fill": "chat", "link": "link",
         "app.fill": "apps", "square.grid.2x2.fill": "grid_view", "bolt.horizontal.fill": "electric_bolt",
         // Counters and actions
         "plus": "add", "minus": "remove", "plus.circle.fill": "add_circle", "arrow.counterclockwise": "replay",
+        "arrow.up": "arrow_upward", "arrow.down": "arrow_downward",
         "checkmark": "check", "checkmark.circle.fill": "check_circle", "star.fill": "star", "circle.fill": "circle",
         "circle": "radio_button_unchecked", "hand.tap.fill": "touch_app", "sparkles": "auto_awesome",
     ]

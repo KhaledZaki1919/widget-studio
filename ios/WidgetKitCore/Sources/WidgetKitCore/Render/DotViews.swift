@@ -12,6 +12,7 @@ struct DotGridView: View {
     var body: some View {
         let on = Color(hex: layer.onColor)
         let off = Color(hex: layer.offColor)
+        let highlight = Color(hex: layer.highlightColor ?? layer.onColor)
         Canvas { context, size in
             let dot = layer.dotSize * scale
             let gap = layer.gap * scale
@@ -21,14 +22,16 @@ struct DotGridView: View {
             for row in 0..<layer.rows {
                 for col in 0..<layer.cols {
                     let index = row * layer.cols + col
-                    let level = index < levels.count ? min(levels[index], 1) : 0
+                    let level = index < levels.count ? levels[index] : 0
                     if level < 0 { continue }
                     let column = mirrored ? layer.cols - 1 - col : col
                     let rect = CGRect(x: origin.x + CGFloat(column) * (dot + gap), y: origin.y + CGFloat(row) * (dot + gap),
                                       width: dot, height: dot)
                     context.fill(Path(ellipseIn: rect), with: .color(off))
-                    if level > 0 {
-                        context.fill(Path(ellipseIn: rect), with: .color(on.opacity(level)))
+                    if level >= MonthGrid.highlight {
+                        context.fill(Path(ellipseIn: rect), with: .color(highlight))
+                    } else if level > 0 {
+                        context.fill(Path(ellipseIn: rect), with: .color(on.opacity(min(level, 1))))
                     }
                 }
             }
@@ -49,6 +52,9 @@ struct DotBarsView: View {
         let labels = ordered(self.labels, count: layer.bars, filler: "")
         let color = Color(hex: layer.color)
         let off = Color(hex: layer.offColor ?? "#FFFFFF26")
+        // With a highlight color, the highest bar (first one on ties) is drawn in it.
+        let best = layer.highlightColor == nil ? nil : levels.indices.max { levels[$0] < levels[$1] }
+        let highlight = Color(hex: layer.highlightColor ?? layer.color)
         VStack(spacing: 4 * scale) {
             Canvas { context, size in
                 let bars = CGFloat(layer.bars)
@@ -58,10 +64,11 @@ struct DotBarsView: View {
                 let rowHeight = size.height / rows
                 for bar in 0..<layer.bars {
                     let lit = Int((min(max(levels[bar], 0), 1) * Double(layer.maxDots)).rounded())
+                    let litColor = bar == best ? highlight : color
                     for row in 0..<layer.maxDots {
                         let x = CGFloat(bar) * columnWidth + (columnWidth - dot) / 2
                         let y = size.height - CGFloat(row + 1) * rowHeight + (rowHeight - dot) / 2
-                        context.fill(Path(ellipseIn: CGRect(x: x, y: y, width: dot, height: dot)), with: .color(row < lit ? color : off))
+                        context.fill(Path(ellipseIn: CGRect(x: x, y: y, width: dot, height: dot)), with: .color(row < lit ? litColor : off))
                     }
                 }
             }

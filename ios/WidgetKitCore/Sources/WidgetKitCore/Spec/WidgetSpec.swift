@@ -13,10 +13,12 @@ public struct WidgetSpec: Codable, Sendable, Equatable {
     public var background: Background
     public var fields: [FieldSpec]
     public var layers: [Layer]
+    /// Library section (ADR-011); optional for specs that aren't templates.
+    public var category: SpecCategory?
 
     public init(schemaVersion: Int = 1, id: String, name: LocalizedText, family: SpecFamily,
                 theme: SpecTheme = .dark, refresh: RefreshPolicy = .none, background: Background,
-                fields: [FieldSpec] = [], layers: [Layer]) {
+                fields: [FieldSpec] = [], layers: [Layer], category: SpecCategory? = nil) {
         self.schemaVersion = schemaVersion
         self.id = id
         self.name = name
@@ -26,10 +28,11 @@ public struct WidgetSpec: Codable, Sendable, Equatable {
         self.background = background
         self.fields = fields
         self.layers = layers
+        self.category = category
     }
 
     enum CodingKeys: String, CodingKey {
-        case schemaVersion, id, name, family, theme, refresh, background, fields, layers
+        case schemaVersion, id, name, family, theme, refresh, background, fields, layers, category
     }
 
     public init(from decoder: Decoder) throws {
@@ -43,6 +46,7 @@ public struct WidgetSpec: Codable, Sendable, Equatable {
         background = try container.decode(Background.self, forKey: .background)
         fields = try container.decodeIfPresent([FieldSpec].self, forKey: .fields) ?? []
         layers = try container.decode([Layer].self, forKey: .layers)
+        category = try container.decodeIfPresent(SpecCategory.self, forKey: .category)
     }
 
     public func field(_ key: String) -> FieldSpec? {
@@ -59,6 +63,38 @@ public enum SpecFamily: String, Codable, Sendable, CaseIterable {
         case .small: CGSize(width: 170, height: 170)
         case .medium: CGSize(width: 364, height: 170)
         case .large: CGSize(width: 364, height: 382)
+        }
+    }
+
+    /// Widget sizes a spec can fill (ADR-011): its own and every larger one. A spec drawn in a
+    /// larger widget is scaled uniformly and centered on its background.
+    public var supportedFamilies: [SpecFamily] {
+        SpecFamily.allCases.filter { $0.rank >= rank }
+    }
+
+    var rank: Int {
+        switch self {
+        case .small: 0
+        case .medium: 1
+        case .large: 2
+        }
+    }
+}
+
+/// Template library sections (brief §6), in display order.
+public enum SpecCategory: String, Codable, Sendable, CaseIterable {
+    case time, weather, health, prayer, countdown, photo, tiles, counters
+
+    public var title: LocalizedText {
+        switch self {
+        case .time: .localized(en: "Time", ar: "الوقت")
+        case .weather: .localized(en: "Weather", ar: "الطقس")
+        case .health: .localized(en: "Health", ar: "الصحة")
+        case .prayer: .localized(en: "Prayer", ar: "الصلاة")
+        case .countdown: .localized(en: "Countdown", ar: "العد التنازلي")
+        case .photo: .localized(en: "Photo", ar: "صور")
+        case .tiles: .localized(en: "Tiles", ar: "أزرار")
+        case .counters: .localized(en: "Counters", ar: "عدّادات")
         }
     }
 }
@@ -143,6 +179,8 @@ public struct Background: Codable, Sendable, Equatable {
 public struct FieldSpec: Codable, Sendable, Equatable {
     public enum Kind: String, Codable, Sendable, CaseIterable {
         case text, number, date, color, image, timezone, city, shortcut, url
+        /// An SF Symbol from `Icons.whitelist` (tile icons, ADR-011).
+        case icon
     }
 
     public var key: String
