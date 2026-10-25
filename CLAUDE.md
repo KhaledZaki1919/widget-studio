@@ -17,12 +17,12 @@ The product brief is `widget-app-brief.md` (template catalog: `TEMPLATES.md`, vi
 | Path | What |
 |---|---|
 | `ios/project.yml` | XcodeGen spec (app + widget extension + tests). Never hand-edit the generated `.xcodeproj` |
-| `ios/WidgetStudio/` | App target: `App/` (entry, root), `Features/<Area>/` (Library: home, detail, previews; Diagnostics with TestSpecs; …), `Resources/` |
+| `ios/WidgetStudio/` | App target: `App/` (entry, root), `Features/<Area>/` (Library: tab, detail with Customize, previews; Editor: editor + field controls; MyWidgets: saved designs, `DesignsModel`; Diagnostics with TestSpecs), `Resources/` |
 | `ios/WidgetStudioWidgets/` | Widget extension: `SpecWidget.swift` (one `StaticConfiguration` widget per template, `TemplateWidget<ID>`, picked by swiping the widget gallery; error text instead of gray; step log — ADR-013), `ProbeWidget` (check widget; large shows the step log). **No AppIntentConfiguration**: it never renders on the owner's Fast Store install (ADR-013). A new template needs a `TemplateIDs` entry and a line in its category bundle |
 | `ios/WidgetStudioTests/` | App-hosted unit tests: font availability, RTL invariants, every spec through the widget view, snapshots (`Snapshots/<id>.<lang>.png`) |
 | `ios/WidgetStudioUITests/` | Simulator UI smoke tests |
 | `ios/Fonts/` | Doto (static instances) + IBM Plex Sans Arabic, OFL; bundled in app and widget, declared in `UIAppFonts` (ADR-010) |
-| `ios/WidgetKitCore/` | Swift package shared by app + extension: `Environment/` (App Group resolver, profile, code signature reader), `Probe/` (incl. `WidgetLog`), `Spec/` (models, bindings, validator, icon whitelist, test spec loader), `Render/` (SpecView, layer views, binding resolver, fonts, timelines), `Resources/` (Templates: the Mono library, TestSpecs, Spec schema); `TemplateLibrary` loads templates. **Unit tests live here** |
+| `ios/WidgetKitCore/` | Swift package shared by app + extension: `Environment/` (App Group resolver, profile, code signature reader), `Probe/` (incl. `WidgetLog`), `Designs/` (`SavedDesign`, `SharedStore` = the only storage for designs and photos, `DesignEditing` rules, `ImageProcessing`), `Spec/` (models, bindings, validator, icon whitelist, test spec loader), `Render/` (SpecView, layer views, binding resolver, fonts, timelines), `Resources/` (Templates: the Mono library, TestSpecs, Spec schema); `TemplateLibrary` loads templates. **Unit tests live here** |
 | `ios/Config/` | Entitlements (written by XcodeGen from `project.yml`) |
 | `ios/scripts/` | `build-ipa.sh`, `check-strings.py`, `pick-simulator.py` |
 | `scripts/secret-scan.sh` | Secret scan, run before push and in CI |
@@ -81,6 +81,6 @@ Docs-only commits (`**.md`, `docs/**`) skip CI. SwiftLint is a separate, non-blo
 - **Templates (ADR-011):** one JSON per template in `Resources/Templates/<id>.json`, colors as tokens (`@bg`, `@fg`, `@accent`…), every visible text `{en, ar}`, and `catalogOrder` in `TemplateLibrary` updated. Spec extensions (`when`, `rotation`, `highlightColor`, `icon` fields, new bindings) are listed in ADR-011.
 - **Snapshots:** an intended visual change means re-recording references from the `snapshots` artifact (`ios/WidgetStudioTests/Snapshots/README.md`); look at the renders before committing them.
 - **Sideloading (ADR-004):** never hardcode the bundle ID, team prefix or App Group at runtime. Use `AppGroupResolver.resolve()`. The widget extension never calls the network for AI and never reads the Keychain.
-- **Data on the device only:** write shared files through `FileProtection.write`. Secrets only in the Keychain.
+- **Data on the device only:** saved designs and photos go only through `SharedStore` (App Group if resolved, else the app container; ADR-015); other shared files through `FileProtection.write`. Secrets only in the Keychain.
 - **Widget memory (~30 MB):** downscale images to the widget's pixel size before saving them to the App Group.
 - **AI (D4, D6):** AI returns a JSON spec, never code; every spec is validated before rendering. The BYOK client is ported from Lakhas in M5 (ADR-008).

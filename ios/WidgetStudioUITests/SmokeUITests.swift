@@ -9,7 +9,8 @@ final class SmokeUITests: XCTestCase {
     @MainActor
     func launch(language: String) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-AppleLanguages", "(\(language))", "-AppleLocale", language == "ar" ? "ar_EG" : "en_US"]
+        // -uiTesting: start without saved designs.
+        app.launchArguments = ["-uiTesting", "-AppleLanguages", "(\(language))", "-AppleLocale", language == "ar" ? "ar_EG" : "en_US"]
         app.launch()
         return app
     }
@@ -47,6 +48,46 @@ final class SmokeUITests: XCTestCase {
         XCTAssertTrue(medium.waitForExistence(timeout: 10), "medium preview missing in detail")
         XCTAssertTrue(app.descendants(matching: .any)["ax.detail.preview.large"].exists, "large preview missing in detail")
         XCTAssertFalse(app.descendants(matching: .any)["ax.detail.preview.small"].exists, "small preview shown for a medium template")
+    }
+
+    /// M3: Customize a template, rename it, save, and find it in My widgets.
+    @MainActor
+    private func customizesAndSaves(language: String, name: String) {
+        let app = launch(language: language)
+        let chip = app.buttons["ax.library.chip.weather"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 15), "weather chip not found")
+        chip.tap()
+        let template = app.buttons["ax.library.template.mono.weather.forecast"]
+        XCTAssertTrue(template.waitForExistence(timeout: 10), "forecast template not found")
+        template.tap()
+        let customize = app.buttons["ax.detail.customize"]
+        XCTAssertTrue(customize.waitForExistence(timeout: 10), "Customize button not found")
+        customize.tap()
+
+        let field = app.textFields["ax.editor.name"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10), "name field not found in the editor")
+        field.tap()
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 40))
+        field.typeText(name)
+        let save = app.buttons["ax.editor.save"]
+        XCTAssertTrue(save.isEnabled, "Save is disabled for a fresh design")
+        save.tap()
+
+        // Save switches to My widgets.
+        let row = app.descendants(matching: .any).matching(identifier: "ax.mywidgets.design").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "saved design not in My widgets")
+        XCTAssertTrue(row.label.contains(name), "row label is \(row.label)")
+        XCTAssertFalse(app.descendants(matching: .any)["ax.mywidgets.empty"].exists, "empty state still shown")
+    }
+
+    @MainActor
+    func testCustomizeSaveShowsInMyWidgetsInEnglish() {
+        customizesAndSaves(language: "en", name: "Forecast EN")
+    }
+
+    @MainActor
+    func testCustomizeSaveShowsInMyWidgetsInArabic() {
+        customizesAndSaves(language: "ar", name: "Forecast AR")
     }
 
     @MainActor

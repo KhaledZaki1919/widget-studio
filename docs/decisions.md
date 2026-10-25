@@ -304,3 +304,36 @@ The M2 build made the following suspects unlikely but not impossible:
     - the configurable widget restored from before ADR-013 (commit `997651a`);
     - Edit Widget picks any saved design or template, with Appearance and search.
 - **CI** compiles both modes on every push and runs the unit tests (the package has no mode switch; the modes differ only in the app and extension). The IPA is built in store mode only, and only `WidgetStudio.ipa` (the no-HealthKit fallback is dropped: HealthKit installs fine with Fast Store).
+
+### ADR-015 — Saved designs, SharedStore, editor rules (M3)
+**Status:** Accepted (2026-10-25).
+
+**A saved design** (`SavedDesign`) keeps:
+- a **copy of the template spec** at save time, so library updates never change a saved design;
+- the user's **field values** (`LocalizedText`: text and city fields hold Arabic and English);
+- an optional **theme**;
+- **color overrides** for the tokens `accent`, `bg` and `fg`, applied on top of the theme (`resolvingTokens(theme:overrides:)`);
+- the **photo's file name**.
+
+Empty field values fall back to the template defaults.
+
+**Storage:** `SharedStore` is the only storage for designs and photos:
+- `Designs/designs.json` (newest first) and `Designs/Images/`;
+- in the App Group container when the resolver finds one, else the app's own container;
+- each photo save gets a fresh file name, and unused photos are removed after saves.
+
+**Editor rules** (`DesignEditing`):
+- **Links:** a `url` field accepts only http/https links (the spec rule "no remote URLs" still applies to every other text). Shortcut names can't be links.
+- **Other fields:**
+  - dates must parse;
+  - time zones must exist (empty = not set);
+  - icons come from the whitelist;
+  - colors are hex.
+- **Save** requires a non-empty name (≤ 60 characters), and the spec with the overrides must still validate.
+
+**Photos:**
+- Picked with PhotosPicker and redrawn upright (orientation applied).
+- Cropped to fill (or fitted) at the image layer's pixel size (3×, longest side ≤ 1024), so the widget's ~30 MB budget is safe.
+- `halftone` (Dot Portrait) and `mono` are applied once, when the photo is picked; the widget never filters. Halftone and mono photos are stored as PNG, others as JPEG.
+
+**Tabs:** Templates and My widgets. Save switches to My widgets. Without an App Group, My widgets explains that the home screen shows saved designs in the App Store version (ADR-014).
