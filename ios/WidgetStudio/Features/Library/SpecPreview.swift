@@ -19,6 +19,10 @@ struct SpecPreview: View {
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
         .allowsHitTesting(false)
+        // One accessibility element per preview, read as the template name (and findable in UI tests).
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(verbatim: spec.name.resolved(language: language)))
+        .accessibilityAddTraits(.isImage)
     }
 
     static func context(date: Date, language: String, theme: SpecTheme?) -> RenderContext {

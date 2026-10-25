@@ -35,16 +35,17 @@ final class SmokeUITests: XCTestCase {
     private func browsesLibrary(language: String) {
         let app = launch(language: language)
         let chip = app.buttons["ax.library.chip.prayer"]
-        XCTAssertTrue(chip.waitForExistence(timeout: 15))
+        XCTAssertTrue(chip.waitForExistence(timeout: 15), "prayer chip not found")
         chip.tap()
         let template = app.buttons["ax.library.template.mono.prayer.day"]
-        XCTAssertTrue(template.waitForExistence(timeout: 10))
+        XCTAssertTrue(template.waitForExistence(timeout: 10), "prayer-day template not found after the chip")
         // Other categories are hidden while a chip is selected.
-        XCTAssertFalse(app.buttons["ax.library.template.mono.clock.analog"].exists)
+        XCTAssertFalse(app.buttons["ax.library.template.mono.clock.analog"].exists, "time templates still shown")
         template.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["ax.detail.preview.medium"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.descendants(matching: .any)["ax.detail.preview.large"].exists)
-        XCTAssertFalse(app.descendants(matching: .any)["ax.detail.preview.small"].exists)
+        let medium = app.descendants(matching: .any)["ax.detail.preview.medium"]
+        XCTAssertTrue(medium.waitForExistence(timeout: 10), "medium preview missing in detail")
+        XCTAssertTrue(app.descendants(matching: .any)["ax.detail.preview.large"].exists, "large preview missing in detail")
+        XCTAssertFalse(app.descendants(matching: .any)["ax.detail.preview.small"].exists, "small preview shown for a medium template")
     }
 
     @MainActor
