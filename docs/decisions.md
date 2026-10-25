@@ -206,3 +206,45 @@ Never hardcode the bundle ID, team prefix or group at runtime. No Keychain shari
 - App:
   - every template through `SpecWidgetContent` in each supported size, both languages and both themes;
   - a snapshot per template and language.
+
+### ADR-012 — Gray template widgets: diagnosis tools, error text, one widget kind per size, signing diagnostics
+**Status:** Accepted (2026-10-25). The cause is **not confirmed yet**; this build is meant to find it on the device.
+**Context:**
+- M2 device test, installed with Fast Store (a paid re-signing store; the owner's install method from now on).
+- The template widgets stay a gray redacted placeholder. The check widget renders in the same install. No spec-rendered widget has ever rendered on the device.
+
+**Evidence so far:**
+- The gray medium widget shows the Forecast template's real layout, redacted.
+- So `placeholder(in:)` ran in the extension: the template library loads from the package bundle, the JSON decodes, and `SpecView` builds its whole view tree.
+- What never arrives is a real (unredacted) entry. That leaves:
+  1. the AppIntent snapshot/timeline path not delivering;
+  2. unredacted text failing (fonts; redaction hides text, so it would hide a font problem);
+  3. a crash, timeout or memory kill while building or rendering the real entry.
+
+The M2 build made the following suspects unlikely but not impossible:
+- entry count (Forecast and Steps refresh hourly: one entry);
+- missing resources (inspected in the IPA).
+
+**Decision:**
+1. **Find the cause on the device:**
+   - **Step log:** `WidgetLog` records every template-widget step (placeholder, snapshot, timeline start/end with duration, free memory and entry count, render) in the extension's container. The **large check widget** shows the last lines; it uses system fonts only and renders on this install.
+   - **Comparison widgets:**
+     - **Test · Fonts** draws only the bundled fonts and says whether each is registered in the extension.
+     - **Test · Template** renders a template through the same renderer with `StaticConfiguration`, with no AppIntent and no entity query.
+   - **Reading the result:**
+     - both render, but the template widgets stay gray → AppIntent path;
+     - Test · Template is gray too → renderer;
+     - Test · Fonts fails → fonts.
+   - Timelines load only the selected template file (`TemplateLibrary.load(id:)`), not all 28.
+2. **No silent gray:** a missing, invalid or oversized template renders as plain system text with the reason (`WidgetProblemView`). Crashes and memory kills can't be caught in code; the step log shows where they happen.
+3. **One widget kind per size:** `WidgetStudioSmall`, `WidgetStudioMedium`, `WidgetStudioLarge`. Each has its own intent and entity query that lists only templates that fit: same size or smaller, never shrunk. Grouped by category and searchable. Size-specific queries need separate entity types, because the query can't see the widget's family. The M1/M2 kind `WidgetStudioSpec` is removed; placed widgets must be re-added.
+4. **Signing diagnostics:** Diagnostics shows, for the app **and every extension**:
+   - the embedded profile (name, team, expiry, App Groups, entitlements);
+   - what is actually signed into the executable, read from the Mach-O code signature: CodeDirectory identifier and team, ad-hoc flag, and the signed entitlements (App Groups, application-identifier). This works even when a store ships no readable profile.
+
+**Build rule:**
+- Each fix is pushed with compile + unit tests only.
+- `[full]` runs the Simulator tests.
+- One IPA with `[ipa]` after all fixes are green (CLAUDE.md).
+
+**Next:** the owner's screenshots of the check widget (large), Test · Fonts, Test · Template and Diagnostics → Signing decide the real fix. The test widgets are removed once it is solved.

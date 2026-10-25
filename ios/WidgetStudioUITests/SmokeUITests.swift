@@ -23,7 +23,8 @@ final class SmokeUITests: XCTestCase {
         XCTAssertTrue(app.collectionViews["ax.diag.list"].waitForExistence(timeout: 10))
         // List cells exist only on screen, so scroll down to the App Group button.
         let write = app.buttons["ax.diag.writeValue"]
-        for _ in 0..<6 where !write.exists {
+        // Signing sections (app + widget) sit above it since ADR-012.
+        for _ in 0..<14 where !write.exists {
             app.collectionViews["ax.diag.list"].swipeUp()
         }
         XCTAssertTrue(write.waitForExistence(timeout: 5))

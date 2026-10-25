@@ -18,11 +18,11 @@ The product brief is `widget-app-brief.md` (template catalog: `TEMPLATES.md`, vi
 |---|---|
 | `ios/project.yml` | XcodeGen spec (app + widget extension + tests). Never hand-edit the generated `.xcodeproj` |
 | `ios/WidgetStudio/` | App target: `App/` (entry, root), `Features/<Area>/` (Library: home, detail, previews; Diagnostics with TestSpecs; …), `Resources/` |
-| `ios/WidgetStudioWidgets/` | Widget extension: `SpecWidget` (any bundled template, picked in Edit Widget: grouped, searchable, Appearance option) and the `ProbeWidget` check widget |
+| `ios/WidgetStudioWidgets/` | Widget extension: `SpecWidget.swift` (template widgets: one kind per size, Edit Widget lists only templates that fit, Appearance option, error text instead of gray, step log), `ProbeWidget` (check widget; large shows the step log), `RenderTestWidgets.swift` (Test · Fonts / Test · Template diagnostics, ADR-012) |
 | `ios/WidgetStudioTests/` | App-hosted unit tests: font availability, RTL invariants, every spec through the widget view, snapshots (`Snapshots/<id>.<lang>.png`) |
 | `ios/WidgetStudioUITests/` | Simulator UI smoke tests |
 | `ios/Fonts/` | Doto (static instances) + IBM Plex Sans Arabic, OFL; bundled in app and widget, declared in `UIAppFonts` (ADR-010) |
-| `ios/WidgetKitCore/` | Swift package shared by app + extension: `Environment/` (App Group resolver, profile), `Probe/`, `Spec/` (models, bindings, validator, icon whitelist, test spec loader), `Render/` (SpecView, layer views, binding resolver, fonts, timelines), `Resources/` (Templates: the Mono library, TestSpecs, Spec schema); `TemplateLibrary` loads templates. **Unit tests live here** |
+| `ios/WidgetKitCore/` | Swift package shared by app + extension: `Environment/` (App Group resolver, profile, code signature reader), `Probe/` (incl. `WidgetLog`), `Spec/` (models, bindings, validator, icon whitelist, test spec loader), `Render/` (SpecView, layer views, binding resolver, fonts, timelines), `Resources/` (Templates: the Mono library, TestSpecs, Spec schema); `TemplateLibrary` loads templates. **Unit tests live here** |
 | `ios/Config/` | Entitlements (written by XcodeGen from `project.yml`) |
 | `ios/scripts/` | `build-ipa.sh`, `check-strings.py`, `pick-simulator.py` |
 | `scripts/secret-scan.sh` | Secret scan, run before push and in CI |
