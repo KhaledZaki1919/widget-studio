@@ -248,3 +248,37 @@ The M2 build made the following suspects unlikely but not impossible:
 - One IPA with `[ipa]` after all fixes are green (CLAUDE.md).
 
 **Next:** the owner's screenshots of the check widget (large), Test · Fonts, Test · Template and Diagnostics → Signing decide the real fix. The test widgets are removed once it is solved.
+
+### ADR-013 — Template widgets use StaticConfiguration (one widget per template)
+**Status:** Accepted (2026-10-25). Supersedes the AppIntent part of ADR-011/ADR-012.
+
+**Context: the M2 device test on the owner's Fast Store install.**
+- **Test · Template** (`StaticConfiguration`) renders a template correctly in small and medium. It uses the same bundled files, renderer, fonts, entry view and memory profile.
+- Every **AppIntentConfiguration** widget stays a gray placeholder, even as a gallery preview before a template is picked. No error text ever appears.
+- The IPA's extension contains a correct `Metadata.appintents`: 3 intents, 3 entities, 3 queries, the Appearance enum, the right parameter types.
+
+**Diagnosis:**
+- Our AppIntent snapshot does exactly the static widget's work for the default configuration.
+- What differs is the system's App Intents machinery: configuration storage, intent instantiation, entity resolution. On this install, that machinery never delivers our entry to the screen.
+- Re-signing by the store is the likely factor. This can't be fixed or verified from our code.
+
+**Decision:**
+- **One `StaticConfiguration` widget per template:** `TemplateWidget<ID>`, kind `WidgetStudio.<template id>`, in the template's own size only, so nothing is shrunk.
+- **Picking:** the user swipes the widget gallery, which shows each real design with its name.
+- **Identities:** `TemplateIDs` (WidgetKitCore) has one type per template, because a `Widget` must have `init()`. A unit test guarantees every library template has one.
+- **Bundles:** category sub-bundles keep the widget bundle builder within 10 entries per block.
+- **Kept:** the step log, the error text (ADR-012) and the check widget.
+- **Removed:**
+  - the AppIntent widgets (`WidgetStudioSmall/Medium/Large`) and their intents and entities;
+  - the Test · Fonts / Test · Template widgets, since the real widgets now use the path Test · Template proved.
+
+**Rejected alternatives:**
+- **Legacy `IntentConfiguration` (`.intentdefinition`):** it rests on the same system intent infrastructure, so it would likely fail the same way. Dynamic lists also need a separate Intents extension, one more App ID for the store to sign.
+- **One widget per category:** it still needs a configuration to choose within a category.
+
+**Costs:**
+- 28 entries in the widget gallery.
+- No per-widget Appearance or search: each template uses its default theme.
+- M3's "pick a saved design in the widget's edit menu" (brief §3) can't use this path on this install. M3 must design around it, e.g. a fixed number of "My widget 1…N" slots, each a static widget showing a design the app assigns, which needs the App Group. Decide in M3.
+
+**Revisit:** for an App Store / normally provisioned build, test `AppIntentConfiguration` again (code in git history before this ADR).

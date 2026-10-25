@@ -126,6 +126,12 @@ struct TemplateLibraryTests {
         #expect(TemplateLibrary.fitting(.medium).contains { $0.family == .medium })
     }
 
+    /// Every template has a widget identity (ADR-013), in library order.
+    @Test func everyTemplateHasAWidgetIdentity() {
+        #expect(TemplateIDs.all.map { $0.id } == TemplateLibrary.catalogOrder)
+        #expect(TemplateIDs.all.map { $0.id } == TemplateLibrary.all().map(\.id))
+    }
+
     @Test func defaultTemplatesExistAndFit() throws {
         for size in SpecFamily.allCases {
             let spec = try TemplateLibrary.load(id: TemplateLibrary.defaultID(for: size)).get()

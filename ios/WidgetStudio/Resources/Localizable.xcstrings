@@ -109,13 +109,13 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "اضغط مطولًا على الشاشة الرئيسية ← + ← Widget Studio ← اختر المقاس ← إضافة. ثم اضغط مطولًا على الودجت ← «تعديل الودجت» واختر هذا القالب."
+            "value": "اضغط مطولًا على الشاشة الرئيسية ← + ← Widget Studio، ثم اسحب حتى تجد هذا القالب باسمه واضغط «إضافة الودجت»."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Long-press the Home Screen → + → Widget Studio → pick a size → Add Widget. Then long-press the widget → Edit Widget and choose this template."
+            "value": "Long-press the Home Screen → + → Widget Studio, then swipe to this template (by its name) and tap Add Widget."
           }
         }
       }
