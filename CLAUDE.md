@@ -63,7 +63,7 @@ Docs-only commits (`**.md`, `docs/**`) skip CI. SwiftLint is a separate, non-blo
 - Build the IPA **once**, with `[ipa]` in the commit message, only after **all** requested fixes are done and every test is green. Then tell the owner the IPA is ready; they test everything in one go.
 
 **After each push:**
-1. Poll the run in the **foreground**, at most 7 minutes per wait (`timeout 400 gh run watch <id> --exit-status`, Bash tool timeout ~480000 ms so the call can never be moved to the background). Never start a background watcher (low-memory PC).
+1. Poll the run in the **foreground**, at most 7 minutes per wait (`timeout -k 10 300 gh run watch <id> --exit-status`, Bash tool timeout ~480000 ms; plain `timeout 400` once overran). Never start a background watcher (low-memory PC).
 2. Fetch logs in a **separate call**, never chained after a watch: `gh run view <id> --log-failed` (or `--job <id> --log`).
 3. On failure, fix **all** errors in one commit, push, and watch again until green.
 
