@@ -32,11 +32,13 @@ public enum SpecTokens {
 extension WidgetSpec {
     /// The same spec with every color token replaced by its hex value for `theme` (and `theme`
     /// set). Tokens appear only as whole JSON string values, so a JSON round trip is exact.
-    public func resolvingTokens(theme: SpecTheme? = nil) -> WidgetSpec {
+    /// `overrides` (token name → hex, e.g. a design's accent) win over the theme's values.
+    public func resolvingTokens(theme: SpecTheme? = nil, overrides: [String: String] = [:]) -> WidgetSpec {
         let theme = theme ?? self.theme
         guard var json = (try? JSONEncoder().encode(self)).flatMap({ String(data: $0, encoding: .utf8) }) else { return self }
         for name in SpecTokens.names {
-            if let hex = SpecTokens.hex(name, theme: theme) {
+            let override = overrides[name].flatMap { HexColor.parse($0) == nil ? nil : $0 }
+            if let hex = override ?? SpecTokens.hex(name, theme: theme) {
                 json = json.replacingOccurrences(of: "\"@\(name)\"", with: "\"\(hex)\"")
             }
         }

@@ -16,7 +16,7 @@ public struct SpecView: View {
 
     /// `spec` may use color tokens; they are resolved here for `context.theme ?? spec.theme`.
     public init(spec: WidgetSpec, context: RenderContext, drawsBackground: Bool = true) {
-        self.spec = spec.resolvingTokens(theme: context.theme)
+        self.spec = spec.resolvingTokens(theme: context.theme, overrides: context.tokenOverrides)
         self.context = context
         self.drawsBackground = drawsBackground
     }
@@ -76,8 +76,8 @@ public struct SpecBackground: View {
     let spec: WidgetSpec
 
     /// Resolves color tokens for `theme` (else the spec's own theme).
-    public init(spec: WidgetSpec, theme: SpecTheme? = nil) {
-        self.spec = spec.resolvingTokens(theme: theme)
+    public init(spec: WidgetSpec, theme: SpecTheme? = nil, overrides: [String: String] = [:]) {
+        self.spec = spec.resolvingTokens(theme: theme, overrides: overrides)
     }
 
     public var body: some View {

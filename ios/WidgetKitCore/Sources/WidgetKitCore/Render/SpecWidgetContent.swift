@@ -17,7 +17,7 @@ public struct SpecWidgetContent: View {
     public var body: some View {
         if let spec {
             SpecView(spec: spec, context: context, drawsBackground: false)
-                .widgetBackground { SpecBackground(spec: spec, theme: context.theme) }
+                .widgetBackground { SpecBackground(spec: spec, theme: context.theme, overrides: context.tokenOverrides) }
         } else {
             Text(verbatim: "—")
                 .font(.footnote)

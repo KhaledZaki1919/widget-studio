@@ -72,7 +72,7 @@ public struct BindingResolver {
 
     /// A field's current value: the user's, else the spec's default.
     public func fieldValue(_ key: String) -> String? {
-        context.fieldValues[key] ?? spec.field(key)?.default?.resolved(language: context.language)
+        (context.fieldValues[key] ?? spec.field(key)?.default)?.resolved(language: context.language)
     }
 
     public func value(of raw: String) -> Value? {

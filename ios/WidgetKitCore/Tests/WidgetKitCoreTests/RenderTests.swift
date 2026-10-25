@@ -15,7 +15,7 @@ private let fixedDate = Date(timeIntervalSince1970: 1_792_591_500)
 private let utc = TimeZone(identifier: "UTC") ?? .current
 
 private func resolver(_ spec: WidgetSpec = spec(), language: String = "en", data: DataSnapshot = .sample(now: fixedDate),
-                      fields: [String: String] = [:]) -> BindingResolver {
+                      fields: [String: LocalizedText] = [:]) -> BindingResolver {
     BindingResolver(spec: spec, context: RenderContext(date: fixedDate, language: language, timeZone: utc,
                                                        fieldValues: fields, data: data))
 }

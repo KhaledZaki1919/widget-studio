@@ -136,7 +136,7 @@ public struct RenderContext {
     public var language: String
     public var timeZone: TimeZone
     /// User values by field key; missing keys use the field's default.
-    public var fieldValues: [String: String]
+    public var fieldValues: [String: LocalizedText]
     public var data: DataSnapshot
     public var userImage: CGImage?
     /// Renders live texts (relative, timer) as fixed text measured from `date`, because SwiftUI's
@@ -145,9 +145,12 @@ public struct RenderContext {
     /// Overrides the spec's theme (detail previews, the widget's Appearance option); color
     /// tokens resolve for this theme (ADR-011).
     public var theme: SpecTheme?
+    /// Color token overrides from a saved design (`accent`, `bg`, `fg` → hex), applied on top of
+    /// the theme (M3 editor, ADR-015).
+    public var tokenOverrides: [String: String] = [:]
 
     public init(date: Date = .now, language: String = "ar", timeZone: TimeZone = .current,
-                fieldValues: [String: String] = [:], data: DataSnapshot = DataSnapshot(), userImage: CGImage? = nil) {
+                fieldValues: [String: LocalizedText] = [:], data: DataSnapshot = DataSnapshot(), userImage: CGImage? = nil) {
         self.date = date
         self.language = language
         self.timeZone = timeZone
