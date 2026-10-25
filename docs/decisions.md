@@ -282,3 +282,25 @@ The M2 build made the following suspects unlikely but not impossible:
 - M3's "pick a saved design in the widget's edit menu" (brief §3) can't use this path on this install. M3 must design around it, e.g. a fixed number of "My widget 1…N" slots, each a static widget showing a design the app assigns, which needs the App Group. Decide in M3.
 
 **Revisit:** for an App Store / normally provisioned build, test `AppIntentConfiguration` again (code in git history before this ADR).
+
+### ADR-014 — No developer account until the end; M3 works inside the app; two build modes
+**Status:** Accepted (2026-10-25), owner's decision.
+**Context:**
+- The owner installs with Fast Store and will not buy an Apple Developer account now.
+- On that install there is no App Group (the app and the widget can't share files; ADR-005, ADR-012), and AppIntent-configured widgets never render (ADR-013).
+- The account is bought once, near the end, to test and publish.
+
+**Decision:**
+- **M3 works fully inside the app:**
+  - the editor;
+  - My widgets: preview, rename, duplicate, edit, delete;
+  - saved designs and photos.
+- **All storage goes through one `SharedStore`:** the App Group container when the resolver finds one, else the app's own container. When the App Group starts working (own account), the same code shares designs with the widget; nothing is rewritten.
+- **Two build modes, chosen by a compile flag** (`WS_EXTRA_CONDITIONS` build setting → Swift condition `WS_DEVELOPER`):
+  - **store mode** (default; what CI builds and ships as the IPA):
+    - the 28 fixed template widgets (ADR-013);
+    - one **My widget** per size that reads saved designs from `SharedStore`. Without an App Group it shows "Saved designs appear here in the App Store version" (ar/en), never gray.
+  - **developer mode** (later, own account):
+    - the configurable widget restored from before ADR-013 (commit `997651a`);
+    - Edit Widget picks any saved design or template, with Appearance and search.
+- **CI** compiles both modes on every push and runs the unit tests (the package has no mode switch; the modes differ only in the app and extension). The IPA is built in store mode only, and only `WidgetStudio.ipa` (the no-HealthKit fallback is dropped: HealthKit installs fine with Fast Store).

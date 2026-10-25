@@ -48,6 +48,15 @@ swiftlint lint
 
 Docs-only commits (`**.md`, `docs/**`) skip CI. SwiftLint is a separate, non-blocking job. Superseded runs are cancelled.
 
+**Build modes (ADR-014):** one Swift condition, `WS_DEVELOPER`, set through the build setting `WS_EXTRA_CONDITIONS` (`project.yml`, empty by default).
+- **Store mode** (default, what CI ships): the 28 fixed template widgets + one "My widget" per size reading `SharedStore`. Works on the owner's Fast Store install without an App Group or AppIntents.
+- **Developer mode** (with the owner's own Apple account, later): the configurable widget (Edit Widget picks any saved design or template, Appearance, search). CI only *compiles* it (job "Compile", step "Build developer mode"); it never ships an IPA from CI.
+- **Switching to developer mode later:**
+  1. In `ios/project.yml`, set `WS_EXTRA_CONDITIONS: "WS_DEVELOPER"` (or pass `WS_EXTRA_CONDITIONS=WS_DEVELOPER` to `xcodebuild`).
+  2. Set `DEVELOPMENT_TEAM` and `CODE_SIGN_STYLE: Automatic` for the account, and register the App Group `group.com.khaled.widgetstudio` for the app and the widget extension.
+  3. Build and sign with Xcode or a signing CI job (not the unsigned IPA job).
+  4. Check Diagnostics → App Group says Shared ✓ before testing My widget.
+
 **Build rule (owner, since M2):**
 - Do **not** build an IPA after each fix. Commit each fix and push; that runs compile + unit tests only. Fix all errors per commit.
 - Use `[full]` on a commit when the change needs the Simulator tests (rendering, UI); it never builds an IPA.

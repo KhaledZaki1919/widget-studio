@@ -67,12 +67,31 @@ jobs:
             exit "$status"
           fi
 
-      - name: Upload build log
+      # ADR-014: developer mode (configurable widget, own Apple account later) must keep
+      # compiling; it is never shipped as an IPA from CI.
+      - name: Build developer mode (WS_DEVELOPER)
+        run: |
+          status=0
+          xcodebuild build \
+            -project WidgetStudio.xcodeproj -scheme WidgetStudio \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedDataDeveloper \
+            CODE_SIGNING_ALLOWED=NO WS_EXTRA_CONDITIONS=WS_DEVELOPER \
+            > build/xcodebuild-developer.log 2>&1 || status=$?
+          grep -E '\*\* BUILD (SUCCEEDED|FAILED) \*\*' build/xcodebuild-developer.log || tail -n 40 build/xcodebuild-developer.log
+          if [ "$status" -ne 0 ]; then
+            echo "::group::All compiler errors in developer mode (de-duplicated)"
+            grep -E "error:" build/xcodebuild-developer.log | sort -u
+            echo "::endgroup::"
+            exit "$status"
+          fi
+
+      - name: Upload build logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: xcodebuild-log
-          path: ios/build/xcodebuild.log
+          path: ios/build/xcodebuild*.log
           retention-days: 7
 
   lint:
@@ -195,11 +214,10 @@ jobs:
             CURRENT_PROJECT_VERSION=${{ github.run_number }} \
             -quiet
 
-      - name: Package IPAs
+      - name: Package IPA
         run: |
           APP=build/DerivedData/Build/Products/Release-iphoneos/WidgetStudio.app
           bash scripts/build-ipa.sh "$APP" build/ipa/WidgetStudio.ipa
-          bash scripts/build-ipa.sh "$APP" build/ipa/WidgetStudio-noHealthKit.ipa --no-healthkit
 
       - uses: actions/upload-artifact@v4
         with:
