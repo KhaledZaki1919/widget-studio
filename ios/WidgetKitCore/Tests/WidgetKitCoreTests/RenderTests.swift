@@ -103,6 +103,13 @@ struct BidiTextTests {
         #expect(BidiText.isolatingNumbers("الساعة 12:30، ثم") == "الساعة \(lri)12:30\(pdi)، ثم")
     }
 
+    @Test func latinWordsAndNumbersStayTogether() {
+        #expect(BidiText.isolatingNumbers("رحلة XY 123") == "رحلة \(lri)XY 123\(pdi)")
+        #expect(BidiText.isolatingNumbers("من CAI إلى DXB") == "من \(lri)CAI\(pdi) إلى \(lri)DXB\(pdi)")
+        // Numbers alone don't merge across spaces or slashes.
+        #expect(BidiText.isolatingNumbers("ع 33° ص 21°") == "ع \(lri)33°\(pdi) ص \(lri)21°\(pdi)")
+    }
+
     @Test func trailingSeparatorsStayOutside() {
         #expect(BidiText.isolatingNumbers("أيام 5, 6") == "أيام \(lri)5\(pdi), \(lri)6\(pdi)")
     }

@@ -89,6 +89,9 @@ struct LibraryView: View {
                     .foregroundStyle(.primary)
                     .lineLimit(1)
             }
+            // The preview ignores touches (its buttons must not fire here), so the whole card
+            // needs its own hit area.
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("ax.library.template.\(spec.id)")
