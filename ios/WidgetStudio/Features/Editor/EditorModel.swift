@@ -74,6 +74,12 @@ final class EditorModel {
         set { design.theme = SpecTheme(rawValue: newValue) }
     }
 
+    /// "default" (the Settings clock) or a `ClockFormat` for this design (ADR-017).
+    var clockChoice: String {
+        get { design.clockFormat?.rawValue ?? "default" }
+        set { design.clockFormat = ClockFormat(rawValue: newValue) }
+    }
+
     /// A color override, shown with the theme's value when not overridden.
     func color(_ token: String) -> Binding<Color> {
         Binding(

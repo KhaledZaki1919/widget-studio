@@ -18,7 +18,8 @@ struct SpecPreview: View {
         TimelineView(.everyMinute) { timeline in
             SpecView(spec: spec, context: Self.context(
                 date: timeline.date, language: language, theme: theme,
-                data: sample ? .sample(now: timeline.date) : live.snapshot(now: timeline.date)
+                data: sample ? .sample(now: timeline.date) : live.snapshot(now: timeline.date),
+                uses24Hour: sample ? nil : live.settings.clockFormat.uses24Hour()
             ))
         }
         .aspectRatio(canvas.width / canvas.height, contentMode: .fit)
@@ -31,9 +32,10 @@ struct SpecPreview: View {
         .accessibilityAddTraits(.isImage)
     }
 
-    static func context(date: Date, language: String, theme: SpecTheme?, data: DataSnapshot) -> RenderContext {
+    static func context(date: Date, language: String, theme: SpecTheme?, data: DataSnapshot, uses24Hour: Bool?) -> RenderContext {
         var context = RenderContext(date: date, language: language, data: data)
         context.theme = theme
+        context.uses24Hour = uses24Hour
         return context
     }
 }

@@ -51,7 +51,7 @@ public struct SpecView: View {
         // Absolute canvas coordinates, whatever the host's direction.
         .environment(\.layoutDirection, .leftToRight)
         // Live texts (time, relative, timer) format in the spec's language with Latin digits.
-        .environment(\.locale, Locale(identifier: context.localeIdentifier))
+        .environment(\.locale, context.locale)
         .environment(\.timeZone, context.timeZone)
         .environment(\.colorScheme, spec.theme == .dark ? .dark : .light)
     }

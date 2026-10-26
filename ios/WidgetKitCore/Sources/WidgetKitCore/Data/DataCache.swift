@@ -56,6 +56,8 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public var prayerMethod: String = PrayerCalculator.defaultMethod
     /// Daily steps that count for the streak and the month grid.
     public var stepGoal: Int = 8000
+    /// Default clock for designs without their own choice (ADR-017).
+    public var clockFormat: ClockFormat = .device
 
     public init() {}
 
@@ -74,6 +76,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         temperatureUnit = (try? container.decode(TemperatureUnit.self, forKey: .temperatureUnit)) ?? .celsius
         prayerMethod = (try? container.decode(String.self, forKey: .prayerMethod)) ?? PrayerCalculator.defaultMethod
         stepGoal = (try? container.decode(Int.self, forKey: .stepGoal)) ?? 8000
+        clockFormat = (try? container.decode(ClockFormat.self, forKey: .clockFormat)) ?? .device
     }
 }
 

@@ -13,7 +13,8 @@ struct DesignPreview: View {
         let canvas = design.spec.family.canvas
         TimelineView(.everyMinute) { timeline in
             SpecView(spec: design.spec, context: design.renderContext(
-                date: timeline.date, language: language, data: live.snapshot(now: timeline.date), image: image
+                date: timeline.date, language: language, data: live.snapshot(now: timeline.date), image: image,
+                defaultClock: live.settings.clockFormat
             ))
         }
         .aspectRatio(canvas.width / canvas.height, contentMode: .fit)

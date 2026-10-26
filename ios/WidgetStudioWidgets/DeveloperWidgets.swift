@@ -339,8 +339,10 @@ struct PickWidgetView: View {
     private var context: RenderContext {
         let language = RenderContext.preferredLanguage
         let data = LiveData.snapshot(entry.inputs, now: entry.date)
-        var context = entry.design?.renderContext(date: entry.date, language: language, data: data, image: entry.image)
+        var context = entry.design?.renderContext(date: entry.date, language: language, data: data, image: entry.image,
+                                                 defaultClock: entry.inputs.settings.clockFormat)
             ?? RenderContext(date: entry.date, language: language, data: data)
+        if entry.design == nil { context.uses24Hour = entry.inputs.settings.clockFormat.uses24Hour() }
         switch entry.appearance {
         case .template: break
         case .system: context.theme = colorScheme == .dark ? .dark : .light

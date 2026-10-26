@@ -1293,6 +1293,40 @@
         }
       }
     },
+    "editor.clock": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الساعة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clock"
+          }
+        }
+      }
+    },
+    "editor.clock.default": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حسب الإعدادات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As in Settings"
+          }
+        }
+      }
+    },
     "editor.color.accent": {
       "extractionState": "manual",
       "localizations": {
@@ -2105,6 +2139,91 @@
           "stringUnit": {
             "state": "translated",
             "value": "My widgets"
+          }
+        }
+      }
+    },
+    "settings.clock": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تنسيق الساعة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clock format"
+          }
+        }
+      }
+    },
+    "settings.clock.device": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حسب الجهاز"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Same as device"
+          }
+        }
+      }
+    },
+    "settings.clock.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الافتراضي لكل التصاميم؛ يمكن تغييره لكل تصميم في المحرّر. في هذه النسخة يتبع الودجت إعداد الجهاز."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The default for all designs; each design can change it in the editor. In this version the widget follows the device setting."
+          }
+        }
+      }
+    },
+    "settings.clock.h12": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "١٢ ساعة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "12-hour"
+          }
+        }
+      }
+    },
+    "settings.clock.h24": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "٢٤ ساعة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "24-hour"
           }
         }
       }

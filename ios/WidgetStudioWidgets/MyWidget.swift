@@ -127,7 +127,8 @@ struct MyWidgetView: View {
             } else {
                 SpecWidgetContent(spec: design.spec, context: design.renderContext(
                     date: entry.date, language: RenderContext.preferredLanguage,
-                    data: LiveData.snapshot(entry.inputs, now: entry.date), image: image
+                    data: LiveData.snapshot(entry.inputs, now: entry.date), image: image,
+                    defaultClock: entry.inputs.settings.clockFormat
                 ))
                 .environment(\.specActionButton, WidgetActionButtons.make)
             }

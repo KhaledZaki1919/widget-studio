@@ -42,7 +42,7 @@ public struct BindingResolver {
     /// Text for a value; times show in the render's time zone (prayer times, stopwatch start).
     public func display(_ value: Value) -> String {
         if case .date(let date) = value {
-            return FormatterCache.date("HH:mm", locale: "en_US_POSIX", zone: context.timeZone).string(from: date)
+            return FormatterCache.date(context.timePattern, locale: "en_US_POSIX", zone: context.timeZone).string(from: date)
         }
         return value.display
     }
@@ -87,7 +87,7 @@ public struct BindingResolver {
             }
         case .timezoneTime(let key):
             guard let zone = fieldValue(key).flatMap(TimeZone.init(identifier:)) else { return nil }
-            return .text(format("HH:mm", zone: zone))
+            return .text(format(context.timePattern, zone: zone))
         case .daysUntil(let key):
             guard let target = fieldValue(key).flatMap(FieldValues.date) else { return nil }
             var calendar = Calendar(identifier: .gregorian)
@@ -126,7 +126,8 @@ public struct BindingResolver {
         let data = context.data
         switch name {
         case "time.h": return .text(format("h"))
-        case "time.hh": return .text(format("HH"))
+        // The big clock hour follows the 12/24-hour choice (M4 feedback); 12-hour has no leading zero.
+        case "time.hh": return .text(format(context.uses24Hour == false ? "h" : "HH"))
         case "time.mm": return .text(format("mm"))
         case "time.ampm": return .text(localizedFormat("a"))
         case "date.d": return .text(format("d"))

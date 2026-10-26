@@ -127,6 +127,13 @@ struct EditorView: View {
                 Text("detail.dark").tag("dark")
             }
             .accessibilityIdentifier("ax.editor.theme")
+            Picker("editor.clock", selection: $model.clockChoice) {
+                Text("editor.clock.default").tag("default")
+                Text("settings.clock.device").tag(ClockFormat.device.rawValue)
+                Text("settings.clock.h12").tag(ClockFormat.h12.rawValue)
+                Text("settings.clock.h24").tag(ClockFormat.h24.rawValue)
+            }
+            .accessibilityIdentifier("ax.editor.clock")
             colorRow("editor.color.accent", token: "accent")
             colorRow("editor.color.bg", token: "bg")
             colorRow("editor.color.fg", token: "fg")

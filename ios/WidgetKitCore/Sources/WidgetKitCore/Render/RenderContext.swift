@@ -142,6 +142,9 @@ public struct RenderContext {
     /// Renders live texts (relative, timer) as fixed text measured from `date`, because SwiftUI's
     /// live styles measure from the real clock. For snapshot tests only.
     public var freezesLiveText = false
+    /// 24-hour clock (true) or 12-hour (false), resolved from `ClockFormat` by the app and the
+    /// widget. nil (tests, snapshots) keeps "HH" bindings and the locale's own live time.
+    public var uses24Hour: Bool?
     /// Overrides the spec's theme (detail previews, the widget's Appearance option); color
     /// tokens resolve for this theme (ADR-011).
     public var theme: SpecTheme?
@@ -163,6 +166,17 @@ public struct RenderContext {
 
     /// Words in the render language with Latin digits, so numbers suit the `dot` font.
     public var localeIdentifier: String { isArabic ? "ar_EG@numbers=latn" : "en_US" }
+
+    /// The render locale with the clock's hour cycle, for live `.time` text.
+    public var locale: Locale {
+        guard let uses24Hour else { return Locale(identifier: localeIdentifier) }
+        var components = Locale.Components(locale: Locale(identifier: localeIdentifier))
+        components.hourCycle = uses24Hour ? .zeroToTwentyThree : .oneToTwelve
+        return Locale(components: components)
+    }
+
+    /// "HH:mm" or "h:mm" (times of prayers, world clocks, stopwatch start).
+    public var timePattern: String { uses24Hour == false ? "h:mm" : "HH:mm" }
 
     /// The app's language, as the system picked it from the app's localizations.
     public static var preferredLanguage: String {

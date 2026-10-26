@@ -21,6 +21,16 @@ struct SettingsView: View {
                         .accessibilityIdentifier("ax.settings.storeMode")
                 }
             }
+            Section {
+                Picker("settings.clock", selection: binding(\.clockFormat)) {
+                    Text("settings.clock.device").tag(ClockFormat.device)
+                    Text("settings.clock.h12").tag(ClockFormat.h12)
+                    Text("settings.clock.h24").tag(ClockFormat.h24)
+                }
+                .accessibilityIdentifier("ax.settings.clock")
+            } footer: {
+                Text("settings.clock.footer")
+            }
             Section("settings.weather") {
                 Picker("settings.units", selection: binding(\.temperatureUnit)) {
                     Text("settings.units.celsius").tag(AppSettings.TemperatureUnit.celsius)

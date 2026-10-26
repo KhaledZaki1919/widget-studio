@@ -219,12 +219,19 @@ struct TemplateWidgetView: View {
         } else if let gap = entry.gap, !entry.sample {
             DataGapView(gap: gap, title: entry.spec?.name.resolved(language: RenderContext.preferredLanguage) ?? entry.templateID)
         } else {
-            SpecWidgetContent(spec: entry.spec, context: RenderContext(
-                date: entry.date, language: RenderContext.preferredLanguage,
-                data: entry.sample ? .sample(now: entry.date) : LiveData.snapshot(entry.inputs, now: entry.date)
-            ))
+            SpecWidgetContent(spec: entry.spec, context: context)
             .environment(\.specActionButton, WidgetActionButtons.make)
         }
+    }
+
+    /// Real data (or the gallery sample) with the 12/24-hour clock from the settings (ADR-017).
+    private var context: RenderContext {
+        var context = RenderContext(
+            date: entry.date, language: RenderContext.preferredLanguage,
+            data: entry.sample ? .sample(now: entry.date) : LiveData.snapshot(entry.inputs, now: entry.date)
+        )
+        context.uses24Hour = entry.inputs.settings.clockFormat.uses24Hour()
+        return context
     }
 }
 

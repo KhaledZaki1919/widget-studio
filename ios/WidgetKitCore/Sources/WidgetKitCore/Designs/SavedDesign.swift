@@ -17,6 +17,8 @@ public struct SavedDesign: Codable, Sendable, Equatable, Identifiable {
     public var colors: [String: String]
     /// File name of the processed photo in `SharedStore`'s images folder.
     public var imageFile: String?
+    /// 12/24-hour clock for this design; nil = the Settings default (ADR-017).
+    public var clockFormat: ClockFormat?
     public var created: Date
     public var updated: Date
 
@@ -48,10 +50,13 @@ public struct SavedDesign: Codable, Sendable, Equatable, Identifiable {
     public var effectiveTheme: SpecTheme { theme ?? spec.theme }
 
     /// Everything a renderer needs for this design.
-    public func renderContext(date: Date = .now, language: String, data: DataSnapshot, image: CGImage? = nil) -> RenderContext {
+    /// `defaultClock` is the Settings default used when the design has no clock choice.
+    public func renderContext(date: Date = .now, language: String, data: DataSnapshot, image: CGImage? = nil,
+                              defaultClock: ClockFormat = .device) -> RenderContext {
         var context = RenderContext(date: date, language: language, fieldValues: fieldValues, data: data, userImage: image)
         context.theme = theme
         context.tokenOverrides = colors
+        context.uses24Hour = (clockFormat ?? defaultClock).uses24Hour()
         return context
     }
 
