@@ -228,13 +228,13 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "البيانات المعروضة تجريبية؛ البيانات الحقيقية (الطقس، الصحة، الصلاة) تأتي في M4."
+            "value": "المعاينة ببياناتك الحقيقية؛ ما ينقصه إذن (الموقع، الصحة) يظهر «--». فعّله من الإعدادات."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The data shown is sample data; real weather, health and prayer data come in M4."
+            "value": "Previews use your real data; anything that needs permission (location, Health) shows “--”. Turn it on in Settings."
           }
         }
       }
@@ -320,6 +320,108 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bundle ID"
+          }
+        }
+      }
+    },
+    "diag.data": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مصادر البيانات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data sources"
+          }
+        }
+      }
+    },
+    "diag.data.app": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التطبيق"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App"
+          }
+        }
+      }
+    },
+    "diag.data.footer.shared": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التطبيق والودجت يتشاركان البيانات عبر App Group."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The app and the widget share data through the App Group."
+          }
+        }
+      }
+    },
+    "diag.data.footer.storeMode": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بدون App Group لا يرى التطبيق حالة الودجت. أضف ودجت «فحص Widget Studio» بالمقاس الكبير لترى مصادر الودجت وآخر تحديث لكل منها."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Without an App Group the app can't see the widget's status. Add the large “Widget Studio check” widget to see each widget source and its last update."
+          }
+        }
+      }
+    },
+    "diag.data.refresh": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تحديث البيانات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh data"
+          }
+        }
+      }
+    },
+    "diag.data.widget": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الودجت"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widget"
           }
         }
       }
@@ -1435,13 +1537,13 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "المعاينة بالحجم الحقيقي وببيانات تجريبية؛ البيانات الحقيقية تأتي في M4."
+            "value": "معاينة بالحجم الحقيقي ببياناتك الحقيقية."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Real-size preview with sample data; real data comes in M4."
+            "value": "Real-size preview with your real data."
           }
         }
       }
@@ -1595,6 +1697,159 @@
           "stringUnit": {
             "state": "translated",
             "value": "New design"
+          }
+        }
+      }
+    },
+    "guide.examples": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أفكار"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ideas"
+          }
+        }
+      }
+    },
+    "guide.examples.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الكشاف، الواي فاي، البلوتوث، الوضع الداكن، وضع الطيران، كتم الصوت، تشغيل قائمة موسيقى، إرسال رسالة جاهزة."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Torch, Wi-Fi, Bluetooth, Dark Mode, Airplane Mode, Silent mode, play a playlist, send a ready message."
+          }
+        }
+      }
+    },
+    "guide.intro": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أزرار الودجت لا تستطيع تشغيل الكشاف أو الواي فاي مباشرة على iOS. بدلًا من ذلك، يفتح الزر التطبيق الذي يشغّل فورًا اختصارًا من تطبيق «الاختصارات» بالاسم الذي كتبته في القالب."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS widgets can't switch the torch or Wi-Fi directly. Instead, a tile opens the app, which immediately runs a Shortcut from the Shortcuts app with the name you set in the template."
+          }
+        }
+      }
+    },
+    "guide.step1": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "افتح تطبيق «الاختصارات» واضغط +."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the Shortcuts app and tap +."
+          }
+        }
+      }
+    },
+    "guide.step2": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أضف إجراءً، مثل «ضبط الكشاف» أو «ضبط الواي فاي»."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add an action, such as “Set Flashlight” or “Set Wi-Fi”."
+          }
+        }
+      }
+    },
+    "guide.step3": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سمِّ الاختصار، مثلًا «الكشاف»."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name the Shortcut, for example “Torch”."
+          }
+        }
+      }
+    },
+    "guide.step4": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "في محرّر Widget Studio اكتب الاسم نفسه تمامًا في حقل «اختصار الزر»."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In the Widget Studio editor, type exactly the same name in the tile's Shortcut field."
+          }
+        }
+      }
+    },
+    "guide.step5": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط الزر على الشاشة الرئيسية: يفتح التطبيق لحظة ثم يعمل الاختصار."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the tile on the Home Screen: the app opens briefly and the Shortcut runs."
+          }
+        }
+      }
+    },
+    "guide.steps": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الخطوات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Steps"
           }
         }
       }
@@ -1854,6 +2109,465 @@
         }
       }
     },
+    "settings.health": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الصحة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Health"
+          }
+        }
+      }
+    },
+    "settings.health.allow": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "السماح بقراءة الخطوات والنوم"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow reading steps and sleep"
+          }
+        }
+      }
+    },
+    "settings.healthAccess": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "صحتي (الخطوات والنوم)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Health (steps and sleep)"
+          }
+        }
+      }
+    },
+    "settings.location": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الموقع"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Location"
+          }
+        }
+      }
+    },
+    "settings.location.allow": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "السماح بالموقع"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow location"
+          }
+        }
+      }
+    },
+    "settings.openSystemSettings": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فتح إعدادات النظام"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open system Settings"
+          }
+        }
+      }
+    },
+    "settings.permissions": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الأذونات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permissions"
+          }
+        }
+      }
+    },
+    "settings.permissions.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الودجت يستخدم إذن الموقع الخاص بالتطبيق. لا تُرسل أي بيانات صحية خارج جهازك."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The widget uses the app's location permission. No health data leaves your device."
+          }
+        }
+      }
+    },
+    "settings.prayer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الصلاة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prayer"
+          }
+        }
+      }
+    },
+    "settings.prayer.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المواقيت والقبلة تُحسب على جهازك من موقعك، دون إنترنت."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Times and Qibla are calculated on your device from your location, offline."
+          }
+        }
+      }
+    },
+    "settings.prayer.method": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "طريقة الحساب"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calculation method"
+          }
+        }
+      }
+    },
+    "settings.shortcuts.guide": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "دليل أزرار الاختصارات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortcut tiles guide"
+          }
+        }
+      }
+    },
+    "settings.status.allowed": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مسموح"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allowed"
+          }
+        }
+      }
+    },
+    "settings.status.denied": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مرفوض"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Denied"
+          }
+        }
+      }
+    },
+    "settings.status.error": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "خطأ (الجهاز مقفل؟)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Error (device locked?)"
+          }
+        }
+      }
+    },
+    "settings.status.noData": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد بيانات أو الإذن مرفوض"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No data, or access denied"
+          }
+        }
+      }
+    },
+    "settings.status.notAsked": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يُطلب بعد"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not asked yet"
+          }
+        }
+      }
+    },
+    "settings.status.reading": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تتم القراءة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading"
+          }
+        }
+      }
+    },
+    "settings.status.unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "غير متاح على هذا الجهاز"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not available on this device"
+          }
+        }
+      }
+    },
+    "settings.steps.goal": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "هدف الخطوات اليومي"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daily step goal"
+          }
+        }
+      }
+    },
+    "settings.storeMode": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "في هذه النسخة لا يرى الودجت إعدادات التطبيق (بدون App Group)، فيستخدم الافتراضي: °م، طريقة الهيئة المصرية، ٨٠٠٠ خطوة. ستنتقل إليه إعداداتك في نسخة App Store."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In this version the widget can't see the app's settings (no App Group), so it uses the defaults: °C, Egyptian method, 8,000 steps. Your settings reach it in the App Store version."
+          }
+        }
+      }
+    },
+    "settings.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الإعدادات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        }
+      }
+    },
+    "settings.units": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "وحدة الحرارة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Temperature unit"
+          }
+        }
+      }
+    },
+    "settings.units.celsius": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مئوية (°م)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Celsius (°C)"
+          }
+        }
+      }
+    },
+    "settings.units.fahrenheit": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فهرنهايت (°ف)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fahrenheit (°F)"
+          }
+        }
+      }
+    },
+    "settings.version": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الإصدار"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version"
+          }
+        }
+      }
+    },
+    "settings.weather": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الطقس"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weather"
+          }
+        }
+      }
+    },
     "specs.footer": {
       "extractionState": "manual",
       "localizations": {
@@ -1952,6 +2666,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "My widgets"
+          }
+        }
+      }
+    },
+    "tab.settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الإعدادات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
           }
         }
       }

@@ -80,6 +80,6 @@ final class DesignsModel {
 @MainActor
 @Observable
 final class AppState {
-    enum Tab: Hashable { case library, myWidgets }
+    enum Tab: Hashable { case library, myWidgets, settings }
     var tab: Tab = .library
 }

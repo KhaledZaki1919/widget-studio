@@ -23,7 +23,7 @@ struct TestSpecsView: View {
                 Section {
                     switch entry.result {
                     case .success(let spec):
-                        SpecPreview(spec: spec, language: language)
+                        SpecPreview(spec: spec, language: language, sample: true)
                             .frame(maxWidth: spec.family == .small ? 200 : .infinity)
                             .frame(maxWidth: .infinity)
                             .accessibilityIdentifier("ax.specs.preview.\(spec.id)")

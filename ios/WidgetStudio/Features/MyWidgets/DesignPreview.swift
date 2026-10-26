@@ -4,6 +4,7 @@ import WidgetKitCore
 /// A saved (or edited) design rendered like its widget: the design's field values, theme,
 /// colors and photo, at widget proportions, ticking every minute. Taps pass through.
 struct DesignPreview: View {
+    @Environment(LiveDataModel.self) private var live
     let design: SavedDesign
     let image: CGImage?
     let language: String
@@ -12,7 +13,7 @@ struct DesignPreview: View {
         let canvas = design.spec.family.canvas
         TimelineView(.everyMinute) { timeline in
             SpecView(spec: design.spec, context: design.renderContext(
-                date: timeline.date, language: language, data: .sample(now: timeline.date), image: image
+                date: timeline.date, language: language, data: live.snapshot(now: timeline.date), image: image
             ))
         }
         .aspectRatio(canvas.width / canvas.height, contentMode: .fit)

@@ -5,6 +5,7 @@ import WidgetKitCore
 /// capabilities work on this sideloaded install (ADR-005), with a shareable report.
 struct DiagnosticsView: View {
     @State private var model = DiagnosticsModel()
+    @Environment(LiveDataModel.self) private var live
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -17,6 +18,7 @@ struct DiagnosticsView: View {
             } footer: {
                 Text("diag.testSpecs.footer")
             }
+            dataSection
             buildSection
             ForEach(model.signings, id: \.name) { signing in
                 signingSection(signing)
@@ -31,7 +33,7 @@ struct DiagnosticsView: View {
             Section {
                 Button("diag.refresh", action: model.refresh)
                     .accessibilityIdentifier("ax.diag.refresh")
-                ShareLink(item: model.reportText) {
+                ShareLink(item: model.reportText + "\n\n" + dataReport) {
                     Label("diag.share", systemImage: "square.and.arrow.up")
                 }
                 .accessibilityIdentifier("ax.diag.share")
@@ -56,6 +58,58 @@ struct DiagnosticsView: View {
             valueRow("diag.profileGroups", model.profile.map { $0.appGroups.isEmpty ? "—" : $0.appGroups.joined(separator: "\n") } ?? "—")
             valueRow("diag.entitlements", model.profile?.entitlementKeys.joined(separator: "\n") ?? "—")
         }
+    }
+
+    /// Each data source in the app and in the widget, with the last update (M4, ADR-016). The
+    /// widget's status is only readable here with an App Group; otherwise the large check widget
+    /// shows it.
+    private var dataSection: some View {
+        let widget = live.widgetStatus
+        return Section {
+            ForEach(SourceStatus.Source.allCases, id: \.self) { source in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(verbatim: source.rawValue).font(.subheadline.weight(.medium))
+                    sourceLine(label: "diag.data.app", entry: live.status.entries[source])
+                    if let widget {
+                        sourceLine(label: "diag.data.widget", entry: widget.entries[source])
+                    }
+                }
+                .accessibilityIdentifier("ax.diag.data.\(source.rawValue)")
+            }
+            Button("diag.data.refresh") { Task { await live.refresh() } }
+                .accessibilityIdentifier("ax.diag.data.refresh")
+        } header: {
+            Text("diag.data")
+        } footer: {
+            Text(widget == nil ? "diag.data.footer.storeMode" : "diag.data.footer.shared")
+        }
+    }
+
+    private func sourceLine(label: LocalizedStringKey, entry: SourceStatus.Entry?) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: entry == nil ? "circle.dotted" : entry?.ok == true ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .foregroundStyle(entry == nil ? .gray : entry?.ok == true ? .green : .red)
+            Text(label)
+            Spacer(minLength: 4)
+            Text(verbatim: [entry?.detail, entry?.updated.map { $0.formatted(date: .omitted, time: .shortened) }]
+                .compactMap { $0 }.joined(separator: " · "))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .font(.footnote)
+    }
+
+    /// Plain English data-source lines for the shared report.
+    private var dataReport: String {
+        func line(_ entry: SourceStatus.Entry?) -> String {
+            guard let entry else { return "not checked" }
+            return "\(entry.ok ? "OK" : "NO") \(entry.detail)" + (entry.updated.map { " (updated \($0.formatted(.iso8601)))" } ?? "")
+        }
+        let widget = live.widgetStatus
+        return (["[Data sources]"] + SourceStatus.Source.allCases.map { source in
+            "\(source.rawValue): app \(line(live.status.entries[source]))"
+                + (widget.map { "; widget \(line($0.entries[source]))" } ?? "; widget: see the large check widget (no App Group)")
+        }).joined(separator: "\n")
     }
 
     /// What the signing store gave one bundle: signed identity and entitlements, and the profile.

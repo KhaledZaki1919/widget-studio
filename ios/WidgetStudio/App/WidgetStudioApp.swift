@@ -4,6 +4,9 @@ import SwiftUI
 struct WidgetStudioApp: App {
     @State private var designs = DesignsModel()
     @State private var appState = AppState()
+    /// Real data for previews and Settings (M4, ADR-016).
+    @State private var live = LiveDataModel()
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         // UI tests launch with -uiTesting and start without saved designs.
@@ -19,6 +22,11 @@ struct WidgetStudioApp: App {
             RootView()
                 .environment(designs)
                 .environment(appState)
+                .environment(live)
+                .task { await live.refresh() }
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .active { Task { await live.refresh() } }
+                }
         }
     }
 }

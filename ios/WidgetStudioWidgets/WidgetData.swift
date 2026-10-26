@@ -75,26 +75,9 @@ enum WidgetData {
             }
             return (nil, .init(ok: false, detail: authorized ? "no fix" : "not authorized for widget", updated: nil, checked: now))
         }
-        var location = StoredLocation(latitude: fix.coordinate.latitude, longitude: fix.coordinate.longitude,
-                                      altitude: fix.verticalAccuracy >= 0 ? fix.altitude : nil, city: cached?.city, updated: now)
-        let moved = cached.map { $0.distance(toLatitude: location.latitude, longitude: location.longitude) > 5 } ?? true
-        if moved || location.city == nil {
-            location.city = await cityName(for: fix) ?? (moved ? nil : cached?.city)
-        }
+        let location = await PlaceNames.store(fix, previous: cached, now: now)
         try? cache.write(location, StoredLocation.cacheName)
         return (location, .init(ok: true, detail: "fix ±\(Int(fix.horizontalAccuracy)) m", updated: now, checked: now))
-    }
-
-    /// The place name in Arabic and English (two reverse-geocoding lookups; failures are fine).
-    static func cityName(for location: CLLocation) async -> LocalizedText? {
-        func name(_ locale: String) async -> String? {
-            let placemarks = try? await CLGeocoder().reverseGeocodeLocation(location, preferredLocale: Locale(identifier: locale))
-            return placemarks?.first.flatMap { $0.locality ?? $0.subAdministrativeArea ?? $0.administrativeArea }
-        }
-        let english = await name("en_US")
-        let arabic = await name("ar_EG")
-        guard let any = english ?? arabic else { return nil }
-        return .localized(en: english ?? any, ar: arabic ?? any)
     }
 
     static func weather(at location: StoredLocation, unit: AppSettings.TemperatureUnit, cache: DataCache,
