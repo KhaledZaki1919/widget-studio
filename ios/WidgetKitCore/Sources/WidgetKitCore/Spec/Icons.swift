@@ -33,6 +33,7 @@ public enum Icons {
         "app.fill": "apps", "square.grid.2x2.fill": "grid_view", "bolt.horizontal.fill": "electric_bolt",
         // Counters and actions
         "plus": "add", "minus": "remove", "plus.circle.fill": "add_circle", "arrow.counterclockwise": "replay",
+        "arrow.triangle.2.circlepath": "sync",
         "arrow.up": "arrow_upward", "arrow.down": "arrow_downward",
         "checkmark": "check", "checkmark.circle.fill": "check_circle", "star.fill": "star", "circle.fill": "circle",
         "circle": "radio_button_unchecked", "hand.tap.fill": "touch_app", "sparkles": "auto_awesome",
