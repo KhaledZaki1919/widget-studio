@@ -48,6 +48,10 @@ struct RootView: View {
             .tabItem { Label("tab.settings", systemImage: "gearshape") }
             .tag(AppState.Tab.settings)
         }
+        .sheet(isPresented: $appState.isCreatingFromImage) {
+            CreateFromImageView()
+                .interactiveDismissDisabled()
+        }
         .sheet(isPresented: $showQibla) {
             NavigationStack {
                 QiblaView()

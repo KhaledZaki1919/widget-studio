@@ -19,9 +19,11 @@ final class EditorModel {
     var photoItem: PhotosPickerItem?
     var previewLanguage = RenderContext.preferredLanguage
 
-    init(design: SavedDesign, isNew: Bool) {
+    /// `photo`: an already processed photo (the AI flow's "Build around my photo").
+    init(design: SavedDesign, isNew: Bool, photo: CGImage? = nil) {
         self.design = design
         self.isNew = isNew
+        newPhoto = photo
     }
 
     var issues: [SpecIssue] { DesignEditing.validate(design) }

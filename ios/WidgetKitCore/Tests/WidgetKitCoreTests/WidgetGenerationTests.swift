@@ -141,6 +141,14 @@ struct WidgetGenerationTests {
         #expect(DesignEditing.validate(design).isEmpty)
     }
 
+    /// The canned replies the UI test uses must pass the same parser.
+    @Test func uiTestStubRepliesAreValid() throws {
+        let recreate = try AIWidgetParser.parse(UITestingAIProvider.recreateSpec, options: GenerationOptions(), id: "gen.stub")
+        #expect(recreate.spec.name.resolved(language: "en") == UITestingAIProvider.widgetName)
+        let photo = try AIWidgetParser.parse(UITestingAIProvider.photoSpec, options: GenerationOptions(mode: .photo), id: "gen.stub")
+        #expect(photo.spec.layers.count == 2)
+    }
+
     @Test func requestedSizeWins() throws {
         let (spec, _) = try AIWidgetParser.parse(try reply("spec-recreate"), options: GenerationOptions(size: .medium), id: "gen.test")
         #expect(spec.family == .medium)

@@ -5,6 +5,7 @@ import WidgetKitCore
 /// Group the home screen can't show them yet (ADR-014), which the banner explains.
 struct MyWidgetsView: View {
     @Environment(DesignsModel.self) private var designs
+    @Environment(AppState.self) private var appState
     @State private var editing: SavedDesign?
     @State private var renaming: SavedDesign?
     @State private var newName = ""
@@ -30,6 +31,14 @@ struct MyWidgetsView: View {
                     .padding(.vertical, 8)
                     .accessibilityIdentifier("ax.mywidgets.empty")
                 }
+            }
+            Section {
+                Button {
+                    appState.isCreatingFromImage = true
+                } label: {
+                    Label("create.button", systemImage: "sparkles")
+                }
+                .accessibilityIdentifier("ax.mywidgets.create")
             }
             ForEach(designs.designs) { design in
                 row(design)

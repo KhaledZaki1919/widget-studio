@@ -11,8 +11,12 @@ struct EditorView: View {
     @State private var model: EditorModel
     @State private var saveError: String?
 
-    init(design: SavedDesign, isNew: Bool) {
-        _model = State(initialValue: EditorModel(design: design, isNew: isNew))
+    /// Shown for AI results (M5): a new design from the same image and options.
+    private let onRegenerate: (() -> Void)?
+
+    init(design: SavedDesign, isNew: Bool, photo: CGImage? = nil, onRegenerate: (() -> Void)? = nil) {
+        _model = State(initialValue: EditorModel(design: design, isNew: isNew, photo: photo))
+        self.onRegenerate = onRegenerate
     }
 
     var body: some View {
@@ -20,6 +24,16 @@ struct EditorView: View {
         NavigationStack {
             Form {
                 previewSection
+                if let onRegenerate {
+                    Section {
+                        Button(action: onRegenerate) {
+                            Label("create.regenerate", systemImage: "arrow.clockwise")
+                        }
+                        .accessibilityIdentifier("ax.editor.regenerate")
+                    } footer: {
+                        Text("create.regenerate.footer")
+                    }
+                }
                 Section("editor.name") {
                     TextField("editor.name", text: $model.design.name)
                         .accessibilityIdentifier("ax.editor.name")

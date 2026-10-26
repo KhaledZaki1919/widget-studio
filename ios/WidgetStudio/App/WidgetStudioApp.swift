@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKitCore
 
 @main
 struct WidgetStudioApp: App {
@@ -15,7 +16,13 @@ struct WidgetStudioApp: App {
         if ProcessInfo.processInfo.arguments.contains("-uiTesting") {
             let model = DesignsModel()
             model.deleteAll()
+            // AI starts from defaults, so the consent sheet shows every run.
+            AISettings().save()
             _designs = State(initialValue: model)
+        }
+        // UI tests of Create from image: canned replies, no key, no network.
+        if ProcessInfo.processInfo.arguments.contains("-uiTestingStubAI") {
+            AIService.overrideProvider = UITestingAIProvider()
         }
     }
 

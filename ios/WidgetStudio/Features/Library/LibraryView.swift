@@ -6,6 +6,7 @@ import WidgetKitCore
 struct LibraryView: View {
     /// Long-pressing the version opens Diagnostics (brief §7.7).
     var onLongPressVersion: () -> Void = {}
+    @Environment(AppState.self) private var appState
     @State private var category: SpecCategory?
     private let templates = TemplateLibrary.all()
     private let language = RenderContext.preferredLanguage
@@ -13,6 +14,7 @@ struct LibraryView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                createCard
                 chips
                 ForEach(visibleCategories, id: \.self) { category in
                     section(category)
@@ -29,6 +31,34 @@ struct LibraryView: View {
             .padding(.vertical, 12)
         }
         .accessibilityIdentifier("ax.library.list")
+    }
+
+    /// Create from image (M5): an image becomes a widget with the user's own AI key.
+    private var createCard: some View {
+        Button {
+            appState.isCreatingFromImage = true
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "sparkles")
+                    .font(.title2)
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 44, height: 44)
+                    .background(Circle().fill(Color.accentColor.opacity(0.15)))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("create.button").font(.headline).foregroundStyle(.primary)
+                    Text("create.button.subtitle").font(.footnote).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.forward").foregroundStyle(.tertiary)
+            }
+            .padding(14)
+            .background(RoundedRectangle(cornerRadius: 16).fill(Color(uiColor: .secondarySystemBackground)))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 16)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("ax.library.create")
     }
 
     private var visibleCategories: [SpecCategory] {

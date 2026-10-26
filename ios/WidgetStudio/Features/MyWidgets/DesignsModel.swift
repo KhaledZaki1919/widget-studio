@@ -82,4 +82,6 @@ final class DesignsModel {
 final class AppState {
     enum Tab: Hashable { case library, myWidgets, settings }
     var tab: Tab = .library
+    /// Create from image (M5), opened from the Library and My widgets.
+    var isCreatingFromImage = false
 }

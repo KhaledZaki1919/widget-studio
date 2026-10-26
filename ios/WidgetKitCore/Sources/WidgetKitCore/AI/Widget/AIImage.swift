@@ -36,6 +36,18 @@ public enum AIImage {
         return encode(image)
     }
 
+    /// The picked file as an upright image (orientation applied), longest side ≤ `maxSide`;
+    /// used for previews and for the photo the design keeps.
+    public static func upright(data: Data, maxSide: Int = 2048) -> CGImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxSide,
+        ]
+        return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
+    }
+
     /// From an already decoded, upright image.
     public static func prepare(image: CGImage, maxSide: Int = maxSide) -> PreparedImage? {
         let longest = max(image.width, image.height)
