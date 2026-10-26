@@ -76,16 +76,24 @@ public enum OpenMeteo {
 
     struct Response: Decodable {
         struct Current: Decodable {
-            let temperature_2m: Double
-            let weather_code: Int
-            let is_day: Int?
+            let temperature: Double
+            let weatherCode: Int
+            let isDay: Int?
+
+            enum CodingKeys: String, CodingKey {
+                case temperature = "temperature_2m", weatherCode = "weather_code", isDay = "is_day"
+            }
         }
 
         struct Daily: Decodable {
             let time: [String]
-            let weather_code: [Int]
-            let temperature_2m_max: [Double?]
-            let temperature_2m_min: [Double?]
+            let weatherCode: [Int]
+            let high: [Double?]
+            let low: [Double?]
+
+            enum CodingKeys: String, CodingKey {
+                case time, weatherCode = "weather_code", high = "temperature_2m_max", low = "temperature_2m_min"
+            }
         }
 
         let timezone: String?
@@ -97,16 +105,16 @@ public enum OpenMeteo {
                              unit: AppSettings.TemperatureUnit) throws -> WeatherReport {
         guard let response = try? JSONDecoder().decode(Response.self, from: data) else { throw Failure.unreadable }
         let daily = response.daily
-        let count = min(daily.time.count, daily.weather_code.count, daily.temperature_2m_max.count, daily.temperature_2m_min.count)
+        let count = min(daily.time.count, daily.weatherCode.count, daily.high.count, daily.low.count)
         let days = (0..<count).compactMap { index -> WeatherReport.Day? in
-            guard let high = daily.temperature_2m_max[index], let low = daily.temperature_2m_min[index] else { return nil }
-            return WeatherReport.Day(date: daily.time[index], code: daily.weather_code[index], high: high, low: low)
+            guard let high = daily.high[index], let low = daily.low[index] else { return nil }
+            return WeatherReport.Day(date: daily.time[index], code: daily.weatherCode[index], high: high, low: low)
         }
         return WeatherReport(
             fetched: fetched, latitude: latitude, longitude: longitude, unit: unit,
             timeZone: response.timezone ?? TimeZone.current.identifier,
-            temperature: response.current.temperature_2m, code: response.current.weather_code,
-            isDay: (response.current.is_day ?? 1) == 1, days: days
+            temperature: response.current.temperature, code: response.current.weatherCode,
+            isDay: (response.current.isDay ?? 1) == 1, days: days
         )
     }
 
