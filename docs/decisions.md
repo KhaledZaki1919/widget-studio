@@ -359,3 +359,15 @@ Empty field values fall back to the template defaults.
 **ADR-016 update (2026-10-26):**
 - The widget's HealthKit entitlement (`com.apple.developer.healthkit` on the extension) and `NSHealthShareUsageDescription` are added. Whether Fast Store keeps them shows in Diagnostics → Signing (widget extension) and in the large check widget's `health` line.
 - Gallery previews use sample data, so the widget gallery shows each design; placed widgets use real data only.
+
+## ADR-017: M4 device feedback — clock format, Qibla compass, dhikr list, tile setup (2026-10-26)
+
+**Context:** First M4 install on the owner's iPhone (Fast Store, no App Group). Clocks showed 24-hour time on a 12-hour phone; the Qibla widget can't read the compass; the tasbeeh +1 button works, so it can do more; Shortcut tiles jumped to Shortcuts with "The file doesn't exist" and no explanation.
+
+**Decisions:**
+- **Clock:** `ClockFormat` device / 12h / 24h. Settings holds the default (device), and each design can override it in the editor. `RenderContext.uses24Hour` drives `time.hh`, prayer and world-clock times, and the live time locale's hour cycle. Unset (tests, snapshots) keeps 24h, so references don't change. In store mode the widget follows the device.
+- **Qibla:** the widget stays static; a tap (`widgetstudio://qibla`, only on specs that show `qibla.*`) opens the app's live compass (CLHeading, true north when located, success haptic within 4° with release at 8°, calibration hint above 25° accuracy).
+- **Tasbeeh:** `CounterState` keeps a count per dhikr and the current index. Buttons: `counter.increment` (arg = the template's `target`, for auto-advance on the tap after the target), `counter.next`, `counter.reset` (current dhikr only). The list and auto-advance (default on) live in `AppSettings`. In store mode the widget uses the default four dhikrs; an edited list reaches it only with an App Group.
+- **Tiles:** iOS has no API to check that a Shortcut exists. The app keeps `TileSetupState` per name: the first tap opens a setup screen (why, exact name with copy, exact action, e.g. "Set Wi-Fi" → Toggle). "I created it" marks it ready and runs it once. Ready tiles run `shortcuts://x-callback-url/run-shortcut` with `x-error` → `widgetstudio://tiles/setup?error=1`, which marks the tile failed and reopens setup. Settings → Tiles setup lists every known tile.
+
+**Unverified on device:** that Shortcuts calls `x-error` for a missing Shortcut (rather than only showing its own alert), and the exact action names on non-English iOS.
