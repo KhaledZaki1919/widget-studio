@@ -22,6 +22,16 @@ struct SettingsView: View {
                 }
             }
             Section {
+                NavigationLink {
+                    AISettingsView()
+                } label: {
+                    Label("ai.title", systemImage: "sparkles")
+                }
+                .accessibilityIdentifier("ax.settings.ai")
+            } footer: {
+                Text("ai.settings.footer")
+            }
+            Section {
                 Picker("settings.clock", selection: binding(\.clockFormat)) {
                     Text("settings.clock.device").tag(ClockFormat.device)
                     Text("settings.clock.h12").tag(ClockFormat.h12)

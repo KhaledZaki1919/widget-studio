@@ -123,8 +123,8 @@ struct WidgetGenerationTests {
     // MARK: Parser
 
     @Test func parsesAValidReply() throws {
-        let (spec, colors) = try AIWidgetParser.parse(try reply("spec-recreate"), options: GenerationOptions(), id: "ai.test")
-        #expect(spec.id == "ai.test")
+        let (spec, colors) = try AIWidgetParser.parse(try reply("spec-recreate"), options: GenerationOptions(), id: "gen.test")
+        #expect(spec.id == "gen.test")
         #expect(spec.schemaVersion == 1)
         #expect(spec.family == .small)
         #expect(spec.theme == .dark)
@@ -142,12 +142,12 @@ struct WidgetGenerationTests {
     }
 
     @Test func requestedSizeWins() throws {
-        let (spec, _) = try AIWidgetParser.parse(try reply("spec-recreate"), options: GenerationOptions(size: .medium), id: "ai.test")
+        let (spec, _) = try AIWidgetParser.parse(try reply("spec-recreate"), options: GenerationOptions(size: .medium), id: "gen.test")
         #expect(spec.family == .medium)
     }
 
     @Test func photoModeNeedsThePhoto() throws {
-        let (spec, _) = try AIWidgetParser.parse(try reply("spec-photo"), options: GenerationOptions(mode: .photo), id: "ai.photo")
+        let (spec, _) = try AIWidgetParser.parse(try reply("spec-photo"), options: GenerationOptions(mode: .photo), id: "gen.photo")
         #expect(spec.theme == .light)
         #expect(spec.refresh == .daily)
         let design = GeneratedWidget(spec: spec, colors: [:], model: "m", attempts: 1).design(language: "en")
@@ -201,7 +201,7 @@ struct WidgetGenerationTests {
 
     func parseError(_ text: String, options: GenerationOptions = GenerationOptions()) throws -> String {
         do {
-            _ = try AIWidgetParser.parse(text, options: options, id: "ai.test")
+            _ = try AIWidgetParser.parse(text, options: options, id: "gen.test")
             return ""
         } catch let error as AIValidationError {
             return error.description
