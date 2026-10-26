@@ -220,7 +220,9 @@ struct TemplateWidgetView: View {
             DataGapView(gap: gap, title: entry.spec?.name.resolved(language: RenderContext.preferredLanguage) ?? entry.templateID)
         } else {
             SpecWidgetContent(spec: entry.spec, context: context)
-            .environment(\.specActionButton, WidgetActionButtons.make)
+                .environment(\.specActionButton, WidgetActionButtons.make)
+                // The widget can't read the compass: a tap opens the live Qibla compass in the app.
+                .widgetURL(entry.spec.map(DataRequirements.showsQibla) == true ? URL(string: "widgetstudio://qibla") : nil)
         }
     }
 

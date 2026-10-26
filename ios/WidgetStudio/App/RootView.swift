@@ -9,6 +9,7 @@ import WidgetKitCore
 struct RootView: View {
     @Environment(AppState.self) private var appState
     @State private var showDiagnostics = false
+    @State private var showQibla = false
 
     var body: some View {
         @Bindable var appState = appState
@@ -45,6 +46,16 @@ struct RootView: View {
             .tabItem { Label("tab.settings", systemImage: "gearshape") }
             .tag(AppState.Tab.settings)
         }
+        .sheet(isPresented: $showQibla) {
+            NavigationStack {
+                QiblaView()
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("common.done") { showQibla = false }
+                        }
+                    }
+            }
+        }
         .onAppear(perform: AppInfo.touchHeartbeat)
         .onOpenURL { url in
             guard url.scheme == "widgetstudio" else { return }
@@ -56,6 +67,8 @@ struct RootView: View {
                 appState.tab = .myWidgets
             case "settings":
                 appState.tab = .settings
+            case "qibla":
+                showQibla = true
             case "action":
                 WidgetActions.perform(url)
             default:

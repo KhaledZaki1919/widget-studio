@@ -4,8 +4,21 @@ import Foundation
 /// draw real numbers (ADR-016).
 public enum DataRequirements {
     public static func groups(for spec: WidgetSpec) -> Set<Bindings.Group> {
+        var groups: Set<Bindings.Group> = spec.layers.contains { if case .forecastRow = $0.content { true } else { false } } ? [.weather] : []
+        for name in bindingNames(in: spec) {
+            if let parsed = Bindings.Name(name) { groups.insert(parsed.group) }
+        }
+        return groups
+    }
+
+    /// Whether the spec shows the Qibla direction (a tap then opens the live compass in the app).
+    public static func showsQibla(_ spec: WidgetSpec) -> Bool {
+        bindingNames(in: spec).contains { $0.hasPrefix("qibla.") }
+    }
+
+    /// Every binding name in the spec's layers.
+    static func bindingNames(in spec: WidgetSpec) -> [String] {
         var strings: [String] = []
-        var groups: Set<Bindings.Group> = []
         for layer in spec.layers {
             strings += [layer.when, layer.rotation].compactMap { $0 }
             switch layer.content {
@@ -15,16 +28,13 @@ public enum DataRequirements {
             case .dotGrid(let grid): strings.append(grid.values)
             case .dotBars(let bars): strings += [bars.values] + (bars.labels?.allValues ?? [])
             case .ring(let ring): strings.append(ring.progress)
-            case .forecastRow: groups.insert(.weather)
+            case .forecastRow: break
             case .analogClock(let clock): strings += [clock.timezone].compactMap { $0 }
             case .button(let button): strings += [button.arg].compactMap { $0 }
             case .image, .shape, .unknown: break
             }
         }
-        for name in strings.flatMap(Bindings.names(in:)) {
-            if let parsed = Bindings.Name(name) { groups.insert(parsed.group) }
-        }
-        return groups
+        return strings.flatMap(Bindings.names(in:))
     }
 }
 
