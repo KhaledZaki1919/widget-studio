@@ -2,7 +2,8 @@
 # Every push: secret scan + compile-only build (all errors, full log as artifact) and the
 # WidgetKitCore unit tests. With [full] or [ipa] in the head commit message: Simulator app and
 # UI tests. With [ipa] only: the unsigned IPA. SwiftLint runs in parallel and never blocks.
-# Docs-only commits skip the workflow; superseded runs are cancelled.
+# Docs-only commits skip the workflow; superseded runs are cancelled. A manual run takes
+# mode "full" (app and UI tests, no IPA) or "ipa" (default: tests, then the IPA).
 name: iOS
 
 on:
@@ -12,6 +13,12 @@ on:
   pull_request:
     paths-ignore: ["**.md", "docs/**"]
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "full = app and UI tests only; ipa = tests, then the IPA"
+        type: choice
+        options: [ipa, full]
+        default: ipa
 
 concurrency:
   group: ios-${{ github.ref }}
@@ -191,7 +198,7 @@ jobs:
     name: Unsigned IPA
     needs: [build, unit, test]
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' && inputs.mode != 'full') ||
       (github.event_name == 'push' && contains(github.event.head_commit.message, '[ipa]'))
     runs-on: macos-15
     timeout-minutes: 30
