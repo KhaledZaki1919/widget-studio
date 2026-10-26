@@ -80,6 +80,18 @@ final class SmokeUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any)["ax.mywidgets.empty"].exists, "empty state still shown")
     }
 
+    /// M4: the Settings tab shows units, prayer method, step goal and the permissions.
+    @MainActor
+    func testSettingsTabInArabic() {
+        let app = launch(language: "ar")
+        let tabs = app.tabBars.firstMatch
+        XCTAssertTrue(tabs.waitForExistence(timeout: 15), "tab bar not found")
+        tabs.buttons.element(boundBy: 2).tap()
+        XCTAssertTrue(app.descendants(matching: .any)["ax.settings.units"].waitForExistence(timeout: 10), "units picker missing")
+        XCTAssertTrue(app.descendants(matching: .any)["ax.settings.method"].exists, "prayer method missing")
+        XCTAssertTrue(app.descendants(matching: .any)["ax.settings.stepGoal"].exists, "step goal missing")
+    }
+
     @MainActor
     func testCustomizeSaveShowsInMyWidgetsInEnglish() {
         customizesAndSaves(language: "en", name: "Forecast EN")
