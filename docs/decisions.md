@@ -337,3 +337,21 @@ Empty field values fall back to the template defaults.
 - `halftone` (Dot Portrait) and `mono` are applied once, when the photo is picked; the widget never filters. Halftone and mono photos are stored as PNG, others as JPEG.
 
 **Tabs:** Templates and My widgets. Save switches to My widgets. Without an App Group, My widgets explains that the home screen shows saved designs in the App Store version (ADR-014).
+
+### ADR-016 — Real data in the widget without an App Group (M4)
+**Status:** Accepted (2026-10-26).
+**Context:**
+- Fast Store gives no App Group (ADR-005), so the widget extension can't receive anything from the app.
+- Location and battery work inside the extension (ADR-005).
+
+**Decision:** the widget extension gets or computes all its own data:
+- **Container:** the one the resolver picks. In developer mode with an App Group, app and widget therefore share settings and caches through `SharedStore`'s container with no second code path.
+- **Weather:** Open-Meteo (no key; check its terms before App Store, brief §2). The widget fetches with its own location, caches in its container and refreshes hourly. The app uses the same client and cache for previews. Celsius by default.
+- **Location:** a fix from the extension (`isAuthorizedForWidgetUpdates`), cached with a reverse-geocoded city name.
+- **Prayer times and Qibla:** computed offline with adhan-swift 1.5.0 (MIT, pinned) from the cached location. Egyptian General Authority method by default.
+- **Steps and sleep:** HealthKit, read by the extension itself (its own HealthKit entitlement and usage string). If it can't read them, the widget shows a clear ar/en message, never numbers.
+- **Battery:** read in the extension.
+- **Tasbeeh and stopwatch:** iOS 17 interactive `Button(intent:)`. State is kept in the extension's container; stopwatch sessions also feed Focus Today. If intent buttons don't run on the Fast Store install (like the configuration path, ADR-013), no in-app fallback can update the widget without an App Group: the app can't write the extension's files. The step log shows whether the intents ran.
+- **Shortcut tiles:** a tap opens the app, which runs `shortcuts://run-shortcut?name=…`.
+- **Settings** (units, prayer method, step goal) live in the store's container. In store mode the widget can't see the app's copy and uses the defaults.
+- **Snapshot tests and the M1 test designs** keep the fixed sample data.
