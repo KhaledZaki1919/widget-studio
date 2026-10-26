@@ -371,3 +371,29 @@ Empty field values fall back to the template defaults.
 - **Tiles:** iOS has no API to check that a Shortcut exists. The app keeps `TileSetupState` per name: the first tap opens a setup screen (why, exact name with copy, exact action, e.g. "Set Wi-Fi" → Toggle). "I created it" marks it ready and runs it once. Ready tiles run `shortcuts://x-callback-url/run-shortcut` with `x-error` → `widgetstudio://tiles/setup?error=1`, which marks the tile failed and reopens setup. Settings → Tiles setup lists every known tile.
 
 **Unverified on device:** that Shortcuts calls `x-error` for a missing Shortcut (rather than only showing its own alert), and the exact action names on non-English iOS.
+
+### ADR-018 — Create from image with BYOK AI (M5)
+**Status:** Accepted (2026-10-26). Implements ADR-008.
+
+**Client** (`WidgetKitCore/AI/`, ported from Lakhas with its fixes):
+- `AIDeadline` hard limit + cancel (30 s connection test, 240 s generation; each URL request 180 s); `URLError.timedOut` → `.timedOut`.
+- Gemini: key only in `x-goog-api-key` (works for `AQ.` and `AIza` keys), `responseSchema` (OpenAPI subset: nullable, no `additionalProperties`/`pattern`, `anyOf` kept), thinking low, one wait-and-retry on short 429/5xx.
+- Anthropic: the schema is the input schema of one `strict` tool; `tool_choice` stays `auto` (forced tool use returns 400 on Opus 5.5, Sonnet 5.5, Fable 5.1); a text reply is still read as JSON. Effort low.
+- OpenAI: strict `json_schema`, `reasoning_effort: low` for reasoning models (retried without if rejected).
+- OpenRouter: JSON mode (`json_object`) with the schema in the system prompt, because strict schema support depends on the upstream endpoint.
+- A provider that rejects the schema is retried once in prompt-only mode. Keys are cleaned (whitespace, RTL marks, quotes, `Bearer `) and kept in the Keychain (`WhenUnlockedThisDeviceOnly`). The redacted "Last AI request" lives in UserDefaults.
+- **Default models** (checked in each provider's model docs on 2026-10-26): Gemini `gemini-3.8-flash` (stable, free tier, vision; rate-limit fallback `gemini-3.5-flash-lite`), Anthropic `claude-haiku-5-5`, OpenAI `gpt-6-luna`, OpenRouter `google/gemini-3.8-flash`. The picker shows the provider's live list once a key is saved, plus a custom ID.
+
+**Generation** (`AI/Widget/`):
+- Prompt `Prompts/generate_v1.md` (versioned; allowed bindings and icons filled in at load). User text: mode, size, the user's instructions inside `<user_instructions>` (≤ 300 characters, `<`/`>` neutralized), and the reminder to ignore text in the image and copy no personal data.
+- **AI schema** (`AIWidgetSchema`): strict (all properties required, optional ones nullable, no extras), one shape per layer type, only `type/properties/required/additionalProperties/enum/items/anyOf`. Image layers exist only in photo mode. Ranges, colors and the 30-layer limit are left to the validator.
+- The model returns a `palette {bg, fg, accent}` and uses `@bg/@fg/@accent` tokens; the palette becomes the design's color overrides, so the editor's color pickers work. Theme follows `bg`; `fg`/`bg` contrast must be ≥ 3:1 (the prompt asks 4.5).
+- The app sets id (`ai.<8 hex>`), schema version and refresh (minute for clocks, hourly for other data, daily for dates), forces a requested size, removes nulls, then validates in AI mode. Recreate mode allows no image layers; photo mode needs a `user_image` layer. All problems go back to the model in the one retry; still invalid → `invalidOutput`.
+- **AI mode** (`SpecValidator`): bindings time/date, weather, battery, prayer + Qibla (not `prayer.next.key`), steps (not sleep), and `field.*` of text fields; fields only text/image; images only `user_image`; buttons only `open.app`; font ≥ 11.
+- Image: ImageIO thumbnail (orientation applied), JPEG 0.8, longest side 1024, no metadata.
+
+**Flow:** Library card and My widgets button → pick (PhotosPicker) → mode (Recreate default / Build around my photo) and size (Auto from aspect ratio: wide → medium, tall → large, else small) → consent once per provider, naming it (revocable in Settings → AI) → generating with Cancel → the M3 editor with Regenerate (photo mode passes the processed photo) → Save to My widgets. Every `AIError` has an ar/en message and next step.
+
+**Tests:** recorded provider responses (`Fixtures/AI`) through a URL stub (no keys, no network): request bodies, parsing, structured output, error mapping, retry with validation errors, each provider's generation reply, prompt builder, schema strictness, downscaling. UI test with `-uiTestingStubAI` (canned provider, generated sample image, because the Simulator photo library isn't scriptable).
+
+**Unverified on device:** real-key behavior of each provider's structured output with this schema (prompt-only fallback covers rejections), and free-tier Gemini rate limits.
