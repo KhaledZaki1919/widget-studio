@@ -63,7 +63,7 @@ Docs-only commits (`**.md`, `docs/**`) skip CI. SwiftLint is a separate, non-blo
 - Build the IPA **once**, with `[ipa]` in the commit message, only after **all** requested fixes are done and every test is green. Then tell the owner the IPA is ready; they test everything in one go.
 
 **After each push:**
-1. Poll the run in the **foreground**, at most 7 minutes per wait (`timeout -k 10 300 gh run watch <id> --exit-status`, Bash tool timeout ~480000 ms; plain `timeout 400` once overran). Never start a background watcher (low-memory PC).
+1. Poll the run in the **foreground**, at most ~5 minutes per call, with a bounded loop of short calls: `for i in $(seq 1 13); do s=$(gh run view <id> --json status --jq .status); [ "$s" = completed ] && break; sleep 20; done`. Do **not** use `gh run watch`: Git Bash's `timeout` can't stop the Windows `gh.exe`, so it overran three times. Never start a background watcher (low-memory PC).
 2. Fetch logs in a **separate call**, never chained after a watch: `gh run view <id> --log-failed` (or `--job <id> --log`).
 3. On failure, fix **all** errors in one commit, push, and watch again until green.
 

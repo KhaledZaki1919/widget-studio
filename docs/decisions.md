@@ -355,3 +355,7 @@ Empty field values fall back to the template defaults.
 - **Shortcut tiles:** a tap opens the app, which runs `shortcuts://run-shortcut?name=…`.
 - **Settings** (units, prayer method, step goal) live in the store's container. In store mode the widget can't see the app's copy and uses the defaults.
 - **Snapshot tests and the M1 test designs** keep the fixed sample data.
+
+**ADR-016 update (2026-10-26):**
+- The widget's HealthKit entitlement (`com.apple.developer.healthkit` on the extension) and `NSHealthShareUsageDescription` are added. Whether Fast Store keeps them shows in Diagnostics → Signing (widget extension) and in the large check widget's `health` line.
+- Gallery previews use sample data, so the widget gallery shows each design; placed widgets use real data only.
