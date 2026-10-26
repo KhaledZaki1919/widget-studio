@@ -74,7 +74,9 @@ public struct SpecValidator: Sendable {
         switch name {
         case .builtin(let raw):
             switch name.group {
-            case .time, .weather, .device, .prayer: return true
+            case .time, .weather, .device: return true
+            // `prayer.next.key` only feeds `when` conditions, which AI output doesn't use.
+            case .prayer: return raw != "prayer.next.key"
             case .health: return raw.hasPrefix("steps.")
             default: return false
             }
@@ -211,8 +213,9 @@ private struct Check {
             fail(path, "unknown binding {{\(raw)}}")
             return
         }
-        if mode == .ai, name.group != .time, name.group != .weather {
+        if mode == .ai, !SpecValidator.allowsInAI(name) {
             fail(path, "binding {{\(raw)}} is not allowed in AI output")
+            return
         }
         let kind: Bindings.Kind
         switch name {
