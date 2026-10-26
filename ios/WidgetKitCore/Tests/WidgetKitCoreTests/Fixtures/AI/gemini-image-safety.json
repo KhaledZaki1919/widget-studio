@@ -1,0 +1,9 @@
+{
+  "candidates": [
+    {
+      "finishReason": "IMAGE_SAFETY",
+      "index": 0
+    }
+  ],
+  "modelVersion": "gemini-3.8-flash"
+}

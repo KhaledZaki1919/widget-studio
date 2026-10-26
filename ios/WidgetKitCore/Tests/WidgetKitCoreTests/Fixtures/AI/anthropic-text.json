@@ -1,0 +1,17 @@
+{
+  "id": "msg_fixture2",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-haiku-5-5",
+  "content": [
+    {
+      "type": "text",
+      "text": "```json\n{\"ok\": true}\n```"
+    }
+  ],
+  "stop_reason": "end_turn",
+  "usage": {
+    "input_tokens": 30,
+    "output_tokens": 9
+  }
+}

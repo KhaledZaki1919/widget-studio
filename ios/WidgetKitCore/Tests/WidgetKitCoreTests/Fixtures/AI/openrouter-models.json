@@ -1,0 +1,21 @@
+{
+  "data": [
+    {
+      "id": "google/gemini-3.8-flash",
+      "architecture": {
+        "input_modalities": [
+          "text",
+          "image"
+        ]
+      }
+    },
+    {
+      "id": "meta/text-only",
+      "architecture": {
+        "input_modalities": [
+          "text"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\"ok\":true}"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 41,
+    "candidatesTokenCount": 5,
+    "thoughtsTokenCount": 18,
+    "totalTokenCount": 64
+  },
+  "modelVersion": "gemini-3.8-flash",
+  "responseId": "fixture-1"
+}

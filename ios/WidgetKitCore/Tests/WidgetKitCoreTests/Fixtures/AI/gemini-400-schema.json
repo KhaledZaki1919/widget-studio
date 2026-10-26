@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"anyOf\" at generation_config.response_schema.properties[2].value.items: Cannot find field.",
+    "status": "INVALID_ARGUMENT"
+  }
+}

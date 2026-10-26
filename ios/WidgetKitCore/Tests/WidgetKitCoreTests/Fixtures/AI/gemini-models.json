@@ -1,0 +1,29 @@
+{
+  "models": [
+    {
+      "name": "models/gemini-3.8-flash",
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens"
+      ]
+    },
+    {
+      "name": "models/gemini-3.5-flash-lite",
+      "supportedGenerationMethods": [
+        "generateContent"
+      ]
+    },
+    {
+      "name": "models/gemini-3.8-flash-tts",
+      "supportedGenerationMethods": [
+        "generateContent"
+      ]
+    },
+    {
+      "name": "models/gemini-embedding-001",
+      "supportedGenerationMethods": [
+        "embedContent"
+      ]
+    }
+  ]
+}

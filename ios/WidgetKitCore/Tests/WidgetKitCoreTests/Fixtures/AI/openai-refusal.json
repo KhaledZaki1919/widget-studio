@@ -1,0 +1,16 @@
+{
+  "id": "chatcmpl-fixture2",
+  "object": "chat.completion",
+  "model": "gpt-6-luna",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "refusal": "I can not help with that request."
+      },
+      "finish_reason": "stop"
+    }
+  ]
+}

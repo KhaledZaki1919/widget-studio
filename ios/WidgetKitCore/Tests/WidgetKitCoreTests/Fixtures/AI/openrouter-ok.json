@@ -1,0 +1,20 @@
+{
+  "id": "gen-fixture",
+  "model": "google/gemini-3.8-flash",
+  "object": "chat.completion",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"ok\": true}"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 300,
+    "completion_tokens": 8,
+    "total_tokens": 308
+  }
+}

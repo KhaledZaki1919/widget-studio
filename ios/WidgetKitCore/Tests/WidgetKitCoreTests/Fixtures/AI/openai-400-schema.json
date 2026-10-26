@@ -1,0 +1,8 @@
+{
+  "error": {
+    "message": "Invalid schema for response_format widget_spec: In context=(), additionalProperties is required to be supplied and to be false.",
+    "type": "invalid_request_error",
+    "param": "response_format",
+    "code": null
+  }
+}
