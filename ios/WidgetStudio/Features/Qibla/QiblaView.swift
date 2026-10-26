@@ -73,28 +73,28 @@ struct QiblaView: View {
                     dial(qibla: qibla, heading: heading)
                 } else {
                     dial(qibla: qibla, heading: 0).opacity(0.35)
-                    Text(compass.isAvailable ? "qibla.waiting" : "qibla.noCompass")
+                    Text(compass.isAvailable ? "compass.waiting" : "compass.noCompass")
                         .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 }
                 Text(verbatim: "\(Int(qibla.rounded()))°")
                     .font(.system(size: 44, weight: .bold, design: .rounded)).monospacedDigit()
                     .accessibilityIdentifier("ax.qibla.degrees")
-                Text("qibla.fromNorth").font(.footnote).foregroundStyle(.secondary)
+                Text("compass.fromNorth").font(.footnote).foregroundStyle(.secondary)
                 if aligned {
-                    Label("qibla.aligned", systemImage: "checkmark.circle.fill")
+                    Label("compass.aligned", systemImage: "checkmark.circle.fill")
                         .font(.headline).foregroundStyle(.green)
                 }
                 if compass.heading != nil, QiblaCompass.needsCalibration(accuracy: compass.accuracy) {
-                    Label("qibla.calibrate", systemImage: "figure.wave")
+                    Label("compass.calibrate", systemImage: "figure.wave")
                         .font(.footnote).foregroundStyle(.orange).multilineTextAlignment(.center)
                         .padding(12)
                         .background(RoundedRectangle(cornerRadius: 12).fill(Color.orange.opacity(0.12)))
                 }
             } else {
                 ContentUnavailableView {
-                    Label("qibla.noLocation", systemImage: "location.slash")
+                    Label("compass.noLocation", systemImage: "location.slash")
                 } description: {
-                    Text("qibla.noLocation.body")
+                    Text("compass.noLocation.body")
                 } actions: {
                     if live.authorization == .notDetermined {
                         Button("settings.location.allow", action: live.requestLocation)
@@ -104,7 +104,7 @@ struct QiblaView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .navigationTitle("qibla.title")
+        .navigationTitle("compass.title")
         .navigationBarTitleDisplayMode(.inline)
         .sensoryFeedback(trigger: aligned) { _, now in now ? .success : nil }
         .onAppear(perform: compass.start)
@@ -153,7 +153,7 @@ struct QiblaView: View {
         .padding(.top, 30)
         .animation(.easeOut(duration: 0.15), value: heading)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("qibla.title"))
+        .accessibilityLabel(Text("compass.title"))
         .accessibilityValue(Text(verbatim: "\(Int(needle.rounded()))°"))
     }
 }

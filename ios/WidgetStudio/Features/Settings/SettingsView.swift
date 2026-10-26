@@ -45,7 +45,7 @@ struct SettingsView: View {
                     }
                 }
                 .accessibilityIdentifier("ax.settings.method")
-                NavigationLink("qibla.title") { QiblaView() }
+                NavigationLink("compass.title") { QiblaView() }
                     .accessibilityIdentifier("ax.settings.qibla")
             } header: {
                 Text("settings.prayer")

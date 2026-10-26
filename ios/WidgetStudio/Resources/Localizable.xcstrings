@@ -103,6 +103,142 @@
         }
       }
     },
+    "compass.aligned": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أنت باتجاه القبلة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You're facing the Qibla"
+          }
+        }
+      }
+    },
+    "compass.calibrate": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "دقة البوصلة ضعيفة: حرّك الهاتف على شكل رقم 8 وابتعد عن المعادن والمغناطيس."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compass accuracy is low: move the phone in a figure 8 and keep away from metal and magnets."
+          }
+        }
+      }
+    },
+    "compass.fromNorth": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اتجاه القبلة من الشمال، باتجاه عقارب الساعة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qibla direction from north, clockwise"
+          }
+        }
+      }
+    },
+    "compass.noCompass": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد بوصلة في هذا الجهاز. اتجاه القبلة بالدرجات من الشمال:"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This device has no compass. The Qibla direction in degrees from north:"
+          }
+        }
+      }
+    },
+    "compass.noLocation": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يوجد موقع بعد"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No location yet"
+          }
+        }
+      }
+    },
+    "compass.noLocation.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اتجاه القبلة يُحسب من موقعك. اسمح بالموقع من الإعدادات."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Qibla direction is calculated from your location. Allow location in Settings."
+          }
+        }
+      }
+    },
+    "compass.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بوصلة القبلة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qibla compass"
+          }
+        }
+      }
+    },
+    "compass.waiting": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ قراءة البوصلة…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading the compass…"
+          }
+        }
+      }
+    },
     "detail.appearance": {
       "extractionState": "manual",
       "localizations": {
@@ -2156,142 +2292,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "My widgets"
-          }
-        }
-      }
-    },
-    "qibla.aligned": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "أنت باتجاه القبلة"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You're facing the Qibla"
-          }
-        }
-      }
-    },
-    "qibla.calibrate": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "دقة البوصلة ضعيفة: حرّك الهاتف على شكل رقم 8 وابتعد عن المعادن والمغناطيس."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Compass accuracy is low: move the phone in a figure 8 and keep away from metal and magnets."
-          }
-        }
-      }
-    },
-    "qibla.fromNorth": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "اتجاه القبلة من الشمال، باتجاه عقارب الساعة"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Qibla direction from north, clockwise"
-          }
-        }
-      }
-    },
-    "qibla.noCompass": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "لا توجد بوصلة في هذا الجهاز. اتجاه القبلة بالدرجات من الشمال:"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This device has no compass. The Qibla direction in degrees from north:"
-          }
-        }
-      }
-    },
-    "qibla.noLocation": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "لا يوجد موقع بعد"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No location yet"
-          }
-        }
-      }
-    },
-    "qibla.noLocation.body": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "اتجاه القبلة يُحسب من موقعك. اسمح بالموقع من الإعدادات."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The Qibla direction is calculated from your location. Allow location in Settings."
-          }
-        }
-      }
-    },
-    "qibla.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "بوصلة القبلة"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Qibla compass"
-          }
-        }
-      }
-    },
-    "qibla.waiting": {
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "جارٍ قراءة البوصلة…"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reading the compass…"
           }
         }
       }
