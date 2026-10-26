@@ -3111,6 +3111,397 @@
           }
         }
       }
+    },
+    "tiles.copied": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم النسخ"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied"
+          }
+        }
+      }
+    },
+    "tiles.copy": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نسخ"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy"
+          }
+        }
+      }
+    },
+    "tiles.created": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أنشأته"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I created it"
+          }
+        }
+      }
+    },
+    "tiles.created.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سيعمل الاختصار مرة للتجربة. إن لم يجده تطبيق الاختصارات ستعود هذه الشاشة."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Shortcut runs once as a test. If Shortcuts can't find it, this screen comes back."
+          }
+        }
+      }
+    },
+    "tiles.failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تطبيق الاختصارات لم يجد هذا الاختصار أو فشل تشغيله. تأكد أن الاسم مطابق تمامًا."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortcuts couldn't find this Shortcut or it failed. Make sure the name matches exactly."
+          }
+        }
+      }
+    },
+    "tiles.forget": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعادة الإعداد"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set up again"
+          }
+        }
+      }
+    },
+    "tiles.list.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS لا يكشف للتطبيقات هل الاختصار موجود، لذا تُعلَّم الحالة عند ضغطك «أنشأته»، وتصبح «فشل» إذا أبلغ تطبيق الاختصارات عن خطأ. اسحب لإعادة الإعداد."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS doesn't tell apps whether a Shortcut exists, so a tile is marked ready when you tap “I created it”, and failed when Shortcuts reports an error. Swipe to set it up again."
+          }
+        }
+      }
+    },
+    "tiles.list.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعداد أزرار الاختصارات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tiles setup"
+          }
+        }
+      }
+    },
+    "tiles.name.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يُنسخ الاسم تلقائيًا عند فتح الاختصارات؛ الصقه عند تسمية الاختصار."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The name is copied when you open Shortcuts; paste it when you name the Shortcut."
+          }
+        }
+      }
+    },
+    "tiles.name.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اسم الاختصار (يجب أن يطابق تمامًا)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortcut name (must match exactly)"
+          }
+        }
+      }
+    },
+    "tiles.openShortcuts": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فتح الاختصارات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Shortcuts"
+          }
+        }
+      }
+    },
+    "tiles.setup.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعداد الزر"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tile setup"
+          }
+        }
+      }
+    },
+    "tiles.status.failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فشل آخر تشغيل"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last run failed"
+          }
+        }
+      }
+    },
+    "tiles.status.notSetUp": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يُعدّ بعد"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not set up"
+          }
+        }
+      }
+    },
+    "tiles.status.ready": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جاهز"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready"
+          }
+        }
+      }
+    },
+    "tiles.step.custom": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أضف الإجراءات التي تريد أن يقوم بها الزر."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add the actions you want the tile to do."
+          }
+        }
+      }
+    },
+    "tiles.step.done": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط Done، ثم ارجع هنا واضغط «أنشأته»."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap Done, then come back here and tap “I created it”."
+          }
+        }
+      }
+    },
+    "tiles.step.open": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط «فتح الاختصارات» بالأسفل: يفتح اختصار جديد فارغ."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap “Open Shortcuts” below: a new, empty Shortcut opens."
+          }
+        }
+      }
+    },
+    "tiles.step.option %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "في الإجراء اضغط الكلمة الزرقاء (On أو Dark) واختر «%@»."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In the action, tap the blue word (On or Dark) and choose “%@”."
+          }
+        }
+      }
+    },
+    "tiles.step.rename %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط اسم الاختصار في الأعلى ← Rename، والصق الاسم «%@» تمامًا."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the Shortcut's name at the top → Rename, and paste exactly “%@”."
+          }
+        }
+      }
+    },
+    "tiles.step.search %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط «Add Action» وابحث عن «%@» ثم اختره."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap “Add Action”, search for “%@” and choose it."
+          }
+        }
+      }
+    },
+    "tiles.why": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS لا يسمح لأي ودجت أو تطبيق بتشغيل الواي فاي أو الكشاف أو الوضع الداكن مباشرة. تطبيق «الاختصارات» من Apple يستطيع ذلك. لذا يشغّل هذا الزر اختصارًا تنشئه مرة واحدة بالاسم أدناه، وبعدها يعمل الزر مباشرة."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS doesn't let any widget or app switch Wi-Fi, the torch or Dark Mode directly. Apple's Shortcuts app can. So this tile runs a Shortcut you create once with the name below; after that the tile works directly."
+          }
+        }
+      }
+    },
+    "tiles.why.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لماذا اختصار؟"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Why a Shortcut?"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

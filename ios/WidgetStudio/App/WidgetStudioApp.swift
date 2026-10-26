@@ -6,6 +6,8 @@ struct WidgetStudioApp: App {
     @State private var appState = AppState()
     /// Real data for previews and Settings (M4, ADR-016).
     @State private var live = LiveDataModel()
+    /// Shortcut tiles' setup and runs (ADR-017).
+    @State private var tiles = TilesModel()
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -23,6 +25,7 @@ struct WidgetStudioApp: App {
                 .environment(designs)
                 .environment(appState)
                 .environment(live)
+                .environment(tiles)
                 .task { await live.refresh() }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active { Task { await live.refresh() } }

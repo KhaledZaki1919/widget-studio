@@ -10,9 +10,11 @@ struct RootView: View {
     @Environment(AppState.self) private var appState
     @State private var showDiagnostics = false
     @State private var showQibla = false
+    @Environment(TilesModel.self) private var tiles
 
     var body: some View {
         @Bindable var appState = appState
+        @Bindable var tiles = tiles
         TabView(selection: $appState.tab) {
             NavigationStack {
                 LibraryView(onLongPressVersion: { showDiagnostics = true })
@@ -56,6 +58,16 @@ struct RootView: View {
                     }
             }
         }
+        .sheet(item: $tiles.request) { request in
+            NavigationStack {
+                TileSetupView(name: request.name, failed: request.failed)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("common.cancel") { tiles.request = nil }
+                        }
+                    }
+            }
+        }
         .onAppear(perform: AppInfo.touchHeartbeat)
         .onOpenURL { url in
             guard url.scheme == "widgetstudio" else { return }
@@ -70,7 +82,9 @@ struct RootView: View {
             case "qibla":
                 showQibla = true
             case "action":
-                WidgetActions.perform(url)
+                WidgetActions.perform(url, tiles: tiles)
+            case "tiles":
+                WidgetActions.tileSetup(url, tiles: tiles)
             default:
                 break
             }
@@ -79,17 +93,17 @@ struct RootView: View {
 }
 
 /// Actions a widget button sends to the app (`widgetstudio://action/<action>?arg=…`, ADR-016).
-/// Shortcut tiles run the Shortcut by name right away; links open only http/https pages.
-/// Counter and stopwatch buttons are interactive in the widget itself and don't come here.
+/// Shortcut tiles go to `TilesModel` (setup screen, or run the Shortcut); links open only
+/// http/https pages. Counter and stopwatch buttons are interactive in the widget itself and
+/// don't come here.
 enum WidgetActions {
     @MainActor
-    static func perform(_ url: URL) {
+    static func perform(_ url: URL, tiles: TilesModel) {
         let action = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         let arg = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "arg" }?.value ?? ""
         switch action {
         case ButtonLayer.Action.shortcutRun.rawValue:
-            guard let target = shortcutURL(name: arg) else { return }
-            UIApplication.shared.open(target)
+            tiles.tap(arg)
         case ButtonLayer.Action.openURL.rawValue:
             guard let target = URL(string: arg), let scheme = target.scheme?.lowercased(), ["http", "https"].contains(scheme) else {
                 return
@@ -100,15 +114,16 @@ enum WidgetActions {
         }
     }
 
-    /// `shortcuts://run-shortcut?name=<name>` for a non-empty Shortcut name.
-    static func shortcutURL(name: String) -> URL? {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        var components = URLComponents()
-        components.scheme = "shortcuts"
-        components.host = "run-shortcut"
-        components.queryItems = [URLQueryItem(name: "name", value: trimmed)]
-        return components.url
+    /// `widgetstudio://tiles/setup?name=…[&error=1]`: a tile's setup screen, or Shortcuts' error callback.
+    @MainActor
+    static func tileSetup(_ url: URL, tiles: TilesModel) {
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        guard let name = items.first(where: { $0.name == "name" })?.value, !name.isEmpty else { return }
+        if items.contains(where: { $0.name == "error" }) {
+            tiles.shortcutFailed(name)
+        } else {
+            tiles.request = TileSetupRequest(name: name, failed: tiles.status(name) == .failed)
+        }
     }
 }
 

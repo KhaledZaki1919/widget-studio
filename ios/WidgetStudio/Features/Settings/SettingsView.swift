@@ -74,6 +74,8 @@ struct SettingsView: View {
             }
             permissionsSection
             Section {
+                NavigationLink("tiles.list.title") { TilesListView() }
+                    .accessibilityIdentifier("ax.settings.tiles")
                 NavigationLink("settings.shortcuts.guide") { ShortcutGuideView() }
                     .accessibilityIdentifier("ax.settings.shortcutGuide")
                 NavigationLink("home.diagnostics") { DiagnosticsView() }
