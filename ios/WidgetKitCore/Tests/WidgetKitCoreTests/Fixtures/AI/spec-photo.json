@@ -1,0 +1,109 @@
+{
+  "name": {
+    "en": "Memories",
+    "ar": "ذكريات"
+  },
+  "family": "small",
+  "theme": "light",
+  "palette": {
+    "bg": "#FAF6F0",
+    "fg": "#1E1B18",
+    "accent": "#C8553D"
+  },
+  "background": {
+    "type": "solid",
+    "color": "@bg",
+    "colors": null,
+    "angle": null,
+    "outerColor": null
+  },
+  "fields": [
+    {
+      "key": "photo",
+      "type": "image",
+      "label": {
+        "en": "Photo",
+        "ar": "الصورة"
+      },
+      "default": null
+    },
+    {
+      "key": "caption",
+      "type": "text",
+      "label": {
+        "en": "Caption",
+        "ar": "التعليق"
+      },
+      "default": {
+        "en": "Good days",
+        "ar": "أيام حلوة"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "type": "image",
+      "source": "user_image",
+      "fit": "fill",
+      "mask": "roundedRect",
+      "cornerRadius": 18,
+      "filter": "none",
+      "frame": {
+        "x": 10,
+        "y": 10,
+        "w": 150,
+        "h": 112
+      },
+      "opacity": null,
+      "mirror": null
+    },
+    {
+      "type": "text",
+      "value": {
+        "en": "{{field.caption}}",
+        "ar": "{{field.caption}}"
+      },
+      "font": {
+        "family": "system-serif",
+        "size": 15,
+        "weight": "semibold"
+      },
+      "color": "@fg",
+      "align": "leading",
+      "maxLines": 1,
+      "live": null,
+      "frame": {
+        "x": 14,
+        "y": 130,
+        "w": 142,
+        "h": 20
+      },
+      "opacity": null,
+      "mirror": true
+    },
+    {
+      "type": "text",
+      "value": {
+        "en": "{{date.EEEE}} {{date.d}}",
+        "ar": "{{date.EEEE}} {{date.d}}"
+      },
+      "font": {
+        "family": "system",
+        "size": 11,
+        "weight": null
+      },
+      "color": "@muted",
+      "align": "leading",
+      "maxLines": 1,
+      "live": null,
+      "frame": {
+        "x": 14,
+        "y": 150,
+        "w": 142,
+        "h": 14
+      },
+      "opacity": null,
+      "mirror": true
+    }
+  ]
+}

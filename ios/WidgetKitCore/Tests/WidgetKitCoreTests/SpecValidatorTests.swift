@@ -288,10 +288,22 @@ struct SpecValidatorTests {
 
     // MARK: AI mode (brief §5.1)
 
-    @Test func aiModeAllowsOnlyOpenAppAndTimeWeatherBindings() throws {
+    @Test func aiModeAllowsOnlyOpenAppAndItsBindings() throws {
         #expect(try issues(layers: [layer("button", ["action": "open.app"]), text("{{time.hh}}:{{time.mm}} {{weather.temp}}")], mode: .ai).isEmpty)
+        // ADR-018: battery, prayer and steps too.
+        #expect(try issues(layers: [text("{{battery.level}} {{prayer.next.name}} {{qibla.bearing}} {{steps.today}}")], mode: .ai).isEmpty)
         #expect(try issues(layers: [layer("button", ["action": "counter.increment"])], mode: .ai).contains { $0.path == "layers[0].action" })
-        #expect(try issues(layers: [text("{{steps.today}}")], mode: .ai).contains { $0.message.contains("AI output") })
+        for binding in ["sleep.lastNight", "location.lat", "counter.value", "focus.today"] {
+            #expect(try issues(layers: [text("{{\(binding)}}")], mode: .ai).contains { $0.message.contains("AI output") }, "\(binding)")
+        }
+    }
+
+    @Test func aiModeAllowsOnlyTextAndImageFields() throws {
+        let shortcut: [[String: Any]] = [["key": "torch", "type": "shortcut", "label": ["en": "Shortcut", "ar": "اختصار"]]]
+        #expect(try issues(layers: [text("hi")], fields: shortcut, mode: .ai).contains { $0.path == "fields[0].type" })
+        let title: [[String: Any]] = [["key": "title", "type": "text", "label": ["en": "Title", "ar": "العنوان"]]]
+        #expect(try issues(layers: [text("{{field.title}}")], fields: title, mode: .ai).isEmpty)
+        #expect(try issues(layers: [layer("image", ["source": "asset:logo"])], mode: .ai).contains { $0.path == "layers[0].source" })
     }
 
     @Test func aiModeNeedsFontSize11() throws {

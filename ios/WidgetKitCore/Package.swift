@@ -17,7 +17,7 @@ let package = Package(
         .target(
             name: "WidgetKitCore",
             dependencies: [.product(name: "Adhan", package: "adhan-swift")],
-            resources: [.copy("Resources/TestSpecs"), .copy("Resources/Templates"), .copy("Resources/Spec")]
+            resources: [.copy("Resources/TestSpecs"), .copy("Resources/Templates"), .copy("Resources/Spec"), .copy("Prompts")]
         ),
         .testTarget(name: "WidgetKitCoreTests", dependencies: ["WidgetKitCore"], resources: [.copy("Fixtures")]),
     ],

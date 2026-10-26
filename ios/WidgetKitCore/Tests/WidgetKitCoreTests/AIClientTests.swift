@@ -206,7 +206,7 @@ struct AIClientTests {
                 .run(ConnectionTest.Reply.self, request: request(), feature: .connectionTest)
         }
         #expect(recorder.last?.succeeded == false)
-        #expect(AIRedactor.redact("x secret-key-123 key=abc AIzaSyA1234567890123456789012") == "x [redacted] key=[redacted] [redacted]")
+        #expect(AIRedactor.redact("x secret-key-123 key=abc AIzaSyA1234567890123456789012", secrets: ["secret-key-123"]) == "x [redacted] key=[redacted] [redacted]")
     }
 
     // MARK: Deadline, keys, service

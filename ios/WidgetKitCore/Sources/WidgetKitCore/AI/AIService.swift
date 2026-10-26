@@ -8,16 +8,20 @@ public final class AIService: @unchecked Sendable {
     private let keyStore: AIKeyStore
     private let defaults: UserDefaults
     private let session: URLSession
+    /// A fixed provider (tests); no key needed.
+    private let fixedProvider: AIProvider?
 
     /// Settings → AI "Test connection" and the model list.
     public var testTimeout: TimeInterval = 30
     /// Widget generation, including the retry (each URL request also times out after 180 s).
     public var generationTimeout: TimeInterval = 240
 
-    public init(keyStore: AIKeyStore = AIKeyStore(), defaults: UserDefaults = .standard, session: URLSession = .shared) {
+    public init(keyStore: AIKeyStore = AIKeyStore(), defaults: UserDefaults = .standard, session: URLSession = .shared,
+                provider: AIProvider? = nil) {
         self.keyStore = keyStore
         self.defaults = defaults
         self.session = session
+        fixedProvider = provider
     }
 
     /// UI tests only (`-uiTestingStubAI`): requests go to this provider and no key is required.
@@ -25,7 +29,9 @@ public final class AIService: @unchecked Sendable {
 
     public var settings: AISettings { AISettings.load(from: defaults) }
 
-    public var hasKey: Bool { Self.overrideProvider != nil || keyStore.hasKey(for: settings.provider) }
+    public var hasKey: Bool { activeOverride != nil || keyStore.hasKey(for: settings.provider) }
+
+    private var activeOverride: AIProvider? { fixedProvider ?? Self.overrideProvider }
 
     /// A structured request with the selected provider, key and model.
     public func run<Value>(
@@ -34,7 +40,7 @@ public final class AIService: @unchecked Sendable {
         let settings = settings
         let provider: AIProvider
         var secrets: [String] = []
-        if let override = Self.overrideProvider {
+        if let override = activeOverride {
             provider = override
         } else {
             guard let key = keyStore.key(for: settings.provider) else { throw AIError.noKey }

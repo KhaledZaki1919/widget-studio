@@ -1,0 +1,22 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\"name\":{\"en\":\"Clock\",\"ar\":\"الساعة\"},\"family\":\"small\",\"theme\":\"dark\",\"palette\":{\"bg\":\"#101418\",\"fg\":\"#F5F5F5\",\"accent\":\"#ff5a36\"},\"background\":{\"type\":\"solid\",\"color\":\"@bg\",\"colors\":null,\"angle\":null,\"outerColor\":null},\"fields\":[{\"key\":\"title\",\"type\":\"text\",\"label\":{\"en\":\"Title\",\"ar\":\"العنوان\"},\"default\":{\"en\":\"Today\",\"ar\":\"اليوم\"}}],\"layers\":[{\"type\":\"shape\",\"kind\":\"roundedRect\",\"fill\":\"@accent\",\"stroke\":null,\"cornerRadius\":22,\"frame\":{\"x\":12,\"y\":12,\"w\":146,\"h\":40},\"opacity\":null,\"mirror\":null},{\"type\":\"text\",\"value\":{\"en\":\"{{field.title}}\",\"ar\":\"{{field.title}}\"},\"font\":{\"family\":\"system\",\"size\":13,\"weight\":\"semibold\"},\"color\":\"@onAccent\",\"align\":\"center\",\"maxLines\":1,\"live\":null,\"frame\":{\"x\":20,\"y\":22,\"w\":130,\"h\":20},\"opacity\":null,\"mirror\":true},{\"type\":\"text\",\"value\":{\"en\":\"{{time.hh}}:{{time.mm}}\",\"ar\":\"{{time.hh}}:{{time.mm}}\"},\"font\":{\"family\":\"dot\",\"size\":44,\"weight\":\"black\"},\"color\":\"@fg\",\"align\":\"center\",\"maxLines\":1,\"live\":null,\"frame\":{\"x\":12,\"y\":64,\"w\":146,\"h\":56},\"opacity\":null,\"mirror\":null},{\"type\":\"icon\",\"symbol\":\"{{weather.symbol}}\",\"size\":18,\"color\":\"@fg\",\"frame\":{\"x\":20,\"y\":132,\"w\":22,\"h\":22},\"opacity\":null,\"mirror\":true},{\"type\":\"text\",\"value\":{\"en\":\"{{weather.temp}}°\",\"ar\":\"{{weather.temp}}°\"},\"font\":{\"family\":\"system\",\"size\":14,\"weight\":\"medium\"},\"color\":\"@fg\",\"align\":\"leading\",\"maxLines\":1,\"live\":null,\"frame\":{\"x\":48,\"y\":132,\"w\":60,\"h\":22},\"opacity\":null,\"mirror\":true},{\"type\":\"button\",\"action\":\"open.app\",\"frame\":{\"x\":0,\"y\":0,\"w\":170,\"h\":170},\"opacity\":null,\"mirror\":null}]}"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 2210,
+    "candidatesTokenCount": 980,
+    "thoughtsTokenCount": 300
+  },
+  "modelVersion": "gemini-3.8-flash"
+}

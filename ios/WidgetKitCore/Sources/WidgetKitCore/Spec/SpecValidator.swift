@@ -30,7 +30,8 @@ public struct SpecValidator: Sendable {
     public enum Mode: Sendable {
         /// Bundled templates and specs the user edited.
         case standard
-        /// AI output (brief §5.1): only `open.app` buttons and time / date / weather bindings.
+        /// AI output (brief §5.1, ADR-018): only `open.app` buttons; time, date, weather, battery,
+        /// prayer and steps bindings; text and image fields only; photos only as `user_image`.
         case ai
     }
 
@@ -66,6 +67,24 @@ public struct SpecValidator: Sendable {
         }
         return .success(normalized)
     }
+
+    /// Bindings AI output may use: time and date, weather, battery, prayer and Qibla, steps
+    /// (not sleep), and text fields. Location, sleep and app data are left out.
+    public static func allowsInAI(_ name: Bindings.Name) -> Bool {
+        switch name {
+        case .builtin(let raw):
+            switch name.group {
+            case .time, .weather, .device, .prayer: return true
+            case .health: return raw.hasPrefix("steps.")
+            default: return false
+            }
+        case .field: return true
+        case .timezoneTime, .daysUntil: return false
+        }
+    }
+
+    /// Field types AI output may declare.
+    public static let aiFieldTypes: Set<FieldSpec.Kind> = [.text, .image]
 
     /// Readable text for the AI retry ("Your previous reply was not valid: …").
     public static func describe(_ issues: [SpecIssue]) -> String {
@@ -210,6 +229,7 @@ private struct Check {
                 if field.type != .date { fail(path, "{{\(raw)}} needs a date field") }
                 kind = .number
             default:
+                if mode == .ai, field.type != .text { fail(path, "AI output may only bind text fields") }
                 kind = Self.kind(of: field)
             }
         case .builtin:
@@ -273,6 +293,9 @@ private struct Check {
             let path = "fields[\(index)]"
             if !Bindings.isValidKey(field.key) { fail("\(path).key", "letters, digits and underscores, starting with a letter") }
             if !keys.insert(field.key).inserted { fail("\(path).key", "duplicate key \"\(field.key)\"") }
+            if mode == .ai, !SpecValidator.aiFieldTypes.contains(field.type) {
+                fail("\(path).type", "AI output may only use text and image fields")
+            }
             for value in field.label.allValues { text(path: "\(path).label", value, allowBindings: false) }
             for value in field.default?.allValues ?? [] {
                 checkDefault(value, of: field, path: "\(path).default")
@@ -319,6 +342,8 @@ private struct Check {
         case .image(let image):
             if image.source != "user_image" && !Self.isAssetSource(image.source) {
                 fail("\(path).source", "must be \"user_image\" or \"asset:<id>\"")
+            } else if mode == .ai, image.source != "user_image" {
+                fail("\(path).source", "AI output may only use \"user_image\"")
             }
             number("\(path).cornerRadius", image.cornerRadius, in: 0...200)
         case .shape(let shape):

@@ -1,0 +1,15 @@
+{
+  "id": "gen-2",
+  "model": "google/gemini-3.8-flash",
+  "object": "chat.completion",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```json\n{\n \"name\": {\n  \"en\": \"Clock\",\n  \"ar\": \"الساعة\"\n },\n \"family\": \"small\",\n \"theme\": \"dark\",\n \"palette\": {\n  \"bg\": \"#101418\",\n  \"fg\": \"#F5F5F5\",\n  \"accent\": \"#ff5a36\"\n },\n \"background\": {\n  \"type\": \"solid\",\n  \"color\": \"@bg\",\n  \"colors\": null,\n  \"angle\": null,\n  \"outerColor\": null\n },\n \"fields\": [\n  {\n   \"key\": \"title\",\n   \"type\": \"text\",\n   \"label\": {\n    \"en\": \"Title\",\n    \"ar\": \"العنوان\"\n   },\n   \"default\": {\n    \"en\": \"Today\",\n    \"ar\": \"اليوم\"\n   }\n  }\n ],\n \"layers\": [\n  {\n   \"type\": \"shape\",\n   \"kind\": \"roundedRect\",\n   \"fill\": \"@accent\",\n   \"stroke\": null,\n   \"cornerRadius\": 22,\n   \"frame\": {\n    \"x\": 12,\n    \"y\": 12,\n    \"w\": 146,\n    \"h\": 40\n   },\n   \"opacity\": null,\n   \"mirror\": null\n  },\n  {\n   \"type\": \"text\",\n   \"value\": {\n    \"en\": \"{{field.title}}\",\n    \"ar\": \"{{field.title}}\"\n   },\n   \"font\": {\n    \"family\": \"system\",\n    \"size\": 13,\n    \"weight\": \"semibold\"\n   },\n   \"color\": \"@onAccent\",\n   \"align\": \"center\",\n   \"maxLines\": 1,\n   \"live\": null,\n   \"frame\": {\n    \"x\": 20,\n    \"y\": 22,\n    \"w\": 130,\n    \"h\": 20\n   },\n   \"opacity\": null,\n   \"mirror\": true\n  },\n  {\n   \"type\": \"text\",\n   \"value\": {\n    \"en\": \"{{time.hh}}:{{time.mm}}\",\n    \"ar\": \"{{time.hh}}:{{time.mm}}\"\n   },\n   \"font\": {\n    \"family\": \"dot\",\n    \"size\": 44,\n    \"weight\": \"black\"\n   },\n   \"color\": \"@fg\",\n   \"align\": \"center\",\n   \"maxLines\": 1,\n   \"live\": null,\n   \"frame\": {\n    \"x\": 12,\n    \"y\": 64,\n    \"w\": 146,\n    \"h\": 56\n   },\n   \"opacity\": null,\n   \"mirror\": null\n  },\n  {\n   \"type\": \"icon\",\n   \"symbol\": \"{{weather.symbol}}\",\n   \"size\": 18,\n   \"color\": \"@fg\",\n   \"frame\": {\n    \"x\": 20,\n    \"y\": 132,\n    \"w\": 22,\n    \"h\": 22\n   },\n   \"opacity\": null,\n   \"mirror\": true\n  },\n  {\n   \"type\": \"text\",\n   \"value\": {\n    \"en\": \"{{weather.temp}}°\",\n    \"ar\": \"{{weather.temp}}°\"\n   },\n   \"font\": {\n    \"family\": \"system\",\n    \"size\": 14,\n    \"weight\": \"medium\"\n   },\n   \"color\": \"@fg\",\n   \"align\": \"leading\",\n   \"maxLines\": 1,\n   \"live\": null,\n   \"frame\": {\n    \"x\": 48,\n    \"y\": 132,\n    \"w\": 60,\n    \"h\": 22\n   },\n   \"opacity\": null,\n   \"mirror\": true\n  },\n  {\n   \"type\": \"button\",\n   \"action\": \"open.app\",\n   \"frame\": {\n    \"x\": 0,\n    \"y\": 0,\n    \"w\": 170,\n    \"h\": 170\n   },\n   \"opacity\": null,\n   \"mirror\": null\n  }\n ]\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ]
+}
