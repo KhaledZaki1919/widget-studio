@@ -258,6 +258,9 @@ struct PickEntry: TimelineEntry {
     let image: CGImage?
     let problem: String?
     let appearance: PickAppearance
+    /// Real data (ADR-016).
+    var inputs = LiveInputs()
+    var gap: DataGap?
 }
 
 struct PickProvider<Configuration: PickConfiguration>: AppIntentTimelineProvider {
@@ -273,14 +276,18 @@ struct PickProvider<Configuration: PickConfiguration>: AppIntentTimelineProvider
     }
 
     func timeline(for configuration: Configuration, in context: Context) async -> Timeline<PickEntry> {
-        let first = Self.entry(itemID: configuration.itemID, appearance: configuration.appearanceChoice, date: .now)
-        let schedule = SpecTimeline.schedule(for: first.spec?.refresh ?? .none, from: .now)
-        let entries = schedule.dates.map {
+        let now = Date.now
+        let first = Self.entry(itemID: configuration.itemID, appearance: configuration.appearanceChoice, date: now)
+        guard let spec = first.spec else { return Timeline(entries: [first], policy: .never) }
+        let inputs = await WidgetData.inputs(for: DataRequirements.groups(for: spec), now: now)
+        let gap = LiveData.gap(for: spec, inputs)
+        let (dates, reload) = LiveSchedule.make(for: spec, inputs: inputs, now: now)
+        let entries = dates.map {
             PickEntry(date: $0, spec: first.spec, design: first.design, image: first.image, problem: first.problem,
-                      appearance: first.appearance)
+                      appearance: first.appearance, inputs: inputs, gap: gap)
         }
-        WidgetLog.add("pick \(Configuration.size.rawValue) \(configuration.itemID ?? "default") \(first.problem ?? "ok")")
-        return Timeline(entries: entries, policy: schedule.reloadAfter.map { .after($0) } ?? .never)
+        WidgetLog.add("pick \(Configuration.size.rawValue) \(configuration.itemID ?? "default") \(gap?.rawValue ?? "ok")")
+        return Timeline(entries: entries, policy: .after(reload))
     }
 
     static func entry(itemID: String?, appearance: PickAppearance, date: Date) -> PickEntry {
@@ -321,14 +328,17 @@ struct PickWidgetView: View {
     var body: some View {
         if let problem = entry.problem {
             WidgetProblemView(title: "Widget Studio", message: problem)
+        } else if let gap = entry.gap {
+            DataGapView(gap: gap, title: entry.design?.name ?? entry.spec?.name.resolved(language: RenderContext.preferredLanguage) ?? "")
         } else {
             SpecWidgetContent(spec: entry.spec, context: context)
+                .environment(\.specActionButton, WidgetActionButtons.make)
         }
     }
 
     private var context: RenderContext {
         let language = RenderContext.preferredLanguage
-        let data = DataSnapshot.sample(now: entry.date)
+        let data = LiveData.snapshot(entry.inputs, now: entry.date)
         var context = entry.design?.renderContext(date: entry.date, language: language, data: data, image: entry.image)
             ?? RenderContext(date: entry.date, language: language, data: data)
         switch entry.appearance {

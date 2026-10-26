@@ -209,14 +209,18 @@ struct RingView: View {
     }
 }
 
-/// Invisible tap area (brief §4.4). Taps open the app with the action; the app performs it
-/// (interactive AppIntents for counter / stopwatch arrive in M4).
+/// Invisible tap area (brief §4.4). The widget extension can supply its own control per action
+/// (`specActionButton`: interactive AppIntent buttons for counter and stopwatch, ADR-016);
+/// everything else is a link that opens the app, which performs the action (e.g. runs a Shortcut).
 struct ButtonLayerView: View {
     let layer: ButtonLayer
     let resolver: BindingResolver
+    @Environment(\.specActionButton) private var custom
 
     var body: some View {
-        if let url = actionURL {
+        if let custom, let button = custom(layer.action, layer.arg.map(resolver.render)) {
+            button
+        } else if let url = actionURL {
             Link(destination: url) {
                 Color.clear.contentShape(Rectangle())
             }
@@ -235,5 +239,20 @@ struct ButtonLayerView: View {
         if let arg = layer.arg { items.append(URLQueryItem(name: "arg", value: resolver.render(arg))) }
         components.queryItems = items
         return components.url
+    }
+}
+
+/// Builds the control for a button action, or nil to use the default link (ADR-016).
+public typealias SpecActionButton = (ButtonLayer.Action, String?) -> AnyView?
+
+private struct SpecActionButtonKey: EnvironmentKey {
+    static let defaultValue: SpecActionButton? = nil
+}
+
+extension EnvironmentValues {
+    /// Set by the widget extension to make counter and stopwatch buttons interactive.
+    public var specActionButton: SpecActionButton? {
+        get { self[SpecActionButtonKey.self] }
+        set { self[SpecActionButtonKey.self] = newValue }
     }
 }

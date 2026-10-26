@@ -64,6 +64,9 @@ struct MyWidgetEntry: TimelineEntry {
 
     let date: Date
     let content: Content
+    /// Real data for a design (ADR-016).
+    var inputs = LiveInputs()
+    var gap: DataGap?
 }
 
 struct MyWidgetProvider: TimelineProvider {
@@ -78,15 +81,22 @@ struct MyWidgetProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<MyWidgetEntry>) -> Void) {
-        let first = Self.entry(size: size, date: .now)
-        var refresh = RefreshPolicy.none
-        if case .design(let design, _) = first.content { refresh = design.spec.refresh }
-        let schedule = SpecTimeline.schedule(for: refresh, from: .now)
-        let entries = schedule.dates.map { MyWidgetEntry(date: $0, content: first.content) }
-        WidgetLog.add("my \(size.rawValue): \(Self.describe(first.content)), \(entries.count) entries")
-        // The app reloads all timelines when a design changes; also check hourly.
-        let next = schedule.reloadAfter ?? .now.addingTimeInterval(3600)
-        completion(Timeline(entries: entries, policy: .after(next)))
+        Task {
+            let now = Date.now
+            let first = Self.entry(size: size, date: now)
+            guard case .design(let design, _) = first.content else {
+                WidgetLog.add("my \(size.rawValue): \(Self.describe(first.content))")
+                // The app reloads all timelines when a design changes; also check hourly.
+                completion(Timeline(entries: [first], policy: .after(now.addingTimeInterval(3600))))
+                return
+            }
+            let inputs = await WidgetData.inputs(for: DataRequirements.groups(for: design.spec), now: now)
+            let gap = LiveData.gap(for: design.spec, inputs)
+            let (dates, reload) = LiveSchedule.make(for: design.spec, inputs: inputs, now: now)
+            let entries = dates.map { MyWidgetEntry(date: $0, content: first.content, inputs: inputs, gap: gap) }
+            WidgetLog.add("my \(size.rawValue): \(Self.describe(first.content)), \(entries.count) entries")
+            completion(Timeline(entries: entries, policy: .after(min(reload, now.addingTimeInterval(3600)))))
+        }
     }
 
     static func entry(size: SpecFamily, date: Date) -> MyWidgetEntry {
@@ -112,9 +122,15 @@ struct MyWidgetView: View {
     var body: some View {
         switch entry.content {
         case .design(let design, let image):
-            SpecWidgetContent(spec: design.spec, context: design.renderContext(
-                date: entry.date, language: RenderContext.preferredLanguage, data: .sample(now: entry.date), image: image
-            ))
+            if let gap = entry.gap {
+                DataGapView(gap: gap, title: design.name)
+            } else {
+                SpecWidgetContent(spec: design.spec, context: design.renderContext(
+                    date: entry.date, language: RenderContext.preferredLanguage,
+                    data: LiveData.snapshot(entry.inputs, now: entry.date), image: image
+                ))
+                .environment(\.specActionButton, WidgetActionButtons.make)
+            }
         case .noAppGroup:
             MyWidgetMessage(text: "widget.mywidget.noAppGroup")
         case .noDesign:

@@ -122,31 +122,53 @@ struct TemplateEntry: TimelineEntry {
     let spec: WidgetSpec?
     /// Why nothing can be drawn; shown as plain text instead of a gray widget (ADR-012).
     let problem: String?
+    /// Real data for this timeline (ADR-016).
+    var inputs = LiveInputs()
+    /// A needed source with nothing real to show: the widget says so instead of showing numbers.
+    var gap: DataGap?
+    /// Widget gallery previews show the design with sample data (no fixes or downloads there).
+    var sample = false
 }
 
 struct TemplateProvider: TimelineProvider {
     let templateID: String
 
     func placeholder(in context: Context) -> TemplateEntry {
-        entry(date: .now)
+        var entry = entry(date: .now)
+        entry.sample = true
+        return entry
     }
 
     func getSnapshot(in context: Context, completion: @escaping (TemplateEntry) -> Void) {
-        let start = Date.now
-        let entry = entry(date: .now)
-        WidgetLog.add("snapshot \(templateID) \(entry.problem == nil ? "ok" : "problem") "
-            + "\(WidgetLog.elapsed(since: start))ms preview=\(context.isPreview)")
+        var entry = entry(date: .now)
+        if context.isPreview {
+            entry.sample = true
+        } else if let spec = entry.spec {
+            entry.inputs = WidgetData.cachedInputs()
+            entry.gap = LiveData.gap(for: spec, entry.inputs)
+        }
+        WidgetLog.add("snapshot \(templateID) preview=\(context.isPreview) \(entry.gap.map { "gap \($0.rawValue)" } ?? "ok")")
         completion(entry)
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TemplateEntry>) -> Void) {
-        let start = Date.now
-        let first = entry(date: .now)
-        let schedule = SpecTimeline.schedule(for: first.spec?.refresh ?? .none, from: .now)
-        let entries = schedule.dates.map { TemplateEntry(date: $0, templateID: templateID, spec: first.spec, problem: first.problem) }
-        WidgetLog.add("timeline \(templateID) \(entries.count) entries \(first.problem.map { "PROBLEM: \($0)" } ?? "ok") "
-            + "\(WidgetLog.elapsed(since: start))ms \(Self.memory())")
-        completion(Timeline(entries: entries, policy: schedule.reloadAfter.map { .after($0) } ?? .never))
+        Task {
+            let start = Date.now
+            let first = entry(date: start)
+            guard let spec = first.spec else {
+                completion(Timeline(entries: [first], policy: .never))
+                return
+            }
+            let inputs = await WidgetData.inputs(for: DataRequirements.groups(for: spec), now: start)
+            let gap = LiveData.gap(for: spec, inputs)
+            let (dates, reload) = LiveSchedule.make(for: spec, inputs: inputs, now: start)
+            let entries = dates.map {
+                TemplateEntry(date: $0, templateID: templateID, spec: spec, problem: nil, inputs: inputs, gap: gap)
+            }
+            WidgetLog.add("timeline \(templateID) \(entries.count) entries \(gap.map { "gap \($0.rawValue)" } ?? "ok") "
+                + "\(WidgetLog.elapsed(since: start))ms \(Self.memory())")
+            completion(Timeline(entries: entries, policy: .after(reload)))
+        }
     }
 
     /// Loads only this template; failures become `problem`.
@@ -165,21 +187,88 @@ struct TemplateProvider: TimelineProvider {
     }
 }
 
+/// Entry dates and the next reload for a spec with live data: the spec's own refresh, at most an
+/// hour for data (weather is hourly), and right after the next prayer when it shows prayers.
+enum LiveSchedule {
+    static func make(for spec: WidgetSpec, inputs: LiveInputs, now: Date) -> (dates: [Date], reload: Date) {
+        let schedule = SpecTimeline.schedule(for: spec.refresh, from: now)
+        let groups = DataRequirements.groups(for: spec)
+        var reload = schedule.reloadAfter ?? .distantFuture
+        if !groups.isDisjoint(with: [.weather, .health, .location, .device, .prayer]) {
+            reload = min(reload, now.addingTimeInterval(3600))
+        }
+        if groups.contains(.prayer), let next = LiveData.snapshot(inputs, now: now).prayer?.nextTime {
+            reload = min(reload, next.addingTimeInterval(60))
+        }
+        if reload == .distantFuture { reload = now.addingTimeInterval(6 * 3600) }
+        return (schedule.dates.filter { $0 < reload }.isEmpty ? [now] : schedule.dates.filter { $0 < reload }, reload)
+    }
+}
+
 // MARK: View
 
-/// Draws the template with the package view the tests also render (`SpecWidgetContent`), or the
-/// problem as plain system text.
+/// Draws the template with live data through the package view the tests also render
+/// (`SpecWidgetContent`), a data gap or a problem as plain text. Counter and stopwatch buttons
+/// are interactive (ADR-016).
 struct TemplateWidgetView: View {
     let entry: TemplateEntry
 
     var body: some View {
-        let _ = WidgetLog.add("render \(entry.templateID) \(entry.problem == nil ? "body" : "problem")")
         if let problem = entry.problem {
             WidgetProblemView(title: entry.templateID, message: problem)
+        } else if let gap = entry.gap, !entry.sample {
+            DataGapView(gap: gap, title: entry.spec?.name.resolved(language: RenderContext.preferredLanguage) ?? entry.templateID)
         } else {
             SpecWidgetContent(spec: entry.spec, context: RenderContext(
-                date: entry.date, language: RenderContext.preferredLanguage, data: .sample(now: entry.date)
+                date: entry.date, language: RenderContext.preferredLanguage,
+                data: entry.sample ? .sample(now: entry.date) : LiveData.snapshot(entry.inputs, now: entry.date)
             ))
+            .environment(\.specActionButton, WidgetActionButtons.make)
+        }
+    }
+}
+
+/// Why a template has no real data yet, in the app's language (never fake numbers, ADR-016).
+struct DataGapView: View {
+    let gap: DataGap
+    let title: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(Color(hex: "#E2231A"))
+            Text(verbatim: title)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+            Text(message)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .minimumScaleFactor(0.7)
+            Spacer(minLength: 0)
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(14)
+        .containerBackground(Color(white: 0.055), for: .widget)
+        .widgetURL(URL(string: "widgetstudio://settings"))
+    }
+
+    private var icon: String {
+        switch gap {
+        case .noLocation: "location.slash"
+        case .noWeather: "cloud"
+        case .noHealth: "heart.text.square"
+        case .noBattery: "battery.0"
+        }
+    }
+
+    private var message: LocalizedStringKey {
+        switch gap {
+        case .noLocation: "widget.gap.noLocation"
+        case .noWeather: "widget.gap.noWeather"
+        case .noHealth: "widget.gap.noHealth"
+        case .noBattery: "widget.gap.noBattery"
         }
     }
 }

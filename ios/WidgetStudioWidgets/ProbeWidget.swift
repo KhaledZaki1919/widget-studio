@@ -25,6 +25,8 @@ struct ProbeEntry: TimelineEntry {
     let report: WidgetReport?
     /// The last lines of `WidgetLog` (template widget steps).
     var log: [String] = []
+    /// The widget's data sources (ADR-016).
+    var sources: SourceStatus?
 
     var isShared: Bool { groupID != nil }
 }
@@ -38,7 +40,7 @@ struct ProbeProvider: TimelineProvider {
         // The widget gallery needs an answer quickly: show the last saved report.
         let location = AppGroupResolver.resolve()
         completion(ProbeEntry(date: .now, groupID: location.appGroupID,
-                              report: ProbeStore(location: location).readWidgetReport(), log: WidgetLog.last(16)))
+                              report: ProbeStore(location: location).readWidgetReport(), log: WidgetLog.last(8), sources: SourceStatus.load()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<ProbeEntry>) -> Void) {
@@ -63,7 +65,7 @@ struct ProbeProvider: TimelineProvider {
             battery: WidgetProbes.battery()
         )
         try? store.writeWidgetReport(report)
-        return ProbeEntry(date: report.date, groupID: location.appGroupID, report: report, log: WidgetLog.last(16))
+        return ProbeEntry(date: report.date, groupID: location.appGroupID, report: report, log: WidgetLog.last(8), sources: SourceStatus.load())
     }
 }
 
@@ -98,6 +100,7 @@ struct ProbeWidgetView: View {
             row("widget.probe.location", ok: entry.report?.location.isOK, detail: detail(entry.report?.location))
             row("widget.probe.battery", ok: entry.report?.battery.isOK, detail: detail(entry.report?.battery))
             if family == .systemLarge {
+                sourcesView
                 logView
             }
         }
@@ -105,6 +108,30 @@ struct ProbeWidgetView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .containerBackground(Color(white: 0.055), for: .widget)
         .widgetURL(URL(string: "widgetstudio://diagnostics"))
+    }
+
+    /// Each data source as the widget sees it: ✓/✕, detail, last update.
+    private var sourcesView: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Divider().overlay(Color.white.opacity(0.3)).padding(.vertical, 4)
+            Text("widget.probe.sources")
+                .font(.caption2.weight(.semibold))
+            ForEach(SourceStatus.Source.allCases, id: \.self) { source in
+                let status = entry.sources?.entries[source]
+                HStack(spacing: 4) {
+                    Image(systemName: status == nil ? "circle.dotted" : status?.ok == true ? "checkmark.circle.fill" : "xmark.circle.fill")
+                        .foregroundStyle(status == nil ? .gray : status?.ok == true ? .green : .red)
+                    Text(verbatim: source.rawValue)
+                    Spacer(minLength: 2)
+                    Text(verbatim: [status?.detail, status?.updated.map { $0.formatted(date: .omitted, time: .shortened) }]
+                        .compactMap { $0 }.joined(separator: " · "))
+                        .lineLimit(1)
+                        .foregroundStyle(.secondary)
+                }
+                .font(.system(size: 8, design: .monospaced))
+            }
+        }
+        .environment(\.layoutDirection, .leftToRight)
     }
 
     /// The template widgets' last steps, newest at the bottom (system fonts only, so it renders

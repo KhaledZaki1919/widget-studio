@@ -98,6 +98,9 @@ targets:
       path: Config/WidgetStudioWidgets.entitlements
       properties:
         com.apple.security.application-groups: [group.com.khaled.widgetstudio]
+        # The widget reads steps and sleep itself (ADR-016); whether the store keeps this
+        # entitlement shows in Diagnostics → Signing and the check widget.
+        com.apple.developer.healthkit: true
     info:
       path: WidgetStudioWidgets/Info.plist
       properties:
@@ -109,6 +112,7 @@ targets:
         # Location inside the widget (brief §2), probed in Diagnostics (ADR-005).
         NSWidgetWantsLocation: true
         NSLocationWhenInUseUsageDescription: "يستخدم الموقع للطقس ومواقيت الصلاة واتجاه القبلة في الودجت."
+        NSHealthShareUsageDescription: "يقرأ عدد الخطوات والنوم لعرضهما في الودجت."
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:

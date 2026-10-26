@@ -1,6 +1,125 @@
 {
   "sourceLanguage": "ar",
   "strings": {
+    "widget.gap.noBattery": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مستوى البطارية غير متاح للودجت."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The battery level isn't available to the widget."
+          }
+        }
+      }
+    },
+    "widget.gap.noHealth": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يستطيع الودجت قراءة الخطوات والنوم على هذا التثبيت. اسمح بـ «صحتي» في الإعدادات داخل التطبيق؛ وإن استمرت الرسالة فهي تحتاج نسخة App Store."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The widget can't read steps and sleep on this install. Allow Health in the app's Settings; if this stays, it needs the App Store version."
+          }
+        }
+      }
+    },
+    "widget.gap.noLocation": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "افتح Widget Studio واسمح بالموقع «أثناء استخدام التطبيق»، ثم يحدد الودجت مكانك بنفسه."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Widget Studio and allow location “While Using the App”; the widget then finds your place itself."
+          }
+        }
+      }
+    },
+    "widget.gap.noWeather": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يوجد طقس بعد. يجلبه الودجت تلقائيًا عند الاتصال بالإنترنت."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No weather yet. The widget fetches it by itself when you're online."
+          }
+        }
+      }
+    },
+    "widget.intent.counter.increment": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تسبيحة +١"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Count +1"
+          }
+        }
+      }
+    },
+    "widget.intent.counter.reset": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تصفير العداد"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset counter"
+          }
+        }
+      }
+    },
+    "widget.intent.stopwatch.toggle": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تشغيل أو إيقاف ساعة الإيقاف"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start or stop the stopwatch"
+          }
+        }
+      }
+    },
     "widget.mywidget.description": {
       "extractionState": "manual",
       "localizations": {
@@ -388,6 +507,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "No App Group"
+          }
+        }
+      }
+    },
+    "widget.probe.sources": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مصادر البيانات في الودجت"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widget data sources"
           }
         }
       }
