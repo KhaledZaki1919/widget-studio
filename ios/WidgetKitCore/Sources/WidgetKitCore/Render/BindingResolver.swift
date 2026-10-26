@@ -148,6 +148,7 @@ public struct BindingResolver {
         case "sleep.lastNight": return data.sleepLastNight.map { .text($0.resolved(language: context.language)) }
         case "sleep.week": return data.sleepWeek.map(Value.levels)
         case "counter.value": return data.counter.map { number($0, digits: 0) }
+        case "counter.dhikr": return data.dhikr.map(Value.text)
         case "counter.progress":
             guard let count = data.counter, let target = fieldValue("target").flatMap(Double.init), target > 0 else { return nil }
             return number(min(count / target, 1), digits: 2)

@@ -348,6 +348,7 @@ public struct ButtonLayer: Codable, Sendable, Equatable {
     public enum Action: String, Codable, Sendable, CaseIterable {
         case counterIncrement = "counter.increment"
         case counterReset = "counter.reset"
+        case counterNext = "counter.next"
         case stopwatchToggle = "stopwatch.toggle"
         case shortcutRun = "shortcut.run"
         case openURL = "open.url"

@@ -64,6 +64,8 @@ public struct DataSnapshot: Sendable, Equatable {
     public var sleepLastNight: LocalizedText?
     public var sleepWeek: [Double]?
     public var counter: Double?
+    /// The tasbeeh's current dhikr.
+    public var dhikr: String?
     public var stopwatchStart: Date?
     public var focusToday: LocalizedText?
     public var focusWeek: [Double]?
@@ -105,6 +107,7 @@ public struct DataSnapshot: Sendable, Equatable {
         data.sleepLastNight = .localized(en: "7h 20m", ar: "7س 20د")
         data.sleepWeek = [0.7, 0.85, 0.6, 0.9, 0.75, 0.5, 0.8]
         data.counter = 33
+        data.dhikr = CounterState.defaultDhikrs[0]
         data.stopwatchStart = now.addingTimeInterval(-754)
         data.focusToday = .localized(en: "6h 20m", ar: "6س 20د")
         data.focusWeek = [0.4, 0.8, 0.6, 1.0, 0.3, 0.0, 0.5]

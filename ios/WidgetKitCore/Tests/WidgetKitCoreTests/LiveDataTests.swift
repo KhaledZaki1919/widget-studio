@@ -56,6 +56,59 @@ struct HealthSummaryTests {
 }
 
 struct ActivityStateTests {
+    @Test func dhikrsKeepSeparateCountsAndCycle() {
+        let list = CounterState.defaultDhikrs
+        var counter = CounterState()
+        #expect(counter.dhikr(in: list) == "سبحان الله")
+        counter.increment(list: list, now: wednesday)
+        counter.increment(list: list, now: wednesday)
+        counter.next(list: list, now: wednesday)
+        #expect(counter.dhikr(in: list) == "الحمد لله")
+        #expect(counter.count(in: list) == 0)
+        counter.increment(list: list, now: wednesday)
+        counter.reset(list: list, now: wednesday)
+        #expect(counter.count(in: list) == 0)
+        // Wraps around; the first dhikr kept its count.
+        for _ in 0..<3 { counter.next(list: list, now: wednesday) }
+        #expect(counter.dhikr(in: list) == "سبحان الله")
+        #expect(counter.count(in: list) == 2)
+    }
+
+    @Test func autoAdvanceMovesOnAfterTheTarget() {
+        let list = CounterState.defaultDhikrs
+        var counter = CounterState()
+        for _ in 0..<33 { counter.increment(list: list, target: 33, autoAdvance: true, now: wednesday) }
+        // The full ring stays until the next tap.
+        #expect(counter.dhikr(in: list) == "سبحان الله")
+        #expect(counter.count(in: list) == 33)
+        counter.increment(list: list, target: 33, autoAdvance: true, now: wednesday)
+        #expect(counter.dhikr(in: list) == "الحمد لله")
+        #expect(counter.count(in: list) == 1)
+        // Without auto-advance it keeps counting.
+        var plain = CounterState()
+        for _ in 0..<40 { plain.increment(list: list, target: 33, autoAdvance: false, now: wednesday) }
+        #expect(plain.count(in: list) == 40)
+    }
+
+    @Test func customListsAndOldFiles() throws {
+        var counter = CounterState()
+        #expect(counter.dhikr(in: ["  ", ""]) == "سبحان الله")
+        counter.next(list: ["أستغفر الله", "سبحان الله وبحمده"], now: wednesday)
+        counter.next(list: ["أستغفر الله", "سبحان الله وبحمده"], now: wednesday)
+        #expect(counter.dhikr(in: ["أستغفر الله", "سبحان الله وبحمده"]) == "أستغفر الله")
+        let old = try JSONDecoder().decode(CounterState.self, from: Data(#"{"value":12}"#.utf8))
+        #expect(old.value == 12)
+        var settings = AppSettings()
+        #expect(settings.dhikrList == CounterState.defaultDhikrs)
+        #expect(settings.tasbeehAutoAdvance)
+        settings.dhikrs = ["الله أكبر"]
+        var inputs = LiveInputs(settings: settings)
+        inputs.counter.increment(list: settings.dhikrList, now: wednesday)
+        let data = LiveData.snapshot(inputs, now: wednesday)
+        #expect(data.dhikr == "الله أكبر")
+        #expect(data.counter == 1)
+    }
+
     @Test func counterIncrementsResetsAndPersists() throws {
         let cache = tempCache()
         var counter = CounterState.load(cache)

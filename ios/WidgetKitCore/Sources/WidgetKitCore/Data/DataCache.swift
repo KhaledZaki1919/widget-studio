@@ -58,6 +58,13 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public var stepGoal: Int = 8000
     /// Default clock for designs without their own choice (ADR-017).
     public var clockFormat: ClockFormat = .device
+    /// Tasbeeh dhikr list; nil = `CounterState.defaultDhikrs`.
+    public var dhikrs: [String]?
+    /// Move to the next dhikr after the target (the tasbeeh template's `target`, 33).
+    public var tasbeehAutoAdvance = true
+
+    /// The dhikr list the counter cycles through.
+    public var dhikrList: [String] { CounterState.usable(dhikrs ?? []) }
 
     public init() {}
 
@@ -77,6 +84,8 @@ public struct AppSettings: Codable, Sendable, Equatable {
         prayerMethod = (try? container.decode(String.self, forKey: .prayerMethod)) ?? PrayerCalculator.defaultMethod
         stepGoal = (try? container.decode(Int.self, forKey: .stepGoal)) ?? 8000
         clockFormat = (try? container.decode(ClockFormat.self, forKey: .clockFormat)) ?? .device
+        dhikrs = try? container.decode([String].self, forKey: .dhikrs)
+        tasbeehAutoAdvance = (try? container.decode(Bool.self, forKey: .tasbeehAutoAdvance)) ?? true
     }
 }
 

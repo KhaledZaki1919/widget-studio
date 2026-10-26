@@ -8,11 +8,13 @@
   "refresh": "none",
   "background": { "type": "solid", "color": "@bg" },
   "fields": [
-    { "key": "dhikr", "type": "text", "label": { "en": "Dhikr", "ar": "الذكر" }, "default": "سبحان الله" },
-    { "key": "target", "type": "number", "label": { "en": "Target", "ar": "الهدف" }, "default": "100" }
+    { "key": "target", "type": "number", "label": { "en": "Target", "ar": "الهدف" }, "default": "33" }
   ],
   "layers": [
-    { "type": "text", "value": "{{field.dhikr}}", "font": { "family": "arabic", "size": 14, "weight": "semibold" }, "color": "@fg", "frame": { "x": 16, "y": 14, "w": 138, "h": 22 }, "mirror": true },
+    { "type": "text", "value": "{{counter.dhikr}}", "font": { "family": "arabic", "size": 14, "weight": "semibold" }, "color": "@fg", "frame": { "x": 16, "y": 12, "w": 104, "h": 26 }, "mirror": true },
+    { "type": "shape", "kind": "circle", "fill": "@dim", "frame": { "x": 126, "y": 8, "w": 32, "h": 32 }, "mirror": true },
+    { "type": "icon", "symbol": "arrow.triangle.2.circlepath", "size": 12, "color": "@fg", "frame": { "x": 126, "y": 8, "w": 32, "h": 32 }, "mirror": true },
+    { "type": "button", "action": "counter.next", "frame": { "x": 126, "y": 8, "w": 32, "h": 32 }, "mirror": true },
     { "type": "ring", "progress": "{{counter.progress}}", "color": "@fg", "trackColor": "@dim", "lineWidth": 5, "frame": { "x": 14, "y": 44, "w": 96, "h": 96 }, "mirror": true },
     { "type": "text", "value": "{{counter.value}}", "font": { "family": "dot", "size": 30, "weight": "bold" }, "color": "@fg", "align": "center", "frame": { "x": 14, "y": 74, "w": 96, "h": 36 }, "mirror": true },
     { "type": "shape", "kind": "circle", "fill": "@dim", "frame": { "x": 124, "y": 52, "w": 32, "h": 32 }, "mirror": true },
@@ -20,6 +22,6 @@
     { "type": "button", "action": "counter.reset", "frame": { "x": 124, "y": 52, "w": 32, "h": 32 }, "mirror": true },
     { "type": "shape", "kind": "circle", "fill": "@accent", "frame": { "x": 112, "y": 108, "w": 48, "h": 48 }, "mirror": true },
     { "type": "icon", "symbol": "plus", "size": 20, "color": "@onAccent", "frame": { "x": 112, "y": 108, "w": 48, "h": 48 }, "mirror": true },
-    { "type": "button", "action": "counter.increment", "frame": { "x": 112, "y": 108, "w": 48, "h": 48 }, "mirror": true }
+    { "type": "button", "action": "counter.increment", "arg": "{{field.target}}", "frame": { "x": 112, "y": 108, "w": 48, "h": 48 }, "mirror": true }
   ]
 }

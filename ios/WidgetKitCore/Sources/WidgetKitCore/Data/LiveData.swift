@@ -99,7 +99,8 @@ public enum LiveData {
             data.sleepWeek = health.sleepWeek(now: now, calendar: calendar)
         }
         data.batteryLevel = inputs.battery
-        data.counter = Double(inputs.counter.value)
+        data.counter = Double(inputs.counter.count(in: inputs.settings.dhikrList))
+        data.dhikr = inputs.counter.dhikr(in: inputs.settings.dhikrList)
         data.stopwatchStart = inputs.stopwatch.start
         data.focusToday = HealthSummary.duration(minutes: inputs.stopwatch.minutes(on: now, now: now, calendar: calendar))
         data.focusWeek = inputs.stopwatch.week(now: now, calendar: calendar)

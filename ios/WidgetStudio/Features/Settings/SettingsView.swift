@@ -58,6 +58,20 @@ struct SettingsView: View {
                 }
                 .accessibilityIdentifier("ax.settings.stepGoal")
             }
+            Section {
+                Toggle("tasbeeh.autoAdvance", isOn: binding(\.tasbeehAutoAdvance))
+                    .accessibilityIdentifier("ax.settings.autoAdvance")
+                NavigationLink {
+                    DhikrListView()
+                } label: {
+                    LabeledContent("tasbeeh.list", value: "\(live.settings.dhikrList.count)")
+                }
+                .accessibilityIdentifier("ax.settings.dhikrs")
+            } header: {
+                Text("tasbeeh.title")
+            } footer: {
+                Text(designs.isShared ? "tasbeeh.footer" : "tasbeeh.footer.storeMode")
+            }
             permissionsSection
             Section {
                 NavigationLink("settings.shortcuts.guide") { ShortcutGuideView() }

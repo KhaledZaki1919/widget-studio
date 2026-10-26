@@ -1,26 +1,67 @@
 import Foundation
 
 /// The tasbeeh counter (ADR-016), kept by whoever runs the button: the widget extension (in its
-/// own container, no App Group needed) or the app.
+/// own container, no App Group needed) or the app. It cycles through a dhikr list with a separate
+/// count per dhikr (M4 feedback); the list comes from `AppSettings.dhikrs` (the default list in
+/// store mode, where the widget can't see the app's settings).
 public struct CounterState: Codable, Sendable, Equatable {
-    public var value: Int = 0
+    public static let defaultDhikrs = ["سبحان الله", "الحمد لله", "الله أكبر", "لا إله إلا الله"]
+
+    /// Count per dhikr text; a reset removes the entry.
+    public var counts: [String: Int] = [:]
+    /// The current dhikr's position in the list (wrapped to the list's length).
+    public var index: Int = 0
     public var updated: Date = .distantPast
 
     public static let cacheName = "counter"
 
+    /// `value` is the first default dhikr's count (M4 files before the dhikr list).
     public init(value: Int = 0, updated: Date = .distantPast) {
-        self.value = value
+        if value > 0 { counts[Self.defaultDhikrs[0]] = value }
         self.updated = updated
     }
 
-    public mutating func increment(now: Date = .now) {
-        value += 1
+    /// The current dhikr's count in the default list.
+    public var value: Int { count(in: Self.defaultDhikrs) }
+
+    public func dhikr(in list: [String]) -> String {
+        let list = Self.usable(list)
+        return list[((index % list.count) + list.count) % list.count]
+    }
+
+    public func count(in list: [String]) -> Int {
+        counts[dhikr(in: list)] ?? 0
+    }
+
+    /// +1 for the current dhikr. With `autoAdvance`, a tap after the current dhikr reached
+    /// `target` moves to the next dhikr (starting it from 0) and counts there, so the full ring
+    /// stays visible until then.
+    public mutating func increment(list: [String] = defaultDhikrs, target: Int? = nil, autoAdvance: Bool = false,
+                                   now: Date = .now) {
+        if autoAdvance, let target, target > 0, count(in: list) >= target {
+            index = (index + 1) % Self.usable(list).count
+            counts[dhikr(in: list)] = nil
+        }
+        counts[dhikr(in: list), default: 0] += 1
         updated = now
     }
 
-    public mutating func reset(now: Date = .now) {
-        value = 0
+    /// The next dhikr in the list; counts stay.
+    public mutating func next(list: [String] = defaultDhikrs, now: Date = .now) {
+        index = (index + 1) % Self.usable(list).count
         updated = now
+    }
+
+    /// Resets the current dhikr only.
+    public mutating func reset(list: [String] = defaultDhikrs, now: Date = .now) {
+        counts[dhikr(in: list)] = nil
+        updated = now
+    }
+
+    /// The list without blank entries; the default list when nothing is left.
+    public static func usable(_ list: [String]) -> [String] {
+        let cleaned = list.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        return cleaned.isEmpty ? defaultDhikrs : cleaned
     }
 
     public static func load(_ cache: DataCache = DataCache()) -> CounterState {
@@ -29,6 +70,28 @@ public struct CounterState: Codable, Sendable, Equatable {
 
     public func save(_ cache: DataCache = DataCache()) throws {
         try cache.write(self, Self.cacheName)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case counts, index, updated, value
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        updated = (try? container.decode(Date.self, forKey: .updated)) ?? .distantPast
+        index = (try? container.decode(Int.self, forKey: .index)) ?? 0
+        if let counts = try? container.decode([String: Int].self, forKey: .counts) {
+            self.counts = counts
+        } else if let value = try? container.decode(Int.self, forKey: .value), value > 0 {
+            counts = [Self.defaultDhikrs[0]: value]
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(counts, forKey: .counts)
+        try container.encode(index, forKey: .index)
+        try container.encode(updated, forKey: .updated)
     }
 }
 

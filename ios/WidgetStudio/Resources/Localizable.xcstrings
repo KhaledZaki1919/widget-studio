@@ -2958,6 +2958,159 @@
           }
         }
       }
+    },
+    "tasbeeh.add": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إضافة ذكر"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a dhikr"
+          }
+        }
+      }
+    },
+    "tasbeeh.autoAdvance": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الانتقال للذكر التالي بعد الهدف"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move to the next dhikr after the target"
+          }
+        }
+      }
+    },
+    "tasbeeh.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "زر ⟳ في الودجت ينتقل بين الأذكار، ولكل ذكر عدّاده. الهدف من حقل «الهدف» في القالب (٣٣)."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The ⟳ button in the widget moves between the dhikrs; each keeps its own count. The target comes from the template's Target field (33)."
+          }
+        }
+      }
+    },
+    "tasbeeh.footer.storeMode": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "زر ⟳ في الودجت ينتقل بين الأذكار، ولكل ذكر عدّاده، والانتقال بعد ٣٣ مفعّل. في هذه النسخة يستخدم الودجت القائمة الافتراضية؛ تعديل القائمة يصل إليه في وضع المطوّر أو نسخة App Store."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The ⟳ button in the widget moves between the dhikrs; each keeps its own count, and moving on after 33 is on. In this version the widget uses the default list; your edited list reaches it in developer mode or the App Store version."
+          }
+        }
+      }
+    },
+    "tasbeeh.list": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "قائمة الأذكار"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dhikr list"
+          }
+        }
+      }
+    },
+    "tasbeeh.list.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اسحب لإعادة الترتيب أو للحذف."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag to reorder, swipe to delete."
+          }
+        }
+      }
+    },
+    "tasbeeh.placeholder": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الذكر"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dhikr"
+          }
+        }
+      }
+    },
+    "tasbeeh.restore": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استعادة القائمة الافتراضية"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore the default list"
+          }
+        }
+      }
+    },
+    "tasbeeh.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "السبحة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasbeeh"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

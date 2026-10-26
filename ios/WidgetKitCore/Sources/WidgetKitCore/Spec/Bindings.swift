@@ -31,7 +31,7 @@ public enum Bindings {
         "sleep.lastNight": (.text, .health), "sleep.week": (.levels, .health),
         "counter.value": (.number, .app), "stopwatch.running": (.text, .app), "stopwatch.start": (.date, .app),
         // ADR-011: counter / the spec's `target` number field, 0…1.
-        "counter.progress": (.number, .app),
+        "counter.progress": (.number, .app), "counter.dhikr": (.text, .app),
         "focus.today": (.text, .app), "focus.week": (.levels, .app),
         "prayer.next.name": (.text, .prayer), "prayer.next.time": (.date, .prayer),
         // ADR-011: fajr | dhuhr | asr | maghrib | isha, for `when` conditions.

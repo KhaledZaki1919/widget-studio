@@ -86,6 +86,23 @@
         }
       }
     },
+    "widget.intent.counter.next": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الذكر التالي"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next dhikr"
+          }
+        }
+      }
+    },
     "widget.intent.counter.reset": {
       "extractionState": "manual",
       "localizations": {
@@ -99,6 +116,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Reset counter"
+          }
+        }
+      }
+    },
+    "widget.intent.counter.target": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الهدف"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Target"
           }
         }
       }

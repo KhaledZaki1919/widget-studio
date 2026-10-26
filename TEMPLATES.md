@@ -62,7 +62,7 @@
 ### Counters
 | id | name | family | Layout | Data |
 |---|---|---|---|---|
-| `mono.counter.tasbeeh` | Tasbeeh / سبحة | small | White card: label (editable, default "سبحان الله"), big `dot` count, red round "+" button bottom-right, small reset button | `counter.value`, `counter.increment`, `counter.reset`, field `target` (ring fills toward it) |
+| `mono.counter.tasbeeh` | Tasbeeh / سبحة | small | White card: current dhikr, next-dhikr button, big `dot` count in a ring, red round "+" button bottom-right, small reset button | `counter.dhikr`, `counter.value`, `counter.progress`, `counter.increment` (arg `{{field.target}}` for auto-advance), `counter.next`, `counter.reset`, field `target` (default 33) |
 
 ### Photo
 | id | name | family | Ref | Layout |

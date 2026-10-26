@@ -426,7 +426,7 @@ private struct Check {
                 fail("\(path).arg", "must be {{field.<key>}} of a \(required.rawValue) field")
                 return
             }
-        case .counterIncrement, .counterReset, .stopwatchToggle, .openApp:
+        case .counterIncrement, .counterReset, .counterNext, .stopwatchToggle, .openApp:
             if let arg = button.arg, !arg.isEmpty { text(path: "\(path).arg", arg) }
         }
     }
