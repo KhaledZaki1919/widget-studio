@@ -181,17 +181,9 @@ public enum WidgetPrompt {
             for key in ["schemaVersion", "id", "category", "refresh"] { object[key] = nil }
             current = .object(object)
         }
-        let text = review
-            + "
-
-<original_task>
-" + userText(options: options, imageWidth: image.width, imageHeight: image.height) + "
-</original_task>"
-            + "
-
-<current_spec>
-" + current.jsonString() + "
-</current_spec>"
+        let task = userText(options: options, imageWidth: image.width, imageHeight: image.height)
+        let text = review + "\n\n<original_task>\n" + task + "\n</original_task>\n\n<current_spec>\n"
+            + current.jsonString() + "\n</current_spec>"
         return AIRequest(
             system: system,
             userText: text,
@@ -364,7 +356,7 @@ public enum AIWidgetParser {
     public static func differences(in text: String) -> [String] {
         guard let data = StructuredAI.extractJSON(text),
               case .array(let items)? = (try? JSONDecoder().decode(JSONValue.self, from: data))?["differences"] else { return [] }
-        return items.compactMap(.stringValue)
+        return items.compactMap { $0.stringValue }
     }
 
     /// Minimum `fg`/`bg` contrast accepted (WCAG AA for large text; the prompt asks for 4.5).
