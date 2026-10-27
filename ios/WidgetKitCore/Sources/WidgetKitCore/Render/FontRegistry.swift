@@ -78,10 +78,10 @@ public enum FontRegistry {
         default: break
         }
         switch weight {
-        case .ultraLight, .thin, .light, .regular: "IBMPlexSansArabic-Regular"
-        case .medium: "IBMPlexSansArabic-Medium"
-        case .semibold: "IBMPlexSansArabic-SemiBold"
-        case .bold, .heavy, .black: "IBMPlexSansArabic-Bold"
+        case .ultraLight, .thin, .light, .regular: return "IBMPlexSansArabic-Regular"
+        case .medium: return "IBMPlexSansArabic-Medium"
+        case .semibold: return "IBMPlexSansArabic-SemiBold"
+        case .bold, .heavy, .black: return "IBMPlexSansArabic-Bold"
         }
     }
 }
