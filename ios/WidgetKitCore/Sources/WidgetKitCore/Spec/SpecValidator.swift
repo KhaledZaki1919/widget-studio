@@ -407,6 +407,41 @@ private struct Check {
         case .forecastRow(let row):
             count("\(path).days", row.days, in: 1...7)
             color("\(path).color", row.color)
+        case .calendarMonth(let calendar):
+            font(calendar.font, path: "\(path).font")
+            font(calendar.effectiveTitleFont, path: "\(path).titleFont")
+            font(calendar.effectiveWeekdayFont, path: "\(path).weekdayFont")
+            for (key, value) in [("color", calendar.color), ("titleColor", calendar.titleColor), ("weekdayColor", calendar.weekdayColor),
+                                 ("weekendColor", calendar.weekendColor), ("todayColor", calendar.todayColor),
+                                 ("todayTextColor", calendar.todayTextColor)] {
+                color("\(path).\(key)", value)
+            }
+            for (index, day) in (calendar.weekendDays ?? []).enumerated()
+            where !CalendarMonthLayer.weekdayKeys.contains(day.lowercased()) {
+                fail("\(path).weekendDays[\(index)]", "use \(CalendarMonthLayer.weekdayKeys.joined(separator: ", "))")
+            }
+        case .list(let list):
+            count("\(path).items", list.items.count, in: 1...ListLayer.maxItems)
+            font(list.font, path: "\(path).font")
+            for (key, value) in [("color", list.color), ("detailColor", list.detailColor), ("markerColor", list.markerColor),
+                                 ("dividerColor", list.dividerColor)] {
+                color("\(path).\(key)", value)
+            }
+            for (index, item) in list.items.enumerated() {
+                let itemPath = "\(path).items[\(index)]"
+                for value in item.title.allValues { text(path: "\(itemPath).title", value) }
+                for value in item.detail?.allValues ?? [] { text(path: "\(itemPath).detail", value) }
+                if let icon = item.icon, !Icons.isAllowed(icon) { fail("\(itemPath).icon", "\"\(icon)\" is not in the icon whitelist") }
+                color("\(itemPath).color", item.color)
+            }
+        case .progressBar(let bar):
+            bindingOrLiteral(path: "\(path).progress", bar.progress, kinds: [.number]) { value in
+                Double(value).map { (0...1).contains($0) } ?? false
+            }
+            color("\(path).color", bar.color)
+            color("\(path).trackColor", bar.trackColor)
+            if let segments = bar.segments { count("\(path).segments", segments, in: 1...20) }
+            number("\(path).cornerRadius", bar.cornerRadius, in: 0...200)
         case .button(let button):
             checkButton(button, path: path)
         }
@@ -416,13 +451,7 @@ private struct Check {
         for value in text.value.allValues {
             self.text(path: "\(path).value", value)
         }
-        if !FontRegistry.families.contains(text.font.family) {
-            fail("\(path).font.family", "unknown font \"\(text.font.family)\"; use \(FontRegistry.families.joined(separator: ", "))")
-        }
-        number("\(path).font.size", text.font.size, in: SpecValidator.fontSizes)
-        if mode == .ai, text.font.size < SpecValidator.minAIFontSize {
-            fail("\(path).font.size", "at least \(Int(SpecValidator.minAIFontSize))")
-        }
+        font(text.font, path: "\(path).font")
         color("\(path).color", text.color)
         if let lines = text.maxLines { count("\(path).maxLines", lines, in: 1...10) }
         number("\(path).tracking", text.tracking, in: -10...40)
@@ -437,6 +466,17 @@ private struct Check {
                 }
                 binding(path: "\(path).live.target", raw, expecting: [.date])
             }
+        }
+    }
+
+    /// A font from the registry, in range; at least 11 pt in AI output.
+    mutating func font(_ font: FontSpec, path: String) {
+        if !FontRegistry.families.contains(font.family) {
+            fail("\(path).family", "unknown font \"\(font.family)\"; use \(FontRegistry.families.joined(separator: ", "))")
+        }
+        number("\(path).size", font.size, in: SpecValidator.fontSizes)
+        if mode == .ai, font.size < SpecValidator.minAIFontSize {
+            fail("\(path).size", "at least \(Int(SpecValidator.minAIFontSize))")
         }
     }
 

@@ -47,6 +47,9 @@ public struct Layer: Codable, Sendable, Equatable {
         case "ring": content = .ring(try RingLayer(from: decoder))
         case "forecastRow": content = .forecastRow(try ForecastRowLayer(from: decoder))
         case "button": content = .button(try ButtonLayer(from: decoder))
+        case "calendarMonth": content = .calendarMonth(try CalendarMonthLayer(from: decoder))
+        case "list": content = .list(try ListLayer(from: decoder))
+        case "progressBar": content = .progressBar(try ProgressBarLayer(from: decoder))
         default: content = .unknown(type)
         }
     }
@@ -70,6 +73,9 @@ public struct Layer: Codable, Sendable, Equatable {
         case .ring(let layer): try layer.encode(to: encoder)
         case .forecastRow(let layer): try layer.encode(to: encoder)
         case .button(let layer): try layer.encode(to: encoder)
+        case .calendarMonth(let layer): try layer.encode(to: encoder)
+        case .list(let layer): try layer.encode(to: encoder)
+        case .progressBar(let layer): try layer.encode(to: encoder)
         case .unknown: break
         }
     }
@@ -96,12 +102,17 @@ public enum LayerContent: Sendable, Equatable {
     case ring(RingLayer)
     case forecastRow(ForecastRowLayer)
     case button(ButtonLayer)
+    /// ADR-019: a month calendar, rows of text, a progress bar.
+    case calendarMonth(CalendarMonthLayer)
+    case list(ListLayer)
+    case progressBar(ProgressBarLayer)
     /// A `type` this app doesn't know; always a validation error.
     case unknown(String)
 
     /// The layer types of schema v1, as written in JSON.
     public static let knownTypes = [
         "text", "image", "shape", "icon", "analogClock", "dotGrid", "dotBars", "ring", "forecastRow", "button",
+        "calendarMonth", "list", "progressBar",
     ]
 
     public var typeName: String {
@@ -116,6 +127,9 @@ public enum LayerContent: Sendable, Equatable {
         case .ring: "ring"
         case .forecastRow: "forecastRow"
         case .button: "button"
+        case .calendarMonth: "calendarMonth"
+        case .list: "list"
+        case .progressBar: "progressBar"
         case .unknown(let type): type
         }
     }

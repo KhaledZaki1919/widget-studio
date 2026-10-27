@@ -31,7 +31,10 @@ public enum DataRequirements {
             case .forecastRow: break
             case .analogClock(let clock): strings += [clock.timezone].compactMap { $0 }
             case .button(let button): strings += [button.arg].compactMap { $0 }
-            case .image, .shape, .unknown: break
+            case .list(let list):
+                strings += list.items.flatMap { $0.title.allValues + ($0.detail?.allValues ?? []) }
+            case .progressBar(let bar): strings.append(bar.progress)
+            case .image, .shape, .calendarMonth, .unknown: break
             }
         }
         return strings.flatMap(Bindings.names(in:))

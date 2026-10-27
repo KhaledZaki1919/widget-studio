@@ -3,9 +3,9 @@ import Testing
 @testable import WidgetKitCore
 
 struct TestSpecsTests {
-    @Test func allTenTestSpecsAreValid() {
+    @Test func allTestSpecsAreValid() {
         let entries = TestSpecs.load()
-        #expect(entries.count == 10)
+        #expect(entries.count == 11)
         for entry in entries {
             if case .failure(let failure) = entry.result {
                 Issue.record("\(entry.fileName): \(failure.description)")
@@ -37,8 +37,12 @@ struct TestSpecsTests {
         }
         #expect(enumValues(layer["type"]) == LayerContent.knownTypes)
         #expect(enumValues(layer["action"]) == ButtonLayer.Action.allCases.map(\.rawValue))
-        let font = try #require((layer["font"] as? [String: Any])?["properties"] as? [String: Any])
+        let font = try #require((defs["font"] as? [String: Any])?["properties"] as? [String: Any])
         #expect(enumValues(font["family"]) == FontRegistry.families)
+        // ADR-019 layers.
+        #expect(enumValues(layer["todayStyle"]) == CalendarMonthLayer.TodayStyle.allCases.map(\.rawValue))
+        #expect(enumValues(layer["titleFormat"]) == CalendarMonthLayer.TitleFormat.allCases.map(\.rawValue))
+        #expect(enumValues(layer["marker"]) == ListLayer.Marker.allCases.map(\.rawValue))
     }
 
     @Test func everyBindingResolvesWithSampleData() {

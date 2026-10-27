@@ -140,6 +140,10 @@ struct LayerView: View {
         case .ring(let ring): RingView(layer: ring, progress: resolver.number(ring.progress) ?? 0, scale: scale)
         case .forecastRow(let row): ForecastRowView(layer: row, resolver: resolver, scale: scale, mirrored: mirrored)
         case .button(let button): ButtonLayerView(layer: button, resolver: resolver)
+        case .calendarMonth(let calendar): CalendarMonthView(layer: calendar, resolver: resolver, scale: scale, mirrored: mirrored)
+        case .list(let list): ListLayerView(layer: list, resolver: resolver, scale: scale, mirrored: mirrored)
+        case .progressBar(let bar):
+            ProgressBarView(layer: bar, progress: resolver.number(bar.progress) ?? 0, scale: scale, mirrored: mirrored)
         case .unknown: Color.clear
         }
     }

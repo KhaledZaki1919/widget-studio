@@ -55,6 +55,15 @@
         { "$ref": "#/$defs/localizedPair" }
       ]
     },
+    "font": {
+      "type": "object",
+      "required": ["family", "size"],
+      "properties": {
+        "family": { "type": "string", "enum": ["system", "system-rounded", "system-serif", "system-mono", "dot", "arabic", "hand", "serif-display", "condensed"] },
+        "size": { "type": "number", "minimum": 6, "maximum": 200 },
+        "weight": { "type": "string", "enum": ["ultraLight", "thin", "light", "regular", "medium", "semibold", "bold", "heavy", "black"] }
+      }
+    },
     "frame": {
       "type": "object",
       "required": ["x", "y", "w", "h"],
@@ -69,7 +78,7 @@
       "type": "object",
       "required": ["type", "frame"],
       "properties": {
-        "type": { "type": "string", "enum": ["text", "image", "shape", "icon", "analogClock", "dotGrid", "dotBars", "ring", "forecastRow", "button"] },
+        "type": { "type": "string", "enum": ["text", "image", "shape", "icon", "analogClock", "dotGrid", "dotBars", "ring", "forecastRow", "button", "calendarMonth", "list", "progressBar"] },
         "frame": { "$ref": "#/$defs/frame" },
         "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
         "mirror": { "type": "boolean" },
@@ -77,15 +86,7 @@
         "rotation": { "type": ["number", "string"], "description": "Degrees clockwise or a number binding" },
         "highlightColor": { "$ref": "#/$defs/color" },
         "value": { "$ref": "#/$defs/text" },
-        "font": {
-          "type": "object",
-          "required": ["family", "size"],
-          "properties": {
-            "family": { "type": "string", "enum": ["system", "system-rounded", "system-serif", "system-mono", "dot", "arabic"] },
-            "size": { "type": "number", "minimum": 6, "maximum": 200 },
-            "weight": { "type": "string", "enum": ["ultraLight", "thin", "light", "regular", "medium", "semibold", "bold", "heavy", "black"] }
-          }
-        },
+        "font": { "$ref": "#/$defs/font" },
         "color": { "$ref": "#/$defs/color" },
         "align": { "type": "string", "enum": ["leading", "center", "trailing"] },
         "maxLines": { "type": "integer", "minimum": 1, "maximum": 10 },
@@ -138,7 +139,42 @@
         "lineWidth": { "type": "number", "minimum": 0.5, "maximum": 60 },
         "days": { "type": "integer", "minimum": 1, "maximum": 7 },
         "action": { "type": "string", "enum": ["counter.increment", "counter.reset", "counter.next", "stopwatch.toggle", "shortcut.run", "open.url", "open.app"] },
-        "arg": { "type": "string" }
+        "arg": { "type": "string" },
+        "titleFormat": { "type": "string", "enum": ["none", "MMM", "MMMM", "MMM yyyy", "MMMM yyyy"] },
+        "titleCase": { "type": "string", "enum": ["upper", "lower", "natural"] },
+        "titleFont": { "$ref": "#/$defs/font" },
+        "titleColor": { "$ref": "#/$defs/color" },
+        "titleAlign": { "type": "string", "enum": ["leading", "center", "trailing"] },
+        "weekdays": { "type": "string", "enum": ["none", "narrow", "short"] },
+        "weekdayFont": { "$ref": "#/$defs/font" },
+        "weekdayColor": { "$ref": "#/$defs/color" },
+        "weekStart": { "type": "string", "enum": ["locale", "saturday", "sunday", "monday"] },
+        "weekendDays": { "type": "array", "items": { "type": "string", "enum": ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] }, "maxItems": 7 },
+        "weekendColor": { "$ref": "#/$defs/color" },
+        "todayStyle": { "type": "string", "enum": ["filled", "circle", "ring", "dot", "none"] },
+        "todayColor": { "$ref": "#/$defs/color" },
+        "todayTextColor": { "$ref": "#/$defs/color" },
+        "otherDays": { "type": "string", "enum": ["hidden", "dimmed"] },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "required": ["title"],
+            "properties": {
+              "title": { "$ref": "#/$defs/text" },
+              "detail": { "$ref": "#/$defs/text" },
+              "icon": { "type": "string" },
+              "color": { "$ref": "#/$defs/color" }
+            }
+          }
+        },
+        "detailColor": { "$ref": "#/$defs/color" },
+        "marker": { "type": "string", "enum": ["none", "dot", "circle", "check", "icon", "bar"] },
+        "markerColor": { "$ref": "#/$defs/color" },
+        "dividerColor": { "$ref": "#/$defs/color" },
+        "segments": { "type": "integer", "minimum": 1, "maximum": 20 }
       }
     }
   }

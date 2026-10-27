@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "test.calendar.list",
+  "name": { "en": "Calendar & list", "ar": "تقويم وقائمة" },
+  "family": "large",
+  "theme": "light",
+  "refresh": "daily",
+  "background": { "type": "solid", "color": "#CFE3F5" },
+  "layers": [
+    { "type": "calendarMonth", "frame": { "x": 14, "y": 12, "w": 210, "h": 206 }, "mirror": true,
+      "font": { "family": "hand", "size": 13 }, "color": "#1C1C1E",
+      "titleFormat": "MMM", "titleCase": "upper", "titleFont": { "family": "hand", "size": 24, "weight": "bold" },
+      "weekStart": "monday", "weekendDays": ["sun"], "weekendColor": "#E0443A",
+      "todayStyle": "filled", "todayColor": "#1C1C1E", "todayTextColor": "#FFFFFF" },
+    { "type": "list", "frame": { "x": 234, "y": 30, "w": 118, "h": 180 }, "mirror": true,
+      "items": [
+        { "title": { "en": "Fajr", "ar": "الفجر" }, "detail": "{{prayer.fajr}}" },
+        { "title": { "en": "Dhuhr", "ar": "الظهر" }, "detail": "{{prayer.dhuhr}}" },
+        { "title": { "en": "Asr", "ar": "العصر" }, "detail": "{{prayer.asr}}" },
+        { "title": { "en": "Maghrib", "ar": "المغرب" }, "detail": "{{prayer.maghrib}}" },
+        { "title": { "en": "Isha", "ar": "العشاء" }, "detail": "{{prayer.isha}}" }
+      ],
+      "font": { "family": "system", "size": 12, "weight": "medium" }, "color": "#1C1C1E", "detailColor": "#6E6E73",
+      "marker": "dot", "markerColor": "#E0443A", "dividerColor": "#1C1C1E1A" },
+    { "type": "text", "frame": { "x": 16, "y": 234, "w": 200, "h": 22 }, "mirror": true,
+      "value": { "en": "BATTERY", "ar": "البطارية" }, "font": { "family": "condensed", "size": 20 }, "color": "#1C1C1E" },
+    { "type": "progressBar", "frame": { "x": 16, "y": 262, "w": 332, "h": 14 }, "mirror": true,
+      "progress": "{{battery.level}}", "color": "#1C1C1E", "trackColor": "#1C1C1E22" },
+    { "type": "progressBar", "frame": { "x": 16, "y": 288, "w": 332, "h": 12 }, "mirror": true,
+      "progress": "0.6", "color": "#E0443A", "segments": 10 },
+    { "type": "text", "frame": { "x": 16, "y": 318, "w": 332, "h": 44 }, "mirror": true, "align": "center",
+      "value": { "en": "Make today count", "ar": "اجعل يومك مميزًا" }, "font": { "family": "serif-display", "size": 26 }, "color": "#1C1C1E" }
+  ]
+}

@@ -194,6 +194,12 @@ public enum AIWidgetSchema {
     static let nullableNumber = JSONSchema.nullable(JSONSchema.number)
     static let frame = JSONSchema.object(["x": JSONSchema.number, "y": JSONSchema.number, "w": JSONSchema.number, "h": JSONSchema.number])
 
+    static let font = JSONSchema.object([
+        "family": JSONSchema.enumeration(FontRegistry.families),
+        "size": JSONSchema.number,
+        "weight": nullableEnum(FontWeightName.allCases.map(\.rawValue)),
+    ])
+
     static func nullableEnum(_ values: [String]) -> JSONValue {
         JSONSchema.nullable(JSONSchema.enumeration(values))
     }
@@ -212,11 +218,7 @@ public enum AIWidgetSchema {
         var shapes = [
             layer("text", [
                 "value": localized,
-                "font": JSONSchema.object([
-                    "family": JSONSchema.enumeration(FontRegistry.families),
-                    "size": JSONSchema.number,
-                    "weight": nullableEnum(FontWeightName.allCases.map(\.rawValue)),
-                ]),
+                "font": font,
                 "color": JSONSchema.string,
                 "align": nullableEnum(TextAlign.allCases.map(\.rawValue)),
                 "maxLines": JSONSchema.nullable(JSONSchema.integer),
@@ -257,6 +259,36 @@ public enum AIWidgetSchema {
             ]),
             layer("forecastRow", ["days": JSONSchema.integer, "color": JSONSchema.string]),
             layer("button", ["action": JSONSchema.enumeration([ButtonLayer.Action.openApp.rawValue])]),
+            // ADR-019.
+            layer("calendarMonth", [
+                "font": font, "color": JSONSchema.string,
+                "titleFormat": nullableEnum(CalendarMonthLayer.TitleFormat.allCases.map(\.rawValue)),
+                "titleCase": nullableEnum(CalendarMonthLayer.TitleCase.allCases.map(\.rawValue)),
+                "titleFont": JSONSchema.nullable(font), "titleColor": nullableString,
+                "titleAlign": nullableEnum(TextAlign.allCases.map(\.rawValue)),
+                "weekdays": nullableEnum(CalendarMonthLayer.WeekdayStyle.allCases.map(\.rawValue)),
+                "weekdayFont": JSONSchema.nullable(font), "weekdayColor": nullableString,
+                "weekStart": nullableEnum(CalendarMonthLayer.WeekStart.allCases.map(\.rawValue)),
+                "weekendDays": JSONSchema.nullable(JSONSchema.array(JSONSchema.enumeration(CalendarMonthLayer.weekdayKeys))),
+                "weekendColor": nullableString,
+                "todayStyle": nullableEnum(CalendarMonthLayer.TodayStyle.allCases.map(\.rawValue)),
+                "todayColor": nullableString, "todayTextColor": nullableString,
+                "otherDays": nullableEnum(CalendarMonthLayer.OtherDays.allCases.map(\.rawValue)),
+            ]),
+            layer("list", [
+                "items": JSONSchema.array(JSONSchema.object([
+                    "title": localized, "detail": JSONSchema.nullable(localized),
+                    "icon": JSONSchema.nullable(JSONSchema.enumeration(Icons.whitelist.keys.sorted())),
+                    "color": nullableString,
+                ])),
+                "font": font, "color": JSONSchema.string, "detailColor": nullableString,
+                "marker": nullableEnum(ListLayer.Marker.allCases.map(\.rawValue)),
+                "markerColor": nullableString, "dividerColor": nullableString,
+            ]),
+            layer("progressBar", [
+                "progress": JSONSchema.string, "color": JSONSchema.string, "trackColor": nullableString,
+                "segments": JSONSchema.nullable(JSONSchema.integer), "cornerRadius": nullableNumber,
+            ]),
         ]
         if mode == .photo {
             shapes.append(layer("image", [
@@ -340,29 +372,18 @@ public enum AIWidgetParser {
 
     /// Minute for clocks, hourly for other live data, daily for dates, none otherwise.
     static func refresh(for spec: WidgetSpec) -> RefreshPolicy {
-        var names: [String] = []
-        var hasClock = false
-        for layer in spec.layers {
+        let names = DataRequirements.bindingNames(in: spec).map { $0.trimmingCharacters(in: .whitespaces) }
+        let hasClock = spec.layers.contains { layer in
             switch layer.content {
-            case .text(let text):
-                text.value.allValues.forEach { names += Bindings.names(in: $0) }
-                if text.live?.kind == .time { hasClock = true }
-            case .analogClock:
-                hasClock = true
-            case .ring(let ring):
-                names += Bindings.names(in: ring.progress)
-            case .dotGrid(let grid):
-                names += Bindings.names(in: grid.values)
-            case .icon(let icon):
-                names += Bindings.names(in: icon.symbol)
-            default:
-                break
+            case .analogClock: true
+            case .text(let text): text.live?.kind == .time
+            default: false
             }
         }
-        let trimmed = names.map { $0.trimmingCharacters(in: .whitespaces) }
-        if hasClock || trimmed.contains(where: { $0.hasPrefix("time.") }) { return .minute }
-        if trimmed.contains(where: { !$0.hasPrefix("date.") && !$0.hasPrefix("field.") }) { return .hourly }
-        if trimmed.contains(where: { $0.hasPrefix("date.") }) { return .daily }
+        let hasCalendar = spec.layers.contains { if case .calendarMonth = $0.content { true } else { false } }
+        if hasClock || names.contains(where: { $0.hasPrefix("time.") }) { return .minute }
+        if names.contains(where: { !$0.hasPrefix("date.") && !$0.hasPrefix("field.") }) { return .hourly }
+        if hasCalendar || names.contains(where: { $0.hasPrefix("date.") }) { return .daily }
         return .none
     }
 

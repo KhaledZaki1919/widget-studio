@@ -73,7 +73,7 @@ targets:
         NSHealthShareUsageDescription: "يقرأ عدد الخطوات والنوم لعرضهما في الودجت."
         UIRequiredDeviceCapabilities: [arm64]
         WSAppGroup: group.com.khaled.widgetstudio
-        UIAppFonts: [Doto-Regular.ttf, Doto-Bold.ttf, Doto-Black.ttf, IBMPlexSansArabic-Regular.ttf, IBMPlexSansArabic-Medium.ttf, IBMPlexSansArabic-SemiBold.ttf, IBMPlexSansArabic-Bold.ttf]
+        UIAppFonts: [Doto-Regular.ttf, Doto-Bold.ttf, Doto-Black.ttf, IBMPlexSansArabic-Regular.ttf, IBMPlexSansArabic-Medium.ttf, IBMPlexSansArabic-SemiBold.ttf, IBMPlexSansArabic-Bold.ttf, PatrickHand-Regular.ttf, ArefRuqaa-Regular.ttf, ArefRuqaa-Bold.ttf, DMSerifDisplay-Regular.ttf, Amiri-Regular.ttf, Amiri-Bold.ttf, BebasNeue-Regular.ttf, Lalezar-Regular.ttf]
         # AltStore / SideStore register these and rewrite them to the real IDs (ADR-004).
         ALTAppGroups: [group.com.khaled.widgetstudio]
     settings:
@@ -106,7 +106,7 @@ targets:
       properties:
         CFBundleDisplayName: "Widget Studio"
         WSAppGroup: group.com.khaled.widgetstudio
-        UIAppFonts: [Doto-Regular.ttf, Doto-Bold.ttf, Doto-Black.ttf, IBMPlexSansArabic-Regular.ttf, IBMPlexSansArabic-Medium.ttf, IBMPlexSansArabic-SemiBold.ttf, IBMPlexSansArabic-Bold.ttf]
+        UIAppFonts: [Doto-Regular.ttf, Doto-Bold.ttf, Doto-Black.ttf, IBMPlexSansArabic-Regular.ttf, IBMPlexSansArabic-Medium.ttf, IBMPlexSansArabic-SemiBold.ttf, IBMPlexSansArabic-Bold.ttf, PatrickHand-Regular.ttf, ArefRuqaa-Regular.ttf, ArefRuqaa-Bold.ttf, DMSerifDisplay-Regular.ttf, Amiri-Regular.ttf, Amiri-Bold.ttf, BebasNeue-Regular.ttf, Lalezar-Regular.ttf]
         # AltStore / SideStore register these and rewrite them to the real IDs (ADR-004).
         ALTAppGroups: [group.com.khaled.widgetstudio]
         # Location inside the widget (brief §2), probed in Diagnostics (ADR-005).

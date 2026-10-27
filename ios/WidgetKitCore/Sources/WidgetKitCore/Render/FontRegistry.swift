@@ -1,19 +1,25 @@
 import Foundation
 import SwiftUI
 
-/// The fonts a spec may name (brief §4.6). `dot` is Doto and `arabic` is IBM Plex Sans Arabic,
-/// both OFL. Arabic text always uses `arabic`; `dot` is for Latin digits and letters only.
+/// The fonts a spec may name (brief §4.6, ADR-019). `dot` is Doto and `arabic` is IBM Plex Sans
+/// Arabic; `hand` (Patrick Hand), `serif-display` (DM Serif Display) and `condensed` (Bebas Neue)
+/// are Latin display faces. All OFL. Arabic text switches to an Arabic face: Aref Ruqaa for
+/// `hand`, Amiri for `serif-display`, Lalezar for `condensed`, IBM Plex Sans Arabic otherwise.
 ///
 /// The font files live in `ios/Fonts`, are bundled in the app and the widget extension, and are
 /// declared in each target's `UIAppFonts` (ADR-010). Fonts are referenced by PostScript name
 /// only: widgets can't use fonts registered at runtime or built with CoreText variations.
 public enum FontRegistry {
-    public static let families = ["system", "system-rounded", "system-serif", "system-mono", "dot", "arabic"]
+    public static let families = [
+        "system", "system-rounded", "system-serif", "system-mono", "dot", "arabic", "hand", "serif-display", "condensed",
+    ]
 
     /// Every PostScript name the targets must provide through `UIAppFonts`.
     public static let bundledPostScriptNames = [
         "Doto-Regular", "Doto-Bold", "Doto-Black",
         "IBMPlexSansArabic-Regular", "IBMPlexSansArabic-Medium", "IBMPlexSansArabic-SemiBold", "IBMPlexSansArabic-Bold",
+        "PatrickHand-Regular", "ArefRuqaa-Regular", "ArefRuqaa-Bold", "DMSerifDisplay-Regular", "Amiri-Regular", "Amiri-Bold",
+        "BebasNeue-Regular", "Lalezar-Regular",
     ]
 
     /// True when `text` has Arabic letters, which switch any family to `arabic`.
@@ -34,7 +40,13 @@ public enum FontRegistry {
         case "dot":
             return Font.custom(dotPostScriptName(weight), fixedSize: size)
         case "arabic":
-            return Font.custom(arabicPostScriptName(weight), fixedSize: size)
+            return Font.custom(arabicPostScriptName(weight, family: spec.family), fixedSize: size)
+        case "hand":
+            return Font.custom("PatrickHand-Regular", fixedSize: size)
+        case "serif-display":
+            return Font.custom("DMSerifDisplay-Regular", fixedSize: size)
+        case "condensed":
+            return Font.custom("BebasNeue-Regular", fixedSize: size)
         case "system-rounded":
             return .system(size: size, weight: weight.swiftUI, design: .rounded)
         case "system-serif":
@@ -55,8 +67,16 @@ public enum FontRegistry {
         }
     }
 
-    /// IBM Plex Sans Arabic ships four static weights.
-    static func arabicPostScriptName(_ weight: FontWeightName) -> String {
+    /// The Arabic face for a spec family: the display families have their own; everything else
+    /// uses IBM Plex Sans Arabic, which ships four static weights.
+    static func arabicPostScriptName(_ weight: FontWeightName, family: String = "arabic") -> String {
+        let bold = [.semibold, .bold, .heavy, .black].contains(weight)
+        switch family {
+        case "hand": return bold ? "ArefRuqaa-Bold" : "ArefRuqaa-Regular"
+        case "serif-display": return bold ? "Amiri-Bold" : "Amiri-Regular"
+        case "condensed": return "Lalezar-Regular"
+        default: break
+        }
         switch weight {
         case .ultraLight, .thin, .light, .regular: "IBMPlexSansArabic-Regular"
         case .medium: "IBMPlexSansArabic-Medium"
