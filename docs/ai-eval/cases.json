@@ -1,0 +1,12 @@
+[
+  { "file": "draw-calendar.png", "mode": "recreate", "size": "auto", "note": "Month calendar like the M5 device test: AUG, weekday row, Sundays red, today boxed, handwritten font" },
+  { "file": "draw-reminders.png", "mode": "recreate", "size": "auto", "note": "Reminders list: title, count, four rows with circles and times" },
+  { "file": "draw-quote.png", "mode": "recreate", "size": "auto", "note": "Quote card: serif italic quote, accent quote mark, author" },
+  { "file": "ref-forecast.png", "mode": "recreate", "size": "auto", "note": "Reference R4 C6-7: forecast, current temp, H/L, city, 6-day row" },
+  { "file": "ref-steps.png", "mode": "recreate", "size": "auto", "note": "Reference R1 C3: total steps and streak, dot font" },
+  { "file": "ref-analog.png", "mode": "recreate", "size": "auto", "note": "Reference R1 C7: analog clock" },
+  { "file": "ref-countdown.png", "mode": "recreate", "size": "auto", "note": "Reference R1 C8: red countdown card" },
+  { "file": "ref-bigdate.png", "mode": "recreate", "size": "auto", "note": "Reference R4 C8: big serif day number" },
+  { "file": "ref-dayzone.png", "mode": "recreate", "size": "auto", "note": "Reference R5 C4: weekday and GMT offset" },
+  { "file": "ref-photo.png", "mode": "photo", "size": "small", "note": "Reference R4 C3 photo: build a widget around it" }
+]
