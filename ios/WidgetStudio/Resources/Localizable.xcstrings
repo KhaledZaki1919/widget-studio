@@ -596,6 +596,40 @@
         }
       }
     },
+    "ai.highQuality": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جودة عالية (طلبان)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "High quality (2 requests)"
+          }
+        }
+      }
+    },
+    "ai.highQuality.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يرسم التطبيق النتيجة ويرسلها مع صورتك ليصحح النموذج الفروق مرة واحدة. أدق، لكنه يستخدم طلبين ووقتًا أطول. مُفعّل افتراضيًا للمفاتيح المدفوعة، ومُطفأ لـ Gemini لأن المفتاح المجاني حدوده ضيقة."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The app draws the result and sends it with your image so the model fixes the differences once. More accurate, but it uses two requests and takes longer. On by default for paid keys, off for Gemini because free keys have tight limits."
+          }
+        }
+      }
+    },
     "ai.key.delete": {
       "extractionState": "manual",
       "localizations": {
@@ -1833,6 +1867,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Try again"
+          }
+        }
+      }
+    },
+    "create.reviewing": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ مراجعة النتيجة…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking the result…"
+          }
+        }
+      }
+    },
+    "create.reviewing.detail": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يقارن النموذج ما رسمه التطبيق بصورتك ويصحح الفروق."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The model compares the app's drawing with your image and fixes the differences."
           }
         }
       }

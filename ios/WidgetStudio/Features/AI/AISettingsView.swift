@@ -188,10 +188,18 @@ struct AISettingsView: View {
                 }
             }
             .accessibilityIdentifier("ax.ai.model")
+            Toggle("ai.highQuality", isOn: Binding(
+                get: { settings.usesHighQuality(for: provider) },
+                set: { settings.highQuality[provider.rawValue] = $0 }
+            ))
+            .accessibilityIdentifier("ax.ai.highQuality")
         } header: {
             Text("ai.model.title")
         } footer: {
-            Text("ai.model.footer")
+            VStack(alignment: .leading, spacing: 6) {
+                Text("ai.model.footer")
+                Text("ai.highQuality.footer")
+            }
         }
     }
 

@@ -120,23 +120,29 @@ extension AIProviderKind {
     }
 }
 
-/// Provider, model per provider and upload consent per provider (UserDefaults; no secrets).
+/// Provider, model per provider, upload consent per provider and "High quality" per provider
+/// (UserDefaults; no secrets).
 public struct AISettings: Codable, Sendable, Equatable {
     public var provider: AIProviderKind
     public var models: [String: String]
     /// Providers the user agreed to send images to (brief §5 step 3); revocable in Settings.
     public var consented: [String]
+    /// "High quality (2 requests)" per provider: the self-review round (ADR-019). Unset = the
+    /// provider's default (`defaultHighQuality`).
+    public var highQuality: [String: Bool]
 
     public static let defaultsKey = "aiSettings"
 
     enum CodingKeys: String, CodingKey {
-        case provider, models, consented
+        case provider, models, consented, highQuality
     }
 
-    public init(provider: AIProviderKind = .gemini, models: [String: String] = [:], consented: [String] = []) {
+    public init(provider: AIProviderKind = .gemini, models: [String: String] = [:], consented: [String] = [],
+                highQuality: [String: Bool] = [:]) {
         self.provider = provider
         self.models = models
         self.consented = consented
+        self.highQuality = highQuality
     }
 
     public init(from decoder: Decoder) throws {
@@ -144,6 +150,7 @@ public struct AISettings: Codable, Sendable, Equatable {
         provider = (try? container.decode(AIProviderKind.self, forKey: .provider)) ?? .gemini
         models = (try? container.decode([String: String].self, forKey: .models)) ?? [:]
         consented = (try? container.decode([String].self, forKey: .consented)) ?? []
+        highQuality = (try? container.decode([String: Bool].self, forKey: .highQuality)) ?? [:]
     }
 
     public static func load(from defaults: UserDefaults = .standard) -> AISettings {
@@ -161,6 +168,15 @@ public struct AISettings: Codable, Sendable, Equatable {
     }
 
     public var model: String { model(for: provider) }
+
+    /// On for paid providers; off for Gemini, whose free keys have tight per-minute limits.
+    public static func defaultHighQuality(for provider: AIProviderKind) -> Bool {
+        provider != .gemini
+    }
+
+    public func usesHighQuality(for provider: AIProviderKind) -> Bool {
+        highQuality[provider.rawValue] ?? Self.defaultHighQuality(for: provider)
+    }
 
     public func hasConsent(for provider: AIProviderKind) -> Bool {
         consented.contains(provider.rawValue)

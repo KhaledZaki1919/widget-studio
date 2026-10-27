@@ -18,6 +18,7 @@ struct CreateFromImageView: View {
     @State private var task: Task<Void, Never>?
     @State private var askConsent = false
     @State private var settings = AISettings.load()
+    @State private var step: GenerationStep = .generating
 
     enum Phase {
         case setup
@@ -198,8 +199,8 @@ struct CreateFromImageView: View {
             }
             ProgressView()
                 .controlSize(.large)
-            Text("create.generating").font(.headline)
-            Text("create.generating.detail \(settings.provider.displayName)")
+            Text(step == .reviewing ? LocalizedStringKey("create.reviewing") : "create.generating").font(.headline)
+            Text(step == .reviewing ? LocalizedStringKey("create.reviewing.detail") : "create.generating.detail \(settings.provider.displayName)")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -279,9 +280,19 @@ struct CreateFromImageView: View {
         phase = .generating
         let options = options
         let language = language
+        step = .generating
+        // "High quality (2 requests)": render the result and let the model correct it once (ADR-019).
+        let photo = options.mode == .photo ? picked : nil
+        let review: SpecRenderer? = settings.usesHighQuality(for: settings.provider) ? { spec, colors in
+            await MainActor.run {
+                SpecSnapshot.render(spec, colors: colors, language: "en", userImage: photo).flatMap { AIImage.prepare(image: $0) }
+            }
+        } : nil
         task = Task {
             do {
-                let generated = try await WidgetGenerator(service: service).generate(image: prepared, options: options)
+                let generated = try await WidgetGenerator(service: service).generate(image: prepared, options: options, review: review) { next in
+                    Task { @MainActor in step = next }
+                }
                 let design = generated.design(language: language)
                 var photo: CGImage?
                 if options.mode == .photo, let slot = design.imageLayer {

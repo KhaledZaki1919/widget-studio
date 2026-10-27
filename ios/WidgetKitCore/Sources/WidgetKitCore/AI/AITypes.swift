@@ -68,7 +68,7 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable, Identifiabl
 
 /// What an AI request is for (diagnostics).
 public enum AIFeature: String, Codable, Sendable, CaseIterable {
-    case generateWidget, connectionTest
+    case generateWidget, reviewWidget, connectionTest
 }
 
 public struct AIRequest: Sendable, Equatable {

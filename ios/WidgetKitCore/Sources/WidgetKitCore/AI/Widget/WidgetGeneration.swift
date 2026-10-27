@@ -43,13 +43,21 @@ public struct GeneratedWidget: Sendable, Equatable {
     public let spec: WidgetSpec
     public let colors: [String: String]
     public let model: String
+    /// Provider calls that returned an answer, across both rounds.
     public let attempts: Int
+    /// The self-review round ran and its answer was used.
+    public let reviewed: Bool
+    /// What the review round said it fixed.
+    public let differences: [String]
 
-    public init(spec: WidgetSpec, colors: [String: String], model: String, attempts: Int) {
+    public init(spec: WidgetSpec, colors: [String: String], model: String, attempts: Int, reviewed: Bool = false,
+                differences: [String] = []) {
         self.spec = spec
         self.colors = colors
         self.model = model
         self.attempts = attempts
+        self.reviewed = reviewed
+        self.differences = differences
     }
 
     /// A new, unsaved design named after the widget in `language`.
@@ -61,22 +69,28 @@ public struct GeneratedWidget: Sendable, Equatable {
 
 // MARK: - Prompt
 
-/// Builds the request: the versioned system prompt (`Prompts/generate_v1.md`), the user text
-/// with mode, size and the user's instructions, the image, and the AI schema.
+/// Builds the request: the versioned system prompt (`Prompts/generate_v2.md`, ADR-019), the user
+/// text with mode, size and the user's instructions, the image, and the AI schema. Also the one
+/// self-review request (`Prompts/review_v1.md`).
 public enum WidgetPrompt {
-    public static let version = "generate_v1"
+    public static let version = "generate_v2"
+    public static let reviewVersion = "review_v1"
     /// Room for 30 layers with their nulls; thinking providers get extra on top.
     public static let maxOutputTokens = 16000
 
     /// The system prompt with the allowed bindings and icons filled in. Static per app version,
     /// so providers can cache it.
-    public static let system: String = {
-        let url = Bundle.module.url(forResource: version, withExtension: "md", subdirectory: "Prompts")
-        let template = url.flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? ""
-        return template
-            .replacingOccurrences(of: "$BINDINGS$", with: bindingList)
-            .replacingOccurrences(of: "$ICONS$", with: Icons.whitelist.keys.sorted().joined(separator: ", "))
-    }()
+    public static let system: String = prompt(version)
+        .replacingOccurrences(of: "$BINDINGS$", with: bindingList)
+        .replacingOccurrences(of: "$ICONS$", with: Icons.whitelist.keys.sorted().joined(separator: ", "))
+
+    /// The review instructions (sent as user text with the original and the render).
+    public static let review: String = prompt(reviewVersion)
+
+    static func prompt(_ name: String) -> String {
+        let url = Bundle.module.url(forResource: name, withExtension: "md", subdirectory: "Prompts")
+        return url.flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? ""
+    }
 
     /// One line per allowed binding, with what it shows.
     static var bindingList: String {
@@ -113,9 +127,9 @@ public enum WidgetPrompt {
         switch options.mode {
         case .recreate:
             lines.append("Task: the image shows a widget design or a screenshot of widgets. Recreate the main widget as closely as "
-                + "possible with the layer types, fonts and bindings above. Do not use image layers: draw everything with "
-                + "shapes, text, icons and the other layers. Replace sample values (times, temperatures, step counts) with "
-                + "the matching live bindings.")
+                + "possible with the layer types, fonts and bindings above: start with the inventory, then map every element. "
+                + "Do not use image layers: draw everything with text, calendars, lists, shapes, icons and the other layers. "
+                + "Replace sample values (times, dates, temperatures, step counts) with the matching live bindings.")
         case .photo:
             lines.append("Task: the image is the user's photo. Design a widget around it: use exactly one image layer with "
                 + "\"source\": \"user_image\" for the photo (add a field of type image with key \"photo\"), and add text "
@@ -156,6 +170,37 @@ public enum WidgetPrompt {
             maxOutputTokens: maxOutputTokens
         )
     }
+
+    /// The self-review request (ADR-019): the original image, a render of `spec`, the spec
+    /// itself and the original task; the answer is a corrected spec plus `differences`.
+    public static func reviewRequest(options: GenerationOptions, image: PreparedImage, render: PreparedImage,
+                                     spec: WidgetSpec, colors: [String: String]) -> AIRequest {
+        var current = (try? JSONEncoder().encode(spec)).flatMap { try? JSONDecoder().decode(JSONValue.self, from: $0) } ?? .object([:])
+        if case .object(var object) = current {
+            object["palette"] = .object(colors.mapValues { .string($0) })
+            for key in ["schemaVersion", "id", "category", "refresh"] { object[key] = nil }
+            current = .object(object)
+        }
+        let text = review
+            + "
+
+<original_task>
+" + userText(options: options, imageWidth: image.width, imageHeight: image.height) + "
+</original_task>"
+            + "
+
+<current_spec>
+" + current.jsonString() + "
+</current_spec>"
+        return AIRequest(
+            system: system,
+            userText: text,
+            images: [image.jpeg, render.jpeg],
+            schema: AIWidgetSchema.schema(mode: options.mode, review: true),
+            schemaName: "widget_spec",
+            maxOutputTokens: maxOutputTokens
+        )
+    }
 }
 
 // MARK: - Schema
@@ -166,8 +211,11 @@ public enum WidgetPrompt {
 /// `type`, `properties`, `required`, `additionalProperties`, `enum`, `items`, `anyOf`. Ranges,
 /// colors, bindings and the layer limit are enforced by `SpecValidator` afterwards.
 public enum AIWidgetSchema {
-    public static func schema(mode: GenerationMode) -> JSONValue {
-        JSONSchema.object([
+    /// `inventory` comes first alphabetically after `background`/`family`/`fields`, so
+    /// models write the element list before the layers. `review` adds `differences`.
+    public static func schema(mode: GenerationMode, review: Bool = false) -> JSONValue {
+        var properties: [String: JSONValue] = [
+            "inventory": JSONSchema.array(JSONSchema.string),
             "name": localized,
             "family": JSONSchema.enumeration(SpecFamily.allCases.map(\.rawValue)),
             "theme": JSONSchema.enumeration(SpecTheme.allCases.map(\.rawValue)),
@@ -186,7 +234,9 @@ public enum AIWidgetSchema {
                 "default": JSONSchema.nullable(localized),
             ])),
             "layers": JSONSchema.array(JSONSchema.anyOf(layerShapes(mode: mode))),
-        ])
+        ]
+        if review { properties["differences"] = JSONSchema.array(JSONSchema.string) }
+        return JSONSchema.object(properties)
     }
 
     static let localized = JSONSchema.object(["en": JSONSchema.string, "ar": JSONSchema.string])
@@ -310,6 +360,13 @@ public enum AIWidgetSchema {
 /// in AI mode plus the mode's image rule. Every problem is collected into one
 /// `AIValidationError`, which `StructuredAI` sends back for the one retry.
 public enum AIWidgetParser {
+    /// The review round's `differences` list (empty when absent).
+    public static func differences(in text: String) -> [String] {
+        guard let data = StructuredAI.extractJSON(text),
+              case .array(let items)? = (try? JSONDecoder().decode(JSONValue.self, from: data))?["differences"] else { return [] }
+        return items.compactMap(.stringValue)
+    }
+
     /// Minimum `fg`/`bg` contrast accepted (WCAG AA for large text; the prompt asks for 4.5).
     public static let minimumContrast = 3.0
 
@@ -339,6 +396,8 @@ public enum AIWidgetParser {
 
         object["palette"] = nil
         object["category"] = nil
+        object["inventory"] = nil
+        object["differences"] = nil
         object["schemaVersion"] = 1
         object["id"] = .string(id)
         if let family = options.size.family { object["family"] = .string(family.rawValue) }
@@ -404,9 +463,21 @@ public enum AIWidgetParser {
 
 // MARK: - Generator
 
+/// What the generator is doing, for the progress text.
+public enum GenerationStep: Sendable, Equatable {
+    case generating
+    /// The self-review round (ADR-019).
+    case reviewing
+}
+
+/// Draws a spec with its palette into the image the review round sends (on the device: the
+/// real renderer, `SpecSnapshot`). nil skips the review.
+public typealias SpecRenderer = @Sendable (WidgetSpec, [String: String]) async -> PreparedImage?
+
 /// Image → widget: builds the request, runs it through `AIService` (deadline, diagnostics) and
-/// parses with the retry. Errors are `AIError`s; still-invalid output after the retry is
-/// `.invalidOutput`.
+/// parses with the retry. With `review`, the result is rendered and sent back with the original
+/// for one correction round ("High quality", ADR-019); if that round fails, the first result
+/// stands. Errors are `AIError`s; still-invalid output after the retry is `.invalidOutput`.
 public struct WidgetGenerator: Sendable {
     private let service: AIService
 
@@ -414,12 +485,31 @@ public struct WidgetGenerator: Sendable {
         self.service = service
     }
 
-    public func generate(image: PreparedImage, options: GenerationOptions) async throws -> GeneratedWidget {
+    public func generate(image: PreparedImage, options: GenerationOptions, review: SpecRenderer? = nil,
+                         onStep: @escaping @Sendable (GenerationStep) -> Void = { _ in }) async throws -> GeneratedWidget {
         let id = "ai." + UUID().uuidString.prefix(8).lowercased()
+        onStep(.generating)
         let request = WidgetPrompt.request(options: options, image: image)
         let result = try await service.run(request: request, feature: .generateWidget) { text in
             try AIWidgetParser.parse(text, options: options, id: id)
         }
-        return GeneratedWidget(spec: result.value.spec, colors: result.value.colors, model: result.model, attempts: result.attempts)
+        let first = GeneratedWidget(spec: result.value.spec, colors: result.value.colors, model: result.model, attempts: result.attempts)
+        guard let review, let render = await review(first.spec, first.colors) else { return first }
+        if Task.isCancelled { throw AIError.cancelled }
+
+        onStep(.reviewing)
+        let reviewRequest = WidgetPrompt.reviewRequest(options: options, image: image, render: render, spec: first.spec, colors: first.colors)
+        do {
+            let reviewed = try await service.run(request: reviewRequest, feature: .reviewWidget) { text in
+                let parsed = try AIWidgetParser.parse(text, options: options, id: id)
+                return (parsed.spec, parsed.colors, AIWidgetParser.differences(in: text))
+            }
+            return GeneratedWidget(spec: reviewed.value.0, colors: reviewed.value.1, model: reviewed.model,
+                                   attempts: first.attempts + reviewed.attempts, reviewed: true, differences: reviewed.value.2)
+        } catch AIError.cancelled {
+            throw AIError.cancelled
+        } catch {
+            return first
+        }
     }
 }
