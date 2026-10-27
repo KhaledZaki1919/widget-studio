@@ -43,7 +43,9 @@ struct AIClientTests {
         let responseSchema = try #require(config["responseSchema"])
         #expect(responseSchema["additionalProperties"] == nil)
         #expect(responseSchema["properties"]?["note"]?["type"] == "string")
-        #expect(responseSchema["properties"]?["note"]?["nullable"] == true)
+        // Compact for Gemini (ADR-019): nullable properties are optional, not required-and-null.
+        #expect(responseSchema["required"] == ["ok"])
+        #expect(responseSchema["properties"]?["note"]?["nullable"] == nil)
         #expect(responseSchema["properties"]?["kind"]?["enum"] == ["a", "b"])
         guard case .array(let parts)? = body["contents"]?.arrayFirst?["parts"] else {
             Issue.record("no parts")
@@ -65,7 +67,8 @@ struct AIClientTests {
         let converted = GeminiProvider.openAPISchema(JSONSchema.anyOf([
             JSONSchema.object(["type": JSONSchema.enumeration(["text"]), "size": JSONSchema.nullable(JSONSchema.number)]),
         ]))
-        #expect(converted["anyOf"]?.arrayFirst?["properties"]?["size"]?["nullable"] == true)
+        #expect(converted["anyOf"]?.arrayFirst?["required"] == ["type"])
+        #expect(converted["anyOf"]?.arrayFirst?["properties"]?["size"]?["type"] == "number")
         #expect(converted["anyOf"]?.arrayFirst?["additionalProperties"] == nil)
     }
 
@@ -139,7 +142,9 @@ struct AIClientTests {
         #expect(AIHTTP.mapError(status: 400, body: try aiFixture("anthropic-400-credit")) == .insufficientCredit)
         #expect(AIHTTP.mapError(status: 429, body: try aiFixture("openai-429-quota")) == .insufficientCredit)
         #expect(AIHTTP.mapError(status: 404, body: Data()) == .modelNotFound)
-        #expect(AIHTTP.mapError(status: 503, body: Data()) == .providerUnavailable)
+        #expect(AIHTTP.mapError(status: 500, body: Data()) == .providerUnavailable)
+        #expect(AIHTTP.mapError(status: 503, body: try aiFixture("gemini-503")) == .busy)
+        #expect(AIHTTP.mapError(status: 529, body: Data()) == .busy)
         #expect(AIHTTP.mapTransportError(URLError(.notConnectedToInternet)) == .network)
         #expect(AIHTTP.mapTransportError(URLError(.timedOut)) == .timedOut)
         if case .badRequest(let message) = AIHTTP.mapError(status: 400, body: try aiFixture("openai-400-schema")) {
@@ -153,7 +158,9 @@ struct AIClientTests {
         #expect(AIHTTP.retryDelay(status: 429, body: try aiFixture("gemini-429")) == nil)
         let short = Data(#"{"error":{"details":[{"retryDelay":"17s"}]}}"#.utf8)
         #expect(AIHTTP.retryDelay(status: 429, body: short) == 17.5)
-        #expect(AIHTTP.retryDelay(status: 502, body: Data()) == 2)
+        #expect(AIHTTP.retryDelay(status: 503, body: Data(), attempt: 0) == 3)
+        #expect(AIHTTP.retryDelay(status: 503, body: Data(), attempt: 1) == 8)
+        #expect(AIHTTP.retryDelay(status: 429, body: short, attempt: 1) == nil)
     }
 
     @Test func transportFailuresMapThroughTheProvider() async throws {

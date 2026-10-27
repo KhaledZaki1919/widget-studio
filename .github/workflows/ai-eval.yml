@@ -15,6 +15,10 @@ on:
         description: "High quality: add the self-review round"
         type: boolean
         default: false
+      structured:
+        description: "Start with the provider's structured output (off = prompt-only JSON mode)"
+        type: boolean
+        default: true
       cases:
         description: "Comma-separated image file names (empty = all)"
         type: string
@@ -57,6 +61,7 @@ jobs:
           AI_EVAL_MODEL: ${{ inputs.model }}
           AI_EVAL_REVIEW: ${{ inputs.review && '1' || '0' }}
           AI_EVAL_CASES: ${{ inputs.cases }}
+          AI_EVAL_STRUCTURED: ${{ inputs.structured && '1' || '0' }}
         run: swift test --package-path ios/WidgetKitCore --filter AIEvalTests
 
       - name: Summary

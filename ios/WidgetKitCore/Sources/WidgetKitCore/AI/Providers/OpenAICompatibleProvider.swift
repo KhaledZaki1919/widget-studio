@@ -81,7 +81,7 @@ public struct OpenAICompatibleProvider: AIProvider {
         guard let url = URL(string: "\(baseURL)/chat/completions") else { throw AIError.network }
         let body = body(for: request, model: model, structured: structured, reasoning: reasoning)
         let urlRequest = try AIHTTP.jsonRequest(url: url, headers: headers, body: body)
-        let data = try await AIHTTP.send(urlRequest, session: session, retryTransient: kind == .openrouter)
+        let data = try await AIHTTP.send(urlRequest, session: session, retryTransient: true)
         return try Self.parse(data, model: model)
     }
 

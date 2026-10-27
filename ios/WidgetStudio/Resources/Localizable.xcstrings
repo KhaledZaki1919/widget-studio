@@ -188,6 +188,40 @@
         }
       }
     },
+    "ai.error.busy %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ مشغول الآن. حاول مرة أخرى."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is busy right now. Try again."
+          }
+        }
+      }
+    },
+    "ai.error.busy.next": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الضغط على المزوّد مؤقت عادةً. انتظر دقيقة ثم اضغط «أعد المحاولة»."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Busy spells are usually short. Wait a minute, then tap Try again."
+          }
+        }
+      }
+    },
     "ai.error.cancelled": {
       "extractionState": "manual",
       "localizations": {

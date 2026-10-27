@@ -15,6 +15,8 @@ public final class AIService: @unchecked Sendable {
     public var testTimeout: TimeInterval = 30
     /// Widget generation, including the retry (each URL request also times out after 180 s).
     public var generationTimeout: TimeInterval = 240
+    /// false starts in prompt-only JSON mode; the app always starts structured (AI eval knob).
+    public var structuredFirst = true
 
     public init(keyStore: AIKeyStore = AIKeyStore(), defaults: UserDefaults = .standard, session: URLSession = .shared,
                 provider: AIProvider? = nil) {
@@ -88,7 +90,8 @@ public final class AIService: @unchecked Sendable {
         let latch = DiagnosticLatch(UncheckedDefaults(defaults))
         let trace = AITrace()
         let started = Date()
-        let ai = StructuredAI(provider: provider, model: model, secrets: secrets, onDiagnostic: { latch.save($0) })
+        let ai = StructuredAI(provider: provider, model: model, secrets: secrets, structuredFirst: structuredFirst,
+                              onDiagnostic: { latch.save($0) })
         do {
             return try await AIDeadline.run(seconds: seconds) {
                 try await ai.run(request: request, feature: feature, trace: trace, parse: parse)

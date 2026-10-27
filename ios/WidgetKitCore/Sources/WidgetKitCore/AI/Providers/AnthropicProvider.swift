@@ -61,7 +61,7 @@ public struct AnthropicProvider: AIProvider {
     public func complete(_ request: AIRequest, model: String, structured: Bool) async throws -> AIResponse {
         guard let url = URL(string: "\(Self.baseURL)/messages") else { throw AIError.network }
         let urlRequest = try AIHTTP.jsonRequest(url: url, headers: headers, body: body(for: request, model: model, structured: structured))
-        let data = try await AIHTTP.send(urlRequest, session: session)
+        let data = try await AIHTTP.send(urlRequest, session: session, retryTransient: true)
         return try Self.parse(data, model: model)
     }
 

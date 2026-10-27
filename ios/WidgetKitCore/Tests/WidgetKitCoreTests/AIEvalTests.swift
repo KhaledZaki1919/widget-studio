@@ -39,9 +39,10 @@ struct AIEvalTests {
         let defaults = testDefaults()
         AISettings(provider: .gemini, models: ["gemini": model]).save(to: defaults)
         let service = AIService(keyStore: keys, defaults: defaults)
+        service.structuredFirst = environment["AI_EVAL_STRUCTURED"] != "0"
         let generator = WidgetGenerator(service: service)
 
-        var summary = ["# AI eval", "", "Model: `\(model)` · prompt `\(WidgetPrompt.version)` · review: \(review ? "on" : "off")", ""]
+        var summary = ["# AI eval", "", "Model: `\(model)` · prompt `\(WidgetPrompt.version)` · review: \(review ? "on" : "off") · structured: \(service.structuredFirst)", ""]
         for item in cases where only.map({ $0.contains(item.file) || $0.isEmpty }) ?? true {
             let name = (item.file as NSString).deletingPathExtension
             summary.append("## \(name)")

@@ -16,6 +16,16 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable, Identifiabl
         }
     }
 
+    /// The company name for short messages ("Google is busy").
+    public var shortName: String {
+        switch self {
+        case .gemini: "Google"
+        case .anthropic: "Anthropic"
+        case .openai: "OpenAI"
+        case .openrouter: "OpenRouter"
+        }
+    }
+
     /// Where the user creates an API key.
     public var keyPageURL: URL? {
         switch self {
@@ -143,6 +153,8 @@ public enum AIError: Error, Equatable, Sendable {
     case invalidOutput(String)
     case network
     case providerUnavailable
+    /// The provider is overloaded right now (HTTP 503 "high demand", 529); worth trying again soon.
+    case busy
     case badRequest(String)
     /// No answer before the app's hard deadline (`AIDeadline`) or the request timed out.
     case timedOut

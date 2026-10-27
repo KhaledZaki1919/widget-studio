@@ -26,8 +26,9 @@ enum AIHTTP {
         return request
     }
 
-    /// With `retryTransient`, an overloaded server (5xx) or a rate limit that asks for a short
-    /// wait (Gemini's free tier) is retried once after the delay. The endpoint, status and body
+    /// With `retryTransient`, an overloaded server (5xx, Anthropic's 529) is retried up to twice
+    /// with backoff (3 s, then 8 s), and a rate limit that asks for a short wait (Gemini's free
+    /// tier) once after that wait. The endpoint, status and body
     /// (or the network error) go to `AITrace.current` for the diagnostics.
     static func send(_ request: URLRequest, session: URLSession, retryTransient: Bool = false) async throws -> Data {
         var attempt = 0
@@ -46,7 +47,7 @@ enum AIHTTP {
             trace?.received(status: http.statusCode, body: data)
             if (200..<300).contains(http.statusCode) { return data }
             let error = mapError(status: http.statusCode, body: data)
-            guard retryTransient, attempt == 0, let delay = retryDelay(status: http.statusCode, body: data) else { throw error }
+            guard retryTransient, let delay = retryDelay(status: http.statusCode, body: data, attempt: attempt) else { throw error }
             attempt += 1
             try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
         }
@@ -64,11 +65,13 @@ enum AIHTTP {
     }
 
     /// Seconds to wait before one retry, or nil when retrying soon wouldn't help.
-    static func retryDelay(status: Int, body: Data, maxWait: TimeInterval = 20) -> TimeInterval? {
+    static func retryDelay(status: Int, body: Data, attempt: Int = 0, maxWait: TimeInterval = 20) -> TimeInterval? {
         switch status {
         case 500...599:
-            return 2
+            let delays: [TimeInterval] = [3, 8]
+            return attempt < delays.count ? delays[attempt] : nil
         case 429:
+            guard attempt == 0 else { return nil }
             // Gemini: {"error":{"details":[{"@type":"…RetryInfo","retryDelay":"17s"}]}}
             guard let json = try? JSONDecoder().decode(JSONValue.self, from: body),
                   case .array(let details)? = json["error"]?["details"] else { return nil }
@@ -90,9 +93,10 @@ enum AIHTTP {
         let mentionsBilling = ["credit", "billing", "insufficient", "balance", "payment"].contains { lower.contains($0) }
         // Gemini says "exceeded your current quota" for free-tier per-minute and daily limits too;
         // that's a rate limit, not missing credit.
-        if case .string("RESOURCE_EXHAUSTED")? = (try? JSONDecoder().decode(JSONValue.self, from: body))?["error"]?["status"] {
-            return .rateLimited
-        }
+        let errorStatus = (try? JSONDecoder().decode(JSONValue.self, from: body))?["error"]?["status"]?.stringValue
+        if errorStatus == "RESOURCE_EXHAUSTED" { return .rateLimited }
+        // Gemini's "This model is currently experiencing high demand" and Anthropic's "Overloaded".
+        if errorStatus == "UNAVAILABLE" || status == 503 || status == 529 { return .busy }
         switch status {
         case 401, 403:
             return .invalidKey

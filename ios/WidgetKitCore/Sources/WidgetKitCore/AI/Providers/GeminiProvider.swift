@@ -74,12 +74,17 @@ public struct GeminiProvider: AIProvider {
     }
 
     /// Gemini's `responseSchema` is an OpenAPI subset: no `additionalProperties`, no `$ref`, no
-    /// `pattern`, and nullability as `nullable: true` instead of a type array (also removed from
-    /// `enum`). `anyOf` is kept.
+    /// `pattern`. `anyOf` is kept. Gemini doesn't need strict schemas, so nullable properties
+    /// become optional (left out of `required`, no `nullable`): the model writes no nulls, which
+    /// keeps answers short. The strict all-required form made answers so long that requests ran
+    /// past the 180 s timeout in the M5 eval (ADR-019).
     static func openAPISchema(_ schema: JSONValue) -> JSONValue {
         guard case .object(let fields) = schema else { return schema }
         var converted: [String: JSONValue] = [:]
-        var nullable = false
+        if case .object(let properties)? = fields["properties"], case .array(let required)? = fields["required"] {
+            let optional = Set(properties.filter { isNullable($0.value) }.keys)
+            converted["required"] = .array(required.filter { !optional.contains($0.stringValue ?? "") })
+        }
         for (key, value) in fields {
             switch key {
             case "additionalProperties", "$schema", "$ref", "$defs", "$id", "title", "pattern", "exclusiveMinimum":
@@ -88,7 +93,6 @@ public struct GeminiProvider: AIProvider {
                 if case .array(let types) = value {
                     let concrete = types.filter { $0 != .string("null") }
                     converted["type"] = concrete.first ?? "string"
-                    if concrete.count < types.count { nullable = true }
                 } else {
                     converted["type"] = value
                 }
@@ -106,12 +110,19 @@ public struct GeminiProvider: AIProvider {
                 if case .array(let options) = value {
                     converted["anyOf"] = .array(options.map(openAPISchema))
                 }
+            case "required":
+                if converted["required"] == nil { converted["required"] = value }
             default:
                 converted[key] = value
             }
         }
-        if nullable { converted["nullable"] = true }
         return .object(converted)
+    }
+
+    /// A JSON Schema whose type list includes "null".
+    static func isNullable(_ schema: JSONValue) -> Bool {
+        if case .array(let types)? = schema["type"] { return types.contains(.string("null")) }
+        return false
     }
 
     public func complete(_ request: AIRequest, model: String, structured: Bool) async throws -> AIResponse {

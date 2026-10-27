@@ -34,11 +34,15 @@ public struct StructuredAI: Sendable {
     private let secrets: [String]
     private let onDiagnostic: @Sendable (AIDiagnostic) -> Void
 
-    public init(provider: AIProvider, model: String, secrets: [String] = [],
+    /// false starts in prompt-only JSON mode (the AI eval compares both, ADR-019).
+    private let structuredFirst: Bool
+
+    public init(provider: AIProvider, model: String, secrets: [String] = [], structuredFirst: Bool = true,
                 onDiagnostic: @escaping @Sendable (AIDiagnostic) -> Void = { _ in }) {
         self.provider = provider
         self.model = model
         self.secrets = secrets
+        self.structuredFirst = structuredFirst
         self.onDiagnostic = onDiagnostic
     }
 
@@ -90,7 +94,7 @@ public struct StructuredAI: Sendable {
     private func attempts<Value>(
         request: AIRequest, trace: AITrace, state: RunState, parse: @Sendable (String) throws -> Value
     ) async throws -> StructuredResult<Value> {
-        var structured = true
+        var structured = structuredFirst
         var fellBack = false
         var current = request
         var lastProblem = "invalid reply"

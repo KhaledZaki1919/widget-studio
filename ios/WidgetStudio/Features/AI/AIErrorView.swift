@@ -2,8 +2,13 @@ import SwiftUI
 import WidgetKitCore
 
 extension AIError {
-    /// What went wrong, in one sentence.
-    var messageKey: LocalizedStringKey {
+    /// What went wrong, in one sentence. `provider` names who is busy.
+    func message(provider: AIProviderKind) -> Text {
+        if self == .busy { return Text("ai.error.busy \(provider.shortName)") }
+        return Text(messageKey)
+    }
+
+    private var messageKey: LocalizedStringKey {
         switch self {
         case .noKey: "ai.error.noKey"
         case .invalidKey: "ai.error.invalidKey"
@@ -15,6 +20,7 @@ extension AIError {
         case .invalidOutput: "ai.error.invalidOutput"
         case .network: "ai.error.network"
         case .providerUnavailable: "ai.error.unavailable"
+        case .busy: "ai.error.unavailable"
         case .badRequest: "ai.error.badRequest"
         case .timedOut: "ai.error.timedOut"
         case .cancelled: "ai.error.cancelled"
@@ -34,6 +40,7 @@ extension AIError {
         case .invalidOutput: Text("ai.error.invalidOutput.next")
         case .network: Text("ai.error.network.next")
         case .providerUnavailable: Text("ai.error.unavailable.next")
+        case .busy: Text("ai.error.busy.next")
         case .badRequest: Text("ai.error.badRequest.next")
         case .timedOut: Text("ai.error.timedOut.next")
         case .cancelled: Text("ai.error.cancelled.next")
@@ -57,7 +64,7 @@ struct AIErrorView: View {
     var body: some View {
         Label {
             VStack(alignment: .leading, spacing: 4) {
-                Text(error.messageKey).font(.callout.weight(.semibold))
+                error.message(provider: provider).font(.callout.weight(.semibold))
                 error.nextStep(alternative: provider.alternativeModel)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
