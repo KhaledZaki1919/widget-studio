@@ -53,11 +53,15 @@ struct AIEvalTests {
             }
             let options = GenerationOptions(mode: GenerationMode(rawValue: item.mode) ?? .recreate, size: SizeChoice(rawValue: item.size) ?? .auto)
             let photo = options.mode == .photo ? original : nil
-            let renderer: SpecRenderer? = review ? { spec, colors in
-                await MainActor.run {
-                    SpecSnapshot.render(spec, colors: colors, userImage: photo).flatMap { AIImage.prepare(image: $0) }
+            var renderer: SpecRenderer?
+            if review {
+                renderer = { spec, colors in
+                    await MainActor.run { () -> PreparedImage? in
+                        guard let image = SpecSnapshot.render(spec, colors: colors, userImage: photo) else { return nil }
+                        return AIImage.prepare(image: image)
+                    }
                 }
-            } : nil
+            }
             let started = Date()
             do {
                 let result = try await generator.generate(image: prepared, options: options, review: renderer)

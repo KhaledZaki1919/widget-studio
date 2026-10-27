@@ -283,11 +283,15 @@ struct CreateFromImageView: View {
         step = .generating
         // "High quality (2 requests)": render the result and let the model correct it once (ADR-019).
         let photo = options.mode == .photo ? picked : nil
-        let review: SpecRenderer? = settings.usesHighQuality(for: settings.provider) ? { spec, colors in
-            await MainActor.run {
-                SpecSnapshot.render(spec, colors: colors, language: "en", userImage: photo).flatMap { AIImage.prepare(image: $0) }
+        var review: SpecRenderer?
+        if settings.usesHighQuality(for: settings.provider) {
+            review = { spec, colors in
+                await MainActor.run { () -> PreparedImage? in
+                    guard let image = SpecSnapshot.render(spec, colors: colors, language: "en", userImage: photo) else { return nil }
+                    return AIImage.prepare(image: image)
+                }
             }
-        } : nil
+        }
         task = Task {
             do {
                 let generated = try await WidgetGenerator(service: service).generate(image: prepared, options: options, review: review) { next in
