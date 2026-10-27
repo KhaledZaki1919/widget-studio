@@ -1,3 +1,5 @@
 # Third-party inspiration image (brief §6): kept local, not published in the public repo.
 docs/reference/*.jpg
 .DS_Store
+# Crops of the third-party reference image: local only, never published (ADR-019).
+docs/ai-eval/ref-*

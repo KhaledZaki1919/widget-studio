@@ -3,10 +3,10 @@
 Images for checking Create from image without a phone. `cases.json` lists each image with the
 mode and size to generate with.
 
-- `ref-*.png`: crops of `docs/reference/widgets-reference.jpg`, upscaled 6× (the source is small,
-  so they are soft, like a phone screenshot of a small widget).
-- `draw-*.png`: widgets drawn for this set (calendar like the M5 device test, reminders list,
-  quote card).
+- `draw-*.png`: widgets drawn for this set in the Mono style (Doto for dot numerals): calendar like
+  the M5 device test, reminders list, quote, forecast, steps, analog clock, countdown, big date,
+  day and zone, and a drawn landscape for photo mode. Crops of the third-party reference image
+  are never committed (`.gitignore`).
 
 Run it: Actions → **AI eval** → Run workflow (model, review on/off). It needs the repository
 secret `GEMINI_API_KEY`. The job generates a spec per image with the app's real prompt, schema,
