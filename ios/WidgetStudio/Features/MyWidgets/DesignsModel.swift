@@ -84,4 +84,13 @@ final class AppState {
     var tab: Tab = .library
     /// Create from image (M5), opened from the Library and My widgets.
     var isCreatingFromImage = false
+    /// The introduction (M6): shown on first launch, reopenable from Settings.
+    var isShowingOnboarding = !UserDefaults.standard.bool(forKey: AppState.onboardingDoneKey)
+
+    static let onboardingDoneKey = "onboardingDone"
+
+    func finishOnboarding() {
+        UserDefaults.standard.set(true, forKey: Self.onboardingDoneKey)
+        isShowingOnboarding = false
+    }
 }

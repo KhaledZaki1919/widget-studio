@@ -8,6 +8,7 @@ import WidgetKitCore
 struct SettingsView: View {
     @Environment(LiveDataModel.self) private var live
     @Environment(DesignsModel.self) private var designs
+    @Environment(AppState.self) private var appState
     @Environment(\.openURL) private var openURL
     private let language = RenderContext.preferredLanguage
 
@@ -92,6 +93,8 @@ struct SettingsView: View {
                     .accessibilityIdentifier("ax.settings.diagnostics")
             }
             Section {
+                Button("settings.intro") { appState.isShowingOnboarding = true }
+                    .accessibilityIdentifier("ax.settings.intro")
                 LabeledContent("settings.version", value: AppInfo.versionText)
             }
         }

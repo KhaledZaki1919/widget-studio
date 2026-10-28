@@ -48,6 +48,9 @@ struct RootView: View {
             .tabItem { Label("tab.settings", systemImage: "gearshape") }
             .tag(AppState.Tab.settings)
         }
+        .fullScreenCover(isPresented: $appState.isShowingOnboarding) {
+            OnboardingView(onFinish: appState.finishOnboarding)
+        }
         .sheet(isPresented: $appState.isCreatingFromImage) {
             CreateFromImageView()
                 .interactiveDismissDisabled()

@@ -18,6 +18,10 @@ struct WidgetStudioApp: App {
             model.deleteAll()
             // AI starts from defaults, so the consent sheet shows every run.
             AISettings().save()
+            // The introduction only when a test asks for it.
+            UserDefaults.standard.set(!ProcessInfo.processInfo.arguments.contains("-uiTestingOnboarding"),
+                                      forKey: AppState.onboardingDoneKey)
+            _appState = State(initialValue: AppState())
             _designs = State(initialValue: model)
         }
         // UI tests of Create from image: canned replies, no key, no network.
