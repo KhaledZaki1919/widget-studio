@@ -307,6 +307,57 @@
         }
       }
     },
+    "widget.pick.choose.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط مطولًا على الويدجت ثم «تعديل الويدجت»، واختر أحد ودجاتي أو قالبًا."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touch and hold the widget, tap Edit Widget, and pick one of your widgets or a template."
+          }
+        }
+      }
+    },
+    "widget.pick.choose.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر تصميمًا"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a design"
+          }
+        }
+      }
+    },
+    "widget.pick.deleted": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حُذف هذا التصميم. اختر غيره من «تعديل الويدجت»."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This design was deleted. Pick another one in Edit Widget."
+          }
+        }
+      }
+    },
     "widget.pick.description": {
       "extractionState": "manual",
       "localizations": {

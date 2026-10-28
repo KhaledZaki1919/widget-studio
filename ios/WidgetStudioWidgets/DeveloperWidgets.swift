@@ -55,7 +55,7 @@ struct LargePickWidget: Widget {
 
 protocol PickConfiguration: WidgetConfigurationIntent {
     static var size: SpecFamily { get }
-    /// "design:<id>" or "template:<id>"; nil = newest design that fits, else the default template.
+    /// "design:<id>" or "template:<id>"; nil = nothing chosen yet (never picked for the user).
     var itemID: String? { get }
     var appearanceChoice: PickAppearance { get }
 }
@@ -192,22 +192,11 @@ struct LargeItemQuery: EntityStringQuery {
 enum PickCatalog {
     typealias Make<Entity> = (_ id: String, _ name: String, _ detail: String) -> Entity
 
-    struct Item {
-        let id: String
-        let name: LocalizedText
-        let category: SpecCategory?
-        let family: SpecFamily
-        let isDesign: Bool
-    }
+    typealias Item = WidgetPicker.Item
 
+    /// Saved designs (incl. AI-made ones) from SharedStore, then templates (`WidgetPicker`, tested in the package).
     static func items(size: SpecFamily) -> [Item] {
-        let designs = SharedStore().designs(fitting: size).map {
-            Item(id: "design:\($0.id)", name: .plain($0.name), category: $0.spec.category, family: $0.spec.family, isDesign: true)
-        }
-        let templates = TemplateLibrary.fitting(size).map {
-            Item(id: "template:\($0.id)", name: $0.name, category: $0.category, family: $0.family, isDesign: false)
-        }
-        return designs + templates
+        WidgetPicker.items(size: size)
     }
 
     static func entities<Entity>(for identifiers: [String], size: SpecFamily, make: Make<Entity>) -> [Entity] {
@@ -221,7 +210,7 @@ enum PickCatalog {
         var sections: [IntentItemSection<Entity>] = []
         let designs = all.filter(\.isDesign).map { IntentItem(entity($0, make: make)) }
         if !designs.isEmpty {
-            sections.append(IntentItemSection(LocalizedStringResource(stringLiteral: language == "ar" ? "ودجتاتي" : "My widgets"),
+            sections.append(IntentItemSection(LocalizedStringResource(stringLiteral: language == "ar" ? "ودجاتي" : "My widgets"),
                                               items: designs))
         }
         for category in SpecCategory.allCases {
@@ -235,11 +224,7 @@ enum PickCatalog {
     }
 
     static func search<Entity: AppEntity>(_ string: String, size: SpecFamily, make: Make<Entity>) -> IntentItemCollection<Entity> {
-        let query = string.trimmingCharacters(in: .whitespaces).lowercased()
-        let matches = items(size: size).filter { item in
-            query.isEmpty || (item.name.allValues + (item.category?.title.allValues ?? [])).contains { $0.lowercased().contains(query) }
-        }
-        return IntentItemCollection(items: matches.map { entity($0, make: make) })
+        IntentItemCollection(items: WidgetPicker.search(string, in: items(size: size)).map { entity($0, make: make) })
     }
 
     static func entity<Entity>(_ item: Item, make: Make<Entity>) -> Entity {
@@ -258,6 +243,8 @@ struct PickEntry: TimelineEntry {
     let image: CGImage?
     let problem: String?
     let appearance: PickAppearance
+    /// Placed but not configured: "Long-press → Edit Widget to choose".
+    var needsChoice = false
     /// Real data (ADR-016).
     var inputs = LiveInputs()
     var gap: DataGap?
@@ -267,12 +254,14 @@ struct PickProvider<Configuration: PickConfiguration>: AppIntentTimelineProvider
     typealias Entry = PickEntry
     typealias Intent = Configuration
 
+    /// The gallery shows a template preview; a placed widget without a choice asks for one.
     func placeholder(in context: Context) -> PickEntry {
-        Self.entry(itemID: nil, appearance: .template, date: .now)
+        Self.entry(itemID: "template:" + TemplateLibrary.defaultID(for: Configuration.size), appearance: .template, date: .now)
     }
 
     func snapshot(for configuration: Configuration, in context: Context) async -> PickEntry {
-        Self.entry(itemID: configuration.itemID, appearance: configuration.appearanceChoice, date: .now)
+        let itemID = configuration.itemID ?? (context.isPreview ? "template:" + TemplateLibrary.defaultID(for: Configuration.size) : nil)
+        return Self.entry(itemID: itemID, appearance: configuration.appearanceChoice, date: .now)
     }
 
     func timeline(for configuration: Configuration, in context: Context) async -> Timeline<PickEntry> {
@@ -291,33 +280,21 @@ struct PickProvider<Configuration: PickConfiguration>: AppIntentTimelineProvider
     }
 
     static func entry(itemID: String?, appearance: PickAppearance, date: Date) -> PickEntry {
-        let size = Configuration.size
         let store = SharedStore()
-        func templateEntry(_ id: String) -> PickEntry {
-            switch TemplateLibrary.load(id: id) {
-            case .success(let spec):
-                return PickEntry(date: date, spec: spec, design: nil, image: nil, problem: nil, appearance: appearance)
-            case .failure(let issues):
-                return PickEntry(date: date, spec: nil, design: nil, image: nil, problem: issues.description, appearance: appearance)
-            }
+        switch WidgetPicker.resolve(itemID: itemID, store: store) {
+        case .none:
+            return PickEntry(date: date, spec: nil, design: nil, image: nil, problem: nil, appearance: appearance, needsChoice: true)
+        case .design(let design):
+            return PickEntry(date: date, spec: design.spec, design: design, image: design.imageFile.flatMap(store.image(named:)),
+                             problem: nil, appearance: appearance)
+        case .template(let spec):
+            return PickEntry(date: date, spec: spec, design: nil, image: nil, problem: nil, appearance: appearance)
+        case .missingDesign:
+            return PickEntry(date: date, spec: nil, design: nil, image: nil,
+                             problem: String(localized: "widget.pick.deleted"), appearance: appearance)
+        case .invalidTemplate(let description):
+            return PickEntry(date: date, spec: nil, design: nil, image: nil, problem: description, appearance: appearance)
         }
-        func designEntry(_ design: SavedDesign) -> PickEntry {
-            PickEntry(date: date, spec: design.spec, design: design, image: design.imageFile.flatMap(store.image(named:)),
-                      problem: nil, appearance: appearance)
-        }
-        guard let itemID else {
-            if let newest = store.designs(fitting: size).first { return designEntry(newest) }
-            return templateEntry(TemplateLibrary.defaultID(for: size))
-        }
-        if itemID.hasPrefix("design:") {
-            let id = String(itemID.dropFirst("design:".count))
-            guard let design = store.design(id: id) else {
-                return PickEntry(date: date, spec: nil, design: nil, image: nil,
-                                 problem: "The saved design was deleted. Pick another one in Edit Widget.", appearance: appearance)
-            }
-            return designEntry(design)
-        }
-        return templateEntry(String(itemID.dropFirst("template:".count)))
     }
 }
 
@@ -326,7 +303,9 @@ struct PickWidgetView: View {
     let entry: PickEntry
 
     var body: some View {
-        if let problem = entry.problem {
+        if entry.needsChoice {
+            PickPromptView()
+        } else if let problem = entry.problem {
             WidgetProblemView(title: "Widget Studio", message: problem)
         } else if let gap = entry.gap {
             DataGapView(gap: gap, title: entry.design?.name ?? entry.spec?.name.resolved(language: RenderContext.preferredLanguage) ?? "")
@@ -350,6 +329,27 @@ struct PickWidgetView: View {
         case .dark: context.theme = .dark
         }
         return context
+    }
+}
+
+/// A placed "My widget" with no choice yet; it is never filled in automatically (M6).
+struct PickPromptView: View {
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "hand.tap.fill")
+                .font(.title2)
+                .accessibilityHidden(true)
+            Text("widget.pick.choose.title")
+                .font(.headline)
+                .multilineTextAlignment(.center)
+            Text("widget.pick.choose.body")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .containerBackground(for: .widget) { Color(uiColor: .systemBackground) }
     }
 }
 #endif
