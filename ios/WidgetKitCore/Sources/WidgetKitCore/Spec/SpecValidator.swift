@@ -81,12 +81,13 @@ public struct SpecValidator: Sendable {
             default: return false
             }
         case .field: return true
-        case .timezoneTime, .daysUntil: return false
+        case .daysUntil: return true   // needs a date field (countdowns, ADR-019)
+        case .timezoneTime: return false
         }
     }
 
     /// Field types AI output may declare.
-    public static let aiFieldTypes: Set<FieldSpec.Kind> = [.text, .image]
+    public static let aiFieldTypes: Set<FieldSpec.Kind> = [.text, .date, .image]
 
     /// Readable text for the AI retry ("Your previous reply was not valid: …").
     public static func describe(_ issues: [SpecIssue]) -> String {
@@ -232,7 +233,7 @@ private struct Check {
                 if field.type != .date { fail(path, "{{\(raw)}} needs a date field") }
                 kind = .number
             default:
-                if mode == .ai, field.type != .text { fail(path, "AI output may only bind text fields") }
+                if mode == .ai, field.type != .text && field.type != .date { fail(path, "AI output may only bind text and date fields") }
                 kind = Self.kind(of: field)
             }
         case .builtin:

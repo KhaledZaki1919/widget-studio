@@ -14,6 +14,7 @@ extension AIError {
         case .invalidKey: "ai.error.invalidKey"
         case .insufficientCredit: "ai.error.credit"
         case .rateLimited: "ai.error.rateLimited"
+        case .dailyQuota: "ai.error.dailyQuota"
         case .modelNotFound: "ai.error.model"
         case .refused: "ai.error.refused"
         case .truncated: "ai.error.truncated"
@@ -34,6 +35,7 @@ extension AIError {
         case .invalidKey: Text("ai.error.invalidKey.next")
         case .insufficientCredit: Text("ai.error.credit.next")
         case .rateLimited: Text("ai.error.rateLimited.next \(alternative)")
+        case .dailyQuota: Text("ai.error.dailyQuota.next \(alternative)")
         case .modelNotFound: Text("ai.error.model.next")
         case .refused: Text("ai.error.refused.next")
         case .truncated: Text("ai.error.truncated.next")
@@ -50,7 +52,7 @@ extension AIError {
     /// Errors that Settings → AI fixes (key, credit, model).
     var needsSettings: Bool {
         switch self {
-        case .noKey, .invalidKey, .insufficientCredit, .modelNotFound, .rateLimited: true
+        case .noKey, .invalidKey, .insufficientCredit, .modelNotFound, .rateLimited, .dailyQuota: true
         default: false
         }
     }

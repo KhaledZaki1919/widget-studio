@@ -290,6 +290,40 @@
         }
       }
     },
+    "ai.error.dailyQuota": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انتهت طلبات اليوم المجانية لهذا النموذج."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have used today's free requests for this model."
+          }
+        }
+      }
+    },
+    "ai.error.dailyQuota.next %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حاول غدًا، أو اختر نموذجًا آخر من الإعدادات ← الذكاء الاصطناعي (مثل %@)، فلكل نموذج حده اليومي."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again tomorrow, or pick another model in Settings → AI (for example %@): each model has its own daily limit."
+          }
+        }
+      }
+    },
     "ai.error.invalidKey": {
       "extractionState": "manual",
       "localizations": {

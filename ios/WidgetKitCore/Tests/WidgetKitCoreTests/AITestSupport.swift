@@ -77,7 +77,7 @@ final class ScriptedProvider: AIProvider, @unchecked Sendable {
     private var script: [Result<String, AIError>]
     private(set) var requests: [(request: AIRequest, structured: Bool)] = []
 
-    init(kind: AIProviderKind = .gemini, _ script: [Result<String, AIError>]) {
+    init(kind: AIProviderKind = .anthropic, _ script: [Result<String, AIError>]) {
         self.kind = kind
         self.script = script
     }

@@ -303,6 +303,11 @@ struct SpecValidatorTests {
         #expect(try issues(layers: [text("hi")], fields: shortcut, mode: .ai).contains { $0.path == "fields[0].type" })
         let title: [[String: Any]] = [["key": "title", "type": "text", "label": ["en": "Title", "ar": "العنوان"]]]
         #expect(try issues(layers: [text("{{field.title}}")], fields: title, mode: .ai).isEmpty)
+        // ADR-019: countdowns to a date field.
+        let event: [[String: Any]] = [["key": "event", "type": "date", "label": ["en": "Event", "ar": "الموعد"], "default": "2026-12-31T09:00:00"]]
+        var timer = text("x")
+        timer["live"] = ["kind": "timer", "target": "{{field.event}}"]
+        #expect(try issues(layers: [timer, text("{{days.event}}")], fields: event, mode: .ai).isEmpty)
         #expect(try issues(layers: [layer("image", ["source": "asset:logo"])], fields: [], mode: .ai).contains { $0.path == "layers[0].source" })
     }
 

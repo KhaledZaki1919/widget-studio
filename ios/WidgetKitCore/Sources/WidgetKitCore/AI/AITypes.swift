@@ -40,7 +40,7 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable, Identifiabl
     /// on 2026-10-26 (ADR-018): Gemini 3.8 Flash is stable and free of charge on the free tier.
     public var recommendedModel: String {
         switch self {
-        case .gemini: "gemini-3.8-flash"
+        case .gemini: "gemini-3.5-flash-lite"
         case .anthropic: "claude-haiku-5-5"
         case .openai: "gpt-6-luna"
         case .openrouter: "google/gemini-3.8-flash"
@@ -50,7 +50,7 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable, Identifiabl
     /// Suggested when the default model is rate limited (free Gemini keys).
     public var alternativeModel: String {
         switch self {
-        case .gemini: "gemini-3.5-flash-lite"
+        case .gemini: "gemini-3.8-flash"
         case .anthropic: "claude-sonnet-5-5"
         case .openai: "gpt-6.1-sol"
         case .openrouter: "anthropic/claude-haiku-5.5"
@@ -60,12 +60,18 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable, Identifiabl
     /// Shown before a key is set; the provider's live list replaces it afterwards.
     public var builtInModels: [String] {
         switch self {
-        case .gemini: ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.6-flash"]
+        case .gemini: ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.6-flash"]
         case .anthropic: ["claude-haiku-5-5", "claude-sonnet-5-5"]
         case .openai: ["gpt-6-luna", "gpt-6.1-sol"]
         case .openrouter: ["google/gemini-3.8-flash", "anthropic/claude-haiku-5.5", "openai/gpt-6-luna"]
         }
     }
+
+    /// Whether requests start with the provider's native structured output. Gemini starts in
+    /// JSON mode with the schema in the prompt: with `responseSchema`, Gemini 3.8 Flash ran past
+    /// three minutes on most eval images while JSON mode answered in 1–12 s (ADR-019). Every reply
+    /// is validated either way.
+    public var prefersStructuredOutput: Bool { self != .gemini }
 
     public func makeProvider(apiKey: String, session: URLSession = .shared) -> AIProvider {
         switch self {
@@ -92,14 +98,19 @@ public struct AIRequest: Sendable, Equatable {
     public var maxOutputTokens: Int
 
     public init(system: String, userText: String, images: [Data] = [], schema: JSONValue,
-                schemaName: String = "result", maxOutputTokens: Int = 2048) {
+                schemaName: String = "result", maxOutputTokens: Int = 2048, timeout: TimeInterval = 180) {
         self.system = system
         self.userText = userText
         self.images = images
         self.schema = schema
         self.schemaName = schemaName
         self.maxOutputTokens = maxOutputTokens
+        self.timeout = timeout
     }
+
+    /// Seconds before one HTTP request gives up. Widget generation uses less than the default, so
+    /// a runaway structured answer leaves time for the prompt-only retry (ADR-019).
+    public var timeout: TimeInterval
 
     /// For providers without native structured output, or after a provider rejected it.
     public func withSchemaInstructions() -> AIRequest {
@@ -145,6 +156,8 @@ public enum AIError: Error, Equatable, Sendable {
     case invalidKey
     case insufficientCredit
     case rateLimited
+    /// The day's request quota for this model is used up (free Gemini keys: 20 a day per model).
+    case dailyQuota
     case modelNotFound
     /// The provider declined the request or flagged the image (brief §8).
     case refused

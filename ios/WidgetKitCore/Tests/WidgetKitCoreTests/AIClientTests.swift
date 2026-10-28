@@ -136,6 +136,8 @@ struct AIClientTests {
 
     @Test func errorsMapToWhatTheUserCanDo() throws {
         #expect(AIHTTP.mapError(status: 429, body: try aiFixture("gemini-429")) == .rateLimited)
+        #expect(AIHTTP.mapError(status: 429, body: try aiFixture("gemini-429-daily")) == .dailyQuota)
+        #expect(AIHTTP.retryDelay(status: 429, body: try aiFixture("gemini-429-daily")) == nil)
         #expect(AIHTTP.mapError(status: 400, body: try aiFixture("gemini-400-key")) == .invalidKey)
         #expect(AIHTTP.mapError(status: 401, body: try aiFixture("anthropic-401")) == .invalidKey)
         #expect(AIHTTP.mapError(status: 429, body: try aiFixture("anthropic-429")) == .rateLimited)
@@ -205,6 +207,25 @@ struct AIClientTests {
         #expect(provider.requests[1].request.system.contains("JSON Schema"))
     }
 
+    /// ADR-019: Gemini starts in JSON mode (schema in the prompt); the others start structured.
+    @Test func geminiStartsInJSONMode() async throws {
+        let gemini = ScriptedProvider(kind: .gemini, [.success("{\"ok\": true}")])
+        _ = try await StructuredAI(provider: gemini, model: "m").run(ConnectionTest.Reply.self, request: request(), feature: .connectionTest)
+        #expect(gemini.requests.map(\.structured) == [false])
+        #expect(gemini.requests[0].request.system.contains("JSON Schema"))
+        #expect(!AIProviderKind.gemini.prefersStructuredOutput && AIProviderKind.openai.prefersStructuredOutput)
+    }
+
+    @Test func runawayStructuredAnswerFallsBackToPromptMode() async throws {
+        for failure in [AIError.timedOut, .truncated] {
+            let provider = ScriptedProvider([.failure(failure), .success("{\"ok\": true}")])
+            let result = try await StructuredAI(provider: provider, model: "m")
+                .run(ConnectionTest.Reply.self, request: request(), feature: .connectionTest)
+            #expect(result.attempts == 1)
+            #expect(provider.requests.map(\.structured) == [true, false])
+        }
+    }
+
     @Test func diagnosticIsRedacted() async throws {
         let provider = ScriptedProvider([.failure(.invalidKey)])
         let recorder = DiagnosticRecorder()
@@ -256,7 +277,7 @@ struct AIClientTests {
         let defaults = testDefaults()
         var settings = AISettings.load(from: defaults)
         #expect(settings.provider == .gemini)
-        #expect(settings.model == "gemini-3.8-flash")
+        #expect(settings.model == "gemini-3.5-flash-lite")
         settings.setConsent(true, for: .gemini)
         settings.models["gemini"] = "gemini-3.5-flash-lite"
         settings.save(to: defaults)

@@ -94,7 +94,11 @@ enum AIHTTP {
         // Gemini says "exceeded your current quota" for free-tier per-minute and daily limits too;
         // that's a rate limit, not missing credit.
         let errorStatus = (try? JSONDecoder().decode(JSONValue.self, from: body))?["error"]?["status"]?.stringValue
-        if errorStatus == "RESOURCE_EXHAUSTED" { return .rateLimited }
+        if errorStatus == "RESOURCE_EXHAUSTED" {
+            // Free Gemini keys have per-minute and per-day request limits per model.
+            let text = String(decoding: body, as: UTF8.self)
+            return text.contains("PerDay") || text.lowercased().contains("per day") ? .dailyQuota : .rateLimited
+        }
         // Gemini's "This model is currently experiencing high demand" and Anthropic's "Overloaded".
         if errorStatus == "UNAVAILABLE" || status == 503 || status == 529 { return .busy }
         switch status {

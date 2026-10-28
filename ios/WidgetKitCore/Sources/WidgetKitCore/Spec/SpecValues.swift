@@ -45,9 +45,13 @@ public enum FieldValues {
     public static func date(_ value: String) -> Date? {
         let full = ISO8601DateFormatter()
         if let date = full.date(from: value) { return date }
-        let dayOnly = DateFormatter()
-        dayOnly.locale = Locale(identifier: "en_US_POSIX")
-        dayOnly.dateFormat = "yyyy-MM-dd"
-        return dayOnly.date(from: value)
+        // Without a zone ("2026-12-31T09:00:00", as AI output writes them): local time.
+        let local = DateFormatter()
+        local.locale = Locale(identifier: "en_US_POSIX")
+        for format in ["yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd"] {
+            local.dateFormat = format
+            if let date = local.date(from: value) { return date }
+        }
+        return nil
     }
 }

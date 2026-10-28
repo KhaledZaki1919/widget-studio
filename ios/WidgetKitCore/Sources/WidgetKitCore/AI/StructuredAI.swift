@@ -94,7 +94,7 @@ public struct StructuredAI: Sendable {
     private func attempts<Value>(
         request: AIRequest, trace: AITrace, state: RunState, parse: @Sendable (String) throws -> Value
     ) async throws -> StructuredResult<Value> {
-        var structured = structuredFirst
+        var structured = structuredFirst && provider.kind.prefersStructuredOutput
         var fellBack = false
         var current = request
         var lastProblem = "invalid reply"
@@ -109,6 +109,13 @@ public struct StructuredAI: Sendable {
             do {
                 response = try await provider.complete(prepared, model: model, structured: structured)
             } catch AIError.badRequest(let message) where structured && !fellBack && Self.looksLikeSchemaRejection(message) {
+                structured = false
+                fellBack = true
+                attempt -= 1
+                continue
+            } catch let error as AIError where structured && !fellBack && (error == .timedOut || error == .truncated) {
+                // Gemini's constrained decoding sometimes runs away (endless output until the limit
+                // or the timeout, AI eval runs 1-2); the prompt-only mode doesn't.
                 structured = false
                 fellBack = true
                 attempt -= 1

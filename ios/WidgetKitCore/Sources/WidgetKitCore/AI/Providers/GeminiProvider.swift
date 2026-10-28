@@ -138,7 +138,7 @@ public struct GeminiProvider: AIProvider {
     private func send(_ request: AIRequest, url: URL, model: String, structured: Bool,
                       thinking: Thinking) async throws -> AIResponse {
         let body = body(for: request, model: model, structured: structured, thinking: thinking)
-        let urlRequest = try AIHTTP.jsonRequest(url: url, headers: headers, body: body)
+        let urlRequest = try AIHTTP.jsonRequest(url: url, headers: headers, body: body, timeout: request.timeout)
         let data = try await AIHTTP.send(urlRequest, session: session, retryTransient: true)
         return try Self.parse(data, model: model)
     }
