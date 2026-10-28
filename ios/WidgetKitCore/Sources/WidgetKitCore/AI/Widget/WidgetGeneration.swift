@@ -369,7 +369,10 @@ public enum AIWidgetParser {
     /// Minimum `fg`/`bg` contrast accepted (WCAG AA for large text; the prompt asks for 4.5).
     public static let minimumContrast = 3.0
 
-    public static func parse(_ text: String, options: GenerationOptions, id: String) throws -> (spec: WidgetSpec, colors: [String: String]) {
+    /// `enforceLayout`: overlapping frames and oversized icons are problems (they send the retry);
+    /// false accepts them, for the last attempt, so a slightly messy layout still gives a widget.
+    public static func parse(_ text: String, options: GenerationOptions, id: String,
+                             enforceLayout: Bool = true) throws -> (spec: WidgetSpec, colors: [String: String]) {
         guard let data = StructuredAI.extractJSON(text),
               case .object(var object)? = try? JSONDecoder().decode(JSONValue.self, from: data) else {
             throw AIValidationError("no JSON object found")
@@ -409,6 +412,7 @@ public enum AIWidgetParser {
             throw AIValidationError(problems.joined(separator: "; "))
         case .success(var spec):
             problems += modeProblems(spec, mode: options.mode)
+            if enforceLayout { problems += overlappingTexts(spec) }
             guard problems.isEmpty else { throw AIValidationError(problems.joined(separator: "; ")) }
             spec.refresh = refresh(for: spec)
             return (spec, colors)
@@ -443,13 +447,11 @@ public enum AIWidgetParser {
             if case .image = spec.layers[$0].content { return true }
             return false
         }
-        let overlaps = overlappingTexts(spec)
         switch mode {
         case .recreate:
             return images.map { "layers[\($0)]: image layers are not allowed when recreating a design; draw it with shapes, text and icons" }
-                + overlaps
         case .photo:
-            return (images.isEmpty ? ["layers: add one image layer with \"source\": \"user_image\" for the user's photo"] : []) + overlaps
+            return images.isEmpty ? ["layers: add one image layer with \"source\": \"user_image\" for the user's photo"] : []
         }
     }
 
@@ -547,8 +549,10 @@ public struct WidgetGenerator: Sendable {
         let id = "ai." + UUID().uuidString.prefix(8).lowercased()
         onStep(.generating)
         let request = WidgetPrompt.request(options: options, image: image)
+        // The retry's answer is accepted with layout problems (overlaps); only the first is strict.
+        let firstRound = AttemptCounter()
         let result = try await service.run(request: request, feature: .generateWidget) { text in
-            try AIWidgetParser.parse(text, options: options, id: id)
+            try AIWidgetParser.parse(text, options: options, id: id, enforceLayout: firstRound.next() == 1)
         }
         let first = GeneratedWidget(spec: result.value.spec, colors: result.value.colors, model: result.model, attempts: result.attempts)
         guard let review, let render = await review(first.spec, first.colors) else { return first }
@@ -557,8 +561,9 @@ public struct WidgetGenerator: Sendable {
         onStep(.reviewing)
         let reviewRequest = WidgetPrompt.reviewRequest(options: options, image: image, render: render, spec: first.spec, colors: first.colors)
         do {
+            let reviewRound = AttemptCounter()
             let reviewed = try await service.run(request: reviewRequest, feature: .reviewWidget) { text in
-                let parsed = try AIWidgetParser.parse(text, options: options, id: id)
+                let parsed = try AIWidgetParser.parse(text, options: options, id: id, enforceLayout: reviewRound.next() == 1)
                 return (parsed.spec, parsed.colors, AIWidgetParser.differences(in: text))
             }
             return GeneratedWidget(spec: reviewed.value.0, colors: reviewed.value.1, model: reviewed.model,
@@ -567,6 +572,19 @@ public struct WidgetGenerator: Sendable {
             throw AIError.cancelled
         } catch {
             return first
+        }
+    }
+}
+
+/// Counts the answers parsed in one round (1 = first answer, 2 = the retry).
+final class AttemptCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    func next() -> Int {
+        lock.withLock {
+            count += 1
+            return count
         }
     }
 }

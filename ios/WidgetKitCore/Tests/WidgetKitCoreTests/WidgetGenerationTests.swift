@@ -249,6 +249,25 @@ struct WidgetGenerationTests {
         #expect(provider.requests[0].request.images == [image.jpeg])
     }
 
+    /// Overlaps send the retry; if the retry still overlaps, it's accepted (eval run 6).
+    @Test func layoutProblemsAreSoftOnTheRetry() async throws {
+        let overlapping = try editedReply { object in
+            var all = layers(object)
+            all[4]["frame"] = ["x": 20, "y": 70, "w": 120, "h": 40]
+            object["layers"] = all
+        }
+        let provider = ScriptedProvider([.success(overlapping), .success(overlapping)])
+        let generator = WidgetGenerator(service: AIService(keyStore: AIKeyStore(storage: MemoryKeyStorage()), defaults: testDefaults(),
+                                                           provider: provider))
+        let result = try await generator.generate(image: image, options: GenerationOptions())
+        #expect(result.attempts == 2)
+        #expect(provider.requests[1].request.userText.contains("frames overlap"))
+        #expect(throws: AIValidationError.self) {
+            try AIWidgetParser.parse(overlapping, options: GenerationOptions(), id: "gen.strict")
+        }
+        #expect(try AIWidgetParser.parse(overlapping, options: GenerationOptions(), id: "gen.soft", enforceLayout: false).spec.layers.count == 6)
+    }
+
     @Test func stillInvalidAfterTheRetryIsAClearError() async throws {
         let provider = ScriptedProvider([.success("{}"), .success("{\"layers\": []}")])
         let generator = WidgetGenerator(service: AIService(keyStore: AIKeyStore(storage: MemoryKeyStorage()), defaults: testDefaults(),

@@ -421,3 +421,17 @@ Empty field values fall back to the template defaults.
 - Free Gemini 3.8 Flash allows 20 requests a day per model; a daily quota shows its own message (`AIError.dailyQuota`: try tomorrow or another model). The default Gemini model is now `gemini-3.5-flash-lite` (fast, good results in the eval); `gemini-3.8-flash` is the suggested alternative.
 
 **AI eval:** `docs/ai-eval/` holds 10 widgets drawn for this purpose (calendar like the device test, reminders, quote, forecast, steps, analog, countdown, big date, day & zone, a landscape for photo mode) and `cases.json`. Crops of the third-party reference image are never committed (`.gitignore`; seven were pushed once and then removed). Manual workflow **AI eval** runs `AIEvalTests` (`AI_EVAL=1`) with the secret `GEMINI_API_KEY` (never printed): real prompt, schema, parser and renderer (bundled fonts registered for the run), uploading side-by-side PNGs, specs and `summary.md`. Inputs: model, review, structured, cases. Picked results are kept in `docs/ai-eval/results/`.
+
+**Eval runs (2026-10-27/28, cap of 6):**
+| Run | Setup | Result |
+|---|---|---|
+| 1 | 3.8 Flash, `responseSchema` (strict) | 0/10: six past 180 s, four 503 "high demand" |
+| 2 | 3.8 Flash, compact `responseSchema` | 0/10: one 503, one past the timeout, then the free daily quota (20/day) |
+| 3 | 3.5 Flash-Lite, JSON mode | 10/10 in 1–12 s; calendar, reminders, steps, clock, date, photo close; forecast hit 30 layers; quote author replaced; countdown shown as a clock |
+| 4 | same, prompt fixes | 10/10 in 1–3 s; forecastRow, author kept, countdown a live timer; one text overlap |
+| 5 | same, High quality on | 9/10 reviewed with sensible fixes; found the `Link` render bug and an invented icon |
+| 6 | same, default path | 9/10 in 1–5 s; the forecast failed on the overlap rule twice → layout problems became soft on the retry (accepted) |
+
+Picked side-by-sides are in `docs/ai-eval/results/` (left: the drawn original, right: our render with sample data, so live values differ).
+
+**Open:** fidelity of hand-built rows when a model ignores `forecastRow` (soft-accepted now); italic serif has no matching font; the review round with paid providers is not yet measured.
