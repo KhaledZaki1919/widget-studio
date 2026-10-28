@@ -17,18 +17,10 @@ struct RootView: View {
         @Bindable var tiles = tiles
         TabView(selection: $appState.tab) {
             NavigationStack {
+                // Diagnostics is hidden (M6): long-press the version at the bottom of the Library
+                // or in Settings, or open widgetstudio://diagnostics.
                 LibraryView(onLongPressVersion: { showDiagnostics = true })
                     .navigationTitle("library.title")
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button {
-                                showDiagnostics = true
-                            } label: {
-                                Label("home.diagnostics", systemImage: "stethoscope")
-                            }
-                            .accessibilityIdentifier("ax.home.diagnostics")
-                        }
-                    }
                     .navigationDestination(isPresented: $showDiagnostics) {
                         DiagnosticsView()
                     }

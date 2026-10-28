@@ -57,8 +57,8 @@ public enum OpenMeteo {
     public static func url(latitude: Double, longitude: Double, unit: AppSettings.TemperatureUnit) -> URL? {
         var components = URLComponents(string: "https://api.open-meteo.com/v1/forecast")
         components?.queryItems = [
-            URLQueryItem(name: "latitude", value: String(format: "%.4f", latitude)),
-            URLQueryItem(name: "longitude", value: String(format: "%.4f", longitude)),
+            URLQueryItem(name: "latitude", value: String(format: "%.2f", latitude)),
+            URLQueryItem(name: "longitude", value: String(format: "%.2f", longitude)),
             URLQueryItem(name: "current", value: "temperature_2m,weather_code,is_day"),
             URLQueryItem(name: "daily", value: "weather_code,temperature_2m_max,temperature_2m_min"),
             URLQueryItem(name: "timezone", value: "auto"),

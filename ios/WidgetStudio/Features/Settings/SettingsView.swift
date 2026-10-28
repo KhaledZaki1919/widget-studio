@@ -10,6 +10,7 @@ struct SettingsView: View {
     @Environment(DesignsModel.self) private var designs
     @Environment(AppState.self) private var appState
     @Environment(\.openURL) private var openURL
+    @State private var showDiagnostics = false
     private let language = RenderContext.preferredLanguage
 
     var body: some View {
@@ -89,16 +90,19 @@ struct SettingsView: View {
                     .accessibilityIdentifier("ax.settings.tiles")
                 NavigationLink("settings.shortcuts.guide") { ShortcutGuideView() }
                     .accessibilityIdentifier("ax.settings.shortcutGuide")
-                NavigationLink("home.diagnostics") { DiagnosticsView() }
-                    .accessibilityIdentifier("ax.settings.diagnostics")
             }
             Section {
                 Button("settings.intro") { appState.isShowingOnboarding = true }
                     .accessibilityIdentifier("ax.settings.intro")
+                // Long-press opens the hidden Diagnostics (M6).
                 LabeledContent("settings.version", value: AppInfo.versionText)
+                    .contentShape(Rectangle())
+                    .onLongPressGesture { showDiagnostics = true }
+                    .accessibilityIdentifier("ax.settings.version")
             }
         }
         .navigationTitle("settings.title")
+        .navigationDestination(isPresented: $showDiagnostics) { DiagnosticsView() }
         .task { await live.refresh() }
         .refreshable { await live.refresh() }
     }

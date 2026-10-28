@@ -15,12 +15,24 @@ final class SmokeUITests: XCTestCase {
         return app
     }
 
+    /// Diagnostics is hidden (M6): Settings → long-press the version row.
+    @MainActor
+    func openDiagnostics(_ app: XCUIApplication) {
+        let tabs = app.tabBars.firstMatch
+        XCTAssertTrue(tabs.waitForExistence(timeout: 15), "tab bar not found")
+        tabs.buttons.element(boundBy: 2).tap()
+        let version = app.descendants(matching: .any)["ax.settings.version"]
+        for _ in 0..<12 where !(version.exists && version.isHittable) {
+            app.swipeUp()
+        }
+        XCTAssertTrue(version.waitForExistence(timeout: 5), "version row not found in Settings")
+        version.press(forDuration: 1.2)
+    }
+
     @MainActor
     private func opensDiagnostics(language: String) {
         let app = launch(language: language)
-        let link = app.buttons["ax.home.diagnostics"]
-        XCTAssertTrue(link.waitForExistence(timeout: 15))
-        link.tap()
+        openDiagnostics(app)
         XCTAssertTrue(app.collectionViews["ax.diag.list"].waitForExistence(timeout: 10))
         // List cells exist only on screen, so scroll down to the App Group button.
         let write = app.buttons["ax.diag.writeValue"]
@@ -116,9 +128,7 @@ final class SmokeUITests: XCTestCase {
     @MainActor
     func testTestDesignsRenderInBothLanguages() {
         let app = launch(language: "en")
-        let diagnostics = app.buttons["ax.home.diagnostics"]
-        XCTAssertTrue(diagnostics.waitForExistence(timeout: 15))
-        diagnostics.tap()
+        openDiagnostics(app)
         let link = app.buttons["ax.diag.testSpecs"]
         XCTAssertTrue(link.waitForExistence(timeout: 10))
         link.tap()

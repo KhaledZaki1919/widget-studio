@@ -16,8 +16,18 @@ public enum WidgetLog {
         .appendingPathComponent("Logs", isDirectory: true)
         .appendingPathComponent("template-widgets.log")
 
+    /// Debug builds only (M6 release hygiene): release builds keep no step log.
+    public static let isEnabled: Bool = {
+        #if DEBUG
+        true
+        #else
+        false
+        #endif
+    }()
+
     /// Appends "HH:mm:ss.SSS message"; never throws (logging must not break a widget).
     public static func add(_ message: String, now: Date = .now) {
+        guard isEnabled else { return }
         lock.lock()
         defer { lock.unlock() }
         var lines = read(url: url)

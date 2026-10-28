@@ -74,6 +74,15 @@ verify_fonts() {
 verify_fonts "$BUNDLE"
 for appex in "$BUNDLE"/PlugIns/*.appex; do verify_fonts "$appex"; done
 
+# App Store: the app and each extension need a privacy manifest (M6).
+for bundle in "$BUNDLE" "$BUNDLE"/PlugIns/*.appex; do
+  if ! plutil -lint "$bundle/PrivacyInfo.xcprivacy" >/dev/null 2>&1; then
+    echo "error: $(basename "$bundle") has no valid PrivacyInfo.xcprivacy" >&2
+    exit 1
+  fi
+  echo "Privacy manifest in $(basename "$bundle"): present"
+done
+
 # Verify each signed bundle really carries the App Group entitlement (brief §9).
 verify_entitlements() {
   local bundle="$1"

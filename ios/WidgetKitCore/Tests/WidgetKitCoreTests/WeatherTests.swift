@@ -53,7 +53,7 @@ struct WeatherTests {
         let query = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
         let items = Dictionary(uniqueKeysWithValues: query.map { ($0.name, $0.value ?? "") })
         #expect(url.host == "api.open-meteo.com")
-        #expect(items["latitude"] == "30.0444" && items["longitude"] == "31.2357")
+        #expect(items["latitude"] == "30.04" && items["longitude"] == "31.24")   // ~1 km: coarse location (M6)
         #expect(items["temperature_unit"] == "fahrenheit")
         #expect(items["timezone"] == "auto")
     }

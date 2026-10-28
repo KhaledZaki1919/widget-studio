@@ -22,7 +22,10 @@ struct WidgetStudioWidgetsBundle: WidgetBundle {
         CounterTemplateWidgets().body
         MyWidgets().body
         #endif
-        // Kept for install checks (Diagnostics, ADR-005); large shows the widget step log.
+        #if DEBUG || WS_DEVELOPER
+        // Install checks (Diagnostics, ADR-005); large shows the widget step log. Not in release
+        // builds (M6): the gallery shows only real widgets.
         ProbeWidget()
+        #endif
     }
 }
