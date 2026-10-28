@@ -5101,6 +5101,23 @@
         }
       }
     },
+    "settings.privacy": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سياسة الخصوصية"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacy policy"
+          }
+        }
+      }
+    },
     "settings.shortcuts.guide": {
       "extractionState": "manual",
       "localizations": {
@@ -5267,6 +5284,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "In this version the widget can't see the app's settings (no App Group), so it uses the defaults: °C, Egyptian method, 8,000 steps. Your settings reach it in the App Store version."
+          }
+        }
+      }
+    },
+    "settings.support": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الدعم والأسئلة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Support"
           }
         }
       }

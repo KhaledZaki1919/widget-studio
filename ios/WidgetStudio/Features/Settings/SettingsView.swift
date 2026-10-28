@@ -94,6 +94,14 @@ struct SettingsView: View {
             Section {
                 Button("settings.intro") { appState.isShowingOnboarding = true }
                     .accessibilityIdentifier("ax.settings.intro")
+                Link(destination: AppInfo.privacyURL) {
+                    Label("settings.privacy", systemImage: "hand.raised")
+                }
+                .accessibilityIdentifier("ax.settings.privacy")
+                Link(destination: AppInfo.supportURL) {
+                    Label("settings.support", systemImage: "questionmark.circle")
+                }
+                .accessibilityIdentifier("ax.settings.support")
                 // Long-press opens the hidden Diagnostics (M6).
                 LabeledContent("settings.version", value: AppInfo.versionText)
                     .contentShape(Rectangle())

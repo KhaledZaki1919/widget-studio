@@ -127,6 +127,16 @@ enum WidgetActions {
 }
 
 enum AppInfo {
+    /// Static pages on GitHub Pages (site/, M6), in the app's language.
+    static var privacyURL: URL { page("privacy") }
+    static var supportURL: URL { page("support") }
+
+    private static func page(_ name: String) -> URL {
+        let anchor = RenderContext.preferredLanguage == "ar" ? "ar" : "en"
+        return URL(string: "https://khaledzaki1919.github.io/widget-studio/\(name).html#\(anchor)")
+            ?? URL(fileURLWithPath: "/")
+    }
+
     static var versionText: String {
         let info = Bundle.main.infoDictionary
         let version = info?["CFBundleShortVersionString"] as? String ?? "?"
