@@ -45,6 +45,8 @@ struct TemplateDetailView: View {
                         SpecPreview(spec: spec, language: language, family: family, theme: theme)
                             .frame(maxWidth: family == .small ? 180 : .infinity)
                             .id("\(family.rawValue).\(theme.rawValue)")
+                            .accessibilityLabel(Text("detail.preview.label \(spec.name.resolved(language: language))"))
+                            .accessibilityValue(Text(Self.sizeName(family)))
                             .accessibilityIdentifier("ax.detail.preview.\(family.rawValue)")
                     }
                 }

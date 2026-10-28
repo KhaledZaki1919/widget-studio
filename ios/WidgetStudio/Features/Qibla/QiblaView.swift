@@ -61,6 +61,8 @@ struct QiblaView: View {
     @Environment(LiveDataModel.self) private var live
     @State private var compass = HeadingModel()
     @State private var aligned = false
+    /// Follows Dynamic Type (M6).
+    @ScaledMetric(relativeTo: .largeTitle) private var degreesSize: CGFloat = 44
 
     private var qibla: Double? {
         live.inputs.location.map { PrayerCalculator.qibla(latitude: $0.latitude, longitude: $0.longitude) }
@@ -77,7 +79,7 @@ struct QiblaView: View {
                         .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 }
                 Text(verbatim: "\(Int(qibla.rounded()))°")
-                    .font(.system(size: 44, weight: .bold, design: .rounded)).monospacedDigit()
+                    .font(.system(size: degreesSize, weight: .bold, design: .rounded)).monospacedDigit()
                     .accessibilityIdentifier("ax.qibla.degrees")
                 Text("compass.fromNorth").font(.footnote).foregroundStyle(.secondary)
                 if aligned {

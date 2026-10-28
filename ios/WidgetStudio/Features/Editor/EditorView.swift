@@ -103,6 +103,8 @@ struct EditorView: View {
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
                 .id(model.previewLanguage)
+                .accessibilityLabel(Text("detail.preview.label \(model.design.name)"))
+                .accessibilityHint(Text("editor.preview.footer"))
                 .accessibilityIdentifier("ax.editor.preview")
         } footer: {
             Text("editor.preview.footer")

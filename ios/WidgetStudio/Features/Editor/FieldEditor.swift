@@ -65,6 +65,7 @@ struct FieldEditor: View {
             } label: {
                 LabeledContent {
                     Image(systemName: model.plain(field).wrappedValue.isEmpty ? "questionmark" : model.plain(field).wrappedValue)
+                        .accessibilityLabel(Text(verbatim: IconPicker.spokenName(model.plain(field).wrappedValue)))
                 } label: {
                     Text(verbatim: title)
                 }
@@ -150,11 +151,18 @@ struct IconPicker: View {
                                 .fill(selection == icon ? Color.accentColor.opacity(0.25) : Color(uiColor: .secondarySystemBackground)))
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(Text(verbatim: icon))
+                    .accessibilityLabel(Text(verbatim: Self.spokenName(icon)))
+                    .accessibilityAddTraits(selection == icon ? .isSelected : [])
                 }
             }
             .padding(16)
         }
         .navigationTitle("editor.icon")
+    }
+
+    /// "flashlight.on.fill" → "flashlight on", so VoiceOver reads a word, not a symbol ID.
+    static func spokenName(_ symbol: String) -> String {
+        let words = symbol.split(separator: ".").filter { !["fill", "circle", "square"].contains($0) }
+        return words.isEmpty ? symbol : words.joined(separator: " ")
     }
 }

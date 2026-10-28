@@ -104,6 +104,8 @@ struct MyWidgetsView: View {
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(verbatim: design.name))
+        .accessibilityValue(Text(verbatim: subtitle(design)))
+        .accessibilityHint(Text("mywidgets.row.hint"))
         .accessibilityIdentifier("ax.mywidgets.design")
         .swipeActions(edge: .trailing) {
             Button(role: .destructive) { deleting = design } label: { Label("mywidgets.delete", systemImage: "trash") }

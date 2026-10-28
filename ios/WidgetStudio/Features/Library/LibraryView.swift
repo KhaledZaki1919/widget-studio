@@ -21,7 +21,7 @@ struct LibraryView: View {
                 }
                 Text(verbatim: "Widget Studio \(AppInfo.versionText)")
                     .font(.footnote)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
                     .padding(.top, 12)
                     .contentShape(Rectangle())
@@ -117,13 +117,19 @@ struct LibraryView: View {
                 Text(verbatim: spec.name.resolved(language: language))
                     .font(.footnote.weight(.medium))
                     .foregroundStyle(.primary)
-                    .lineLimit(1)
+                    .lineLimit(2)
             }
             // The preview ignores touches (its buttons must not fire here), so the whole card
             // needs its own hit area.
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        // One VoiceOver element per template: its name once, its size, and what a tap does.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(verbatim: spec.name.resolved(language: language)))
+        .accessibilityValue(Text(TemplateDetailView.sizeName(spec.family)))
+        .accessibilityHint(Text("library.template.hint"))
+        .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("ax.library.template.\(spec.id)")
     }
 }

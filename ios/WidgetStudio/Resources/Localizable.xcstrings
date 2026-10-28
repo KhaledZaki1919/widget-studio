@@ -2211,6 +2211,23 @@
         }
       }
     },
+    "detail.preview.label %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "معاينة %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview of %@"
+          }
+        }
+      }
+    },
     "detail.sampleData": {
       "extractionState": "manual",
       "localizations": {
@@ -4081,6 +4098,23 @@
         }
       }
     },
+    "library.template.hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يفتح المعاينة والتخصيص."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the preview and Customize."
+          }
+        }
+      }
+    },
     "library.title": {
       "extractionState": "manual",
       "localizations": {
@@ -4281,6 +4315,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rename design"
+          }
+        }
+      }
+    },
+    "mywidgets.row.hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يفتح التعديل. اسحب لإعادة التسمية أو الحذف."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the editor. Swipe to rename or delete."
           }
         }
       }
