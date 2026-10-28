@@ -47,10 +47,15 @@ final class LiveDataModel: NSObject, CLLocationManagerDelegate {
         authorization = manager.authorizationStatus
     }
 
-    /// Real data for previews at `now` (missing sources stay empty: previews show "--").
+    /// Real data for previews at `now` (missing sources stay empty: previews show "--"). App Store
+    /// screenshots (`-uiTestingSampleData`) use the sample data, since the Simulator has no
+    /// location or Health data.
     func snapshot(now: Date) -> DataSnapshot {
-        LiveData.snapshot(inputs, now: now)
+        if Self.usesSampleData { return .sample(now: now) }
+        return LiveData.snapshot(inputs, now: now)
     }
+
+    static let usesSampleData = ProcessInfo.processInfo.arguments.contains("-uiTestingSampleData")
 
     var isLocationAllowed: Bool { authorization == .authorizedWhenInUse || authorization == .authorizedAlways }
 

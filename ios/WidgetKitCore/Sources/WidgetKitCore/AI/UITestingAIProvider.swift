@@ -4,7 +4,12 @@ import Foundation
 public struct UITestingAIProvider: AIProvider {
     public let kind = AIProviderKind.gemini
 
-    public init() {}
+    /// The month calendar instead of the clock (App Store screenshots, M6).
+    private let calendar: Bool
+
+    public init(calendar: Bool = false) {
+        self.calendar = calendar
+    }
 
     public static let widgetName = "Stub Clock"
 
@@ -12,7 +17,8 @@ public struct UITestingAIProvider: AIProvider {
         // A short pause so the generating state is visible.
         try await Task.sleep(nanoseconds: 300_000_000)
         let photo = request.userText.contains("\"source\": \"user_image\"")
-        return AIResponse(text: photo ? Self.photoSpec : Self.recreateSpec, usage: AIUsage(inputTokens: 1500, outputTokens: 600),
+        let spec = photo ? Self.photoSpec : calendar ? Self.calendarSpec : Self.recreateSpec
+        return AIResponse(text: spec, usage: AIUsage(inputTokens: 1500, outputTokens: 600),
                           model: "stub-model")
     }
 
@@ -38,5 +44,19 @@ public struct UITestingAIProvider: AIProvider {
     "frame":{"x":10,"y":10,"w":150,"h":116},"opacity":null,"mirror":null},\
     {"type":"text","value":{"en":"{{date.EEEE}}","ar":"{{date.EEEE}}"},"font":{"family":"system","size":13,"weight":"semibold"},\
     "color":"@fg","align":"leading","maxLines":1,"live":null,"frame":{"x":14,"y":136,"w":142,"h":18},"opacity":null,"mirror":true}]}
+    """
+}
+
+extension UITestingAIProvider {
+    /// A month calendar like the M5 device test, for the Create from image screenshot.
+    static let calendarSpec = """
+    {"name":{"en":"Month","ar":"الشهر"},"family":"small","theme":"light",\
+    "palette":{"bg":"#CFE3F5","fg":"#1C1C1E","accent":"#E0443A"},\
+    "background":{"type":"solid","color":"@bg","colors":null,"angle":null,"outerColor":null},"fields":[],\
+    "layers":[{"type":"calendarMonth","font":{"family":"hand","size":12,"weight":null},"color":"@fg",\
+    "titleFormat":"MMM","titleCase":"upper","titleFont":{"family":"hand","size":22,"weight":"bold"},"titleColor":null,\
+    "titleAlign":"leading","weekdays":"narrow","weekdayFont":null,"weekdayColor":null,"weekStart":"monday",\
+    "weekendDays":["sun"],"weekendColor":"@accent","todayStyle":"filled","todayColor":"@fg","todayTextColor":"#FFFFFF",\
+    "otherDays":"hidden","frame":{"x":10,"y":8,"w":150,"h":154},"opacity":null,"mirror":true}]}
     """
 }

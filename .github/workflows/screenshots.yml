@@ -1,0 +1,79 @@
+# App Store screenshots (M6): 5 per language on a 6.9" iPhone Simulator (1320 × 2868), with
+# a clean status bar. Manual only; uploads the artifact "screenshots-app-store".
+name: Screenshots
+
+on:
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: ios
+
+jobs:
+  shots:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Boot a 6.9-inch iPhone
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          pick = None
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if "Pro Max" in d["name"]:
+                      pick = d["udid"]
+          print(pick or "")')
+          test -n "$UDID" || { echo "no Pro Max simulator"; exit 1; }
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time "9:41" --dataNetwork wifi --wifiMode active --wifiBars 3 \
+            --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
+          xcrun simctl list devices | grep "$UDID"
+
+      - name: Take the screenshots
+        env:
+          TEST_RUNNER_SCREENSHOTS: "1"
+        run: |
+          xcodebuild test \
+            -project WidgetStudio.xcodeproj -scheme WidgetStudio \
+            -destination "id=$UDID" \
+            -only-testing:WidgetStudioUITests/ScreenshotTests \
+            -resultBundlePath build/Shots.xcresult \
+            -quiet
+
+      - name: Export
+        if: always()
+        run: |
+          mkdir -p build/shots build/named
+          xcrun xcresulttool export attachments --path build/Shots.xcresult --output-path build/shots
+          python3 - <<'PY'
+          import json, os, shutil
+          manifest = json.load(open("build/shots/manifest.json"))
+          for test in manifest:
+              for item in test.get("attachments", []):
+                  name = item.get("suggestedHumanReadableName", item["exportedFileName"])
+                  base = name.split("_")[0] if name.endswith(".png") else name
+                  target = os.path.join("build/named", base if base.endswith(".png") else base + ".png")
+                  shutil.copy(os.path.join("build/shots", item["exportedFileName"]), target)
+                  print(target)
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots-app-store
+          path: ios/build/named
+          retention-days: 30

@@ -149,6 +149,8 @@ struct WidgetGenerationTests {
         #expect(recreate.spec.name.resolved(language: "en") == UITestingAIProvider.widgetName)
         let photo = try AIWidgetParser.parse(UITestingAIProvider.photoSpec, options: GenerationOptions(mode: .photo), id: "gen.stub")
         #expect(photo.spec.layers.count == 2)
+        let calendar = try AIWidgetParser.parse(UITestingAIProvider.calendarSpec, options: GenerationOptions(), id: "gen.stub")
+        #expect(calendar.spec.refresh == .daily)
     }
 
     @Test func requestedSizeWins() throws {

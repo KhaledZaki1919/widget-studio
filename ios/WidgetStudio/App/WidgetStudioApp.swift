@@ -24,11 +24,30 @@ struct WidgetStudioApp: App {
             UserDefaults.standard.set(!ProcessInfo.processInfo.arguments.contains("-uiTestingOnboarding"),
                                       forKey: AppState.onboardingDoneKey)
             _appState = State(initialValue: AppState())
+            // App Store screenshots: a few saved designs in My widgets.
+            if ProcessInfo.processInfo.arguments.contains("-uiTestingSeedDesigns") {
+                Self.seedDesigns(into: model)
+            }
             _designs = State(initialValue: model)
         }
         // UI tests of Create from image: canned replies, no key, no network.
         if ProcessInfo.processInfo.arguments.contains("-uiTestingStubAI") {
-            AIService.overrideProvider = UITestingAIProvider()
+            AIService.overrideProvider = UITestingAIProvider(calendar: ProcessInfo.processInfo.arguments.contains("-uiTestingStubCalendar"))
+        }
+    }
+
+    /// Four designs for the My widgets screenshot, named in the test's language.
+    private static func seedDesigns(into model: DesignsModel) {
+        let language = RenderContext.preferredLanguage
+        let picks: [(String, String, String)] = [
+            ("mono.prayer.day", "مواقيت اليوم", "Today's prayers"),
+            ("mono.weather.forecast", "طقس القاهرة", "Cairo weather"),
+            ("mono.clock.digital", "ساعة المكتب", "Desk clock"),
+            ("mono.countdown.red", "العيد", "Holiday"),
+        ]
+        for (id, ar, en) in picks.reversed() {
+            guard case .success(let spec) = TemplateLibrary.load(id: id) else { continue }
+            try? model.save(SavedDesign(name: language == "ar" ? ar : en, template: spec), newPhoto: nil)
         }
     }
 
