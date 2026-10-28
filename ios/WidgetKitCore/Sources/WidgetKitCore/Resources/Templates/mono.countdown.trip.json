@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "mono.countdown.trip",
   "category": "countdown",
-  "name": { "en": "Trip Board", "ar": "رحلة" },
+  "name": { "en": "Trip Board", "ar": "لوحة الرحلة" },
   "family": "medium",
   "theme": "dark",
   "refresh": "minute",

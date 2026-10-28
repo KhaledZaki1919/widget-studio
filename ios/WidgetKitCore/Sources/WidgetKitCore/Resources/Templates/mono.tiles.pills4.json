@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "mono.tiles.pills4",
   "category": "tiles",
-  "name": { "en": "4 Tiles", "ar": "٤ زراير" },
+  "name": { "en": "4 Tiles", "ar": "٤ أزرار" },
   "family": "medium",
   "theme": "light",
   "refresh": "none",

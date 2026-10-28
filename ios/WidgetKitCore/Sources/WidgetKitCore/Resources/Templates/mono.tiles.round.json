@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "mono.tiles.round",
   "category": "tiles",
-  "name": { "en": "Round Tiles", "ar": "زراير دائرية" },
+  "name": { "en": "Round Tiles", "ar": "أزرار دائرية" },
   "family": "small",
   "theme": "light",
   "refresh": "none",

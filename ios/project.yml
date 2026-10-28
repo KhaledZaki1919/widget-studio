@@ -69,8 +69,8 @@ targets:
           - CFBundleURLName: com.khaled.widgetstudio
             CFBundleURLSchemes: [widgetstudio]
         # Localized in Resources/InfoPlist.xcstrings.
-        NSLocationWhenInUseUsageDescription: "يستخدم الموقع للطقس ومواقيت الصلاة واتجاه القبلة في الودجت."
-        NSHealthShareUsageDescription: "يقرأ عدد الخطوات والنوم لعرضهما في الودجت."
+        NSLocationWhenInUseUsageDescription: "يُستخدم موقعك لعرض الطقس ومواقيت الصلاة واتجاه القبلة في الويدجت."
+        NSHealthShareUsageDescription: "يقرأ التطبيق عدد خطواتك وساعات نومك لعرضها في الويدجت."
         UIRequiredDeviceCapabilities: [arm64]
         WSAppGroup: group.com.khaled.widgetstudio
         UIAppFonts: [Doto-Regular.ttf, Doto-Bold.ttf, Doto-Black.ttf, IBMPlexSansArabic-Regular.ttf, IBMPlexSansArabic-Medium.ttf, IBMPlexSansArabic-SemiBold.ttf, IBMPlexSansArabic-Bold.ttf, PatrickHand-Regular.ttf, ArefRuqaa-Regular.ttf, ArefRuqaa-Bold.ttf, DMSerifDisplay-Regular.ttf, Amiri-Regular.ttf, Amiri-Bold.ttf, BebasNeue-Regular.ttf, Lalezar-Regular.ttf]
@@ -111,8 +111,8 @@ targets:
         ALTAppGroups: [group.com.khaled.widgetstudio]
         # Location inside the widget (brief §2), probed in Diagnostics (ADR-005).
         NSWidgetWantsLocation: true
-        NSLocationWhenInUseUsageDescription: "يستخدم الموقع للطقس ومواقيت الصلاة واتجاه القبلة في الودجت."
-        NSHealthShareUsageDescription: "يقرأ عدد الخطوات والنوم لعرضهما في الودجت."
+        NSLocationWhenInUseUsageDescription: "يُستخدم موقعك لعرض الطقس ومواقيت الصلاة واتجاه القبلة في الويدجت."
+        NSHealthShareUsageDescription: "يقرأ التطبيق عدد خطواتك وساعات نومك لعرضها في الويدجت."
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:

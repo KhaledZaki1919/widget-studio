@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "mono.clock.dotAnalog",
   "category": "time",
-  "name": { "en": "Dot Clock", "ar": "ساعة نقط" },
+  "name": { "en": "Dot Clock", "ar": "ساعة منقّطة" },
   "family": "small",
   "theme": "dark",
   "refresh": "minute",

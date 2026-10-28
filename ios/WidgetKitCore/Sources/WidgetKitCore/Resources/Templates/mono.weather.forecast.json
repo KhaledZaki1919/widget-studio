@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "mono.weather.forecast",
   "category": "weather",
-  "name": { "en": "Forecast", "ar": "توقعات" },
+  "name": { "en": "Forecast", "ar": "توقعات الطقس" },
   "family": "medium",
   "theme": "dark",
   "refresh": "hourly",

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "mono.tiles.pills2",
   "category": "tiles",
-  "name": { "en": "2 Tiles", "ar": "زرارين" },
+  "name": { "en": "2 Tiles", "ar": "زرّان" },
   "family": "small",
   "theme": "light",
   "refresh": "none",

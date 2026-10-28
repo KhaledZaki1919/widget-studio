@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "mono.clock.analog",
   "category": "time",
-  "name": { "en": "Analog Clock", "ar": "ساعة عقارب" },
+  "name": { "en": "Analog Clock", "ar": "ساعة بعقارب" },
   "family": "small",
   "theme": "light",
   "refresh": "minute",

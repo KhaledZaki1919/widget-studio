@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "mono.music.card",
   "category": "photo",
-  "name": { "en": "Music Card", "ar": "كارت موسيقى" },
+  "name": { "en": "Music Card", "ar": "بطاقة موسيقى" },
   "family": "small",
   "theme": "dark",
   "refresh": "none",

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "mono.tiles.hero",
   "category": "tiles",
-  "name": { "en": "Big Tile", "ar": "زرار كبير" },
+  "name": { "en": "Big Tile", "ar": "زر كبير" },
   "family": "small",
   "theme": "light",
   "refresh": "none",

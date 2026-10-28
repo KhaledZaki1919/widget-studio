@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "mono.photo.halftone",
   "category": "photo",
-  "name": { "en": "Dot Portrait", "ar": "صورة نقط" },
+  "name": { "en": "Dot Portrait", "ar": "صورة منقّطة" },
   "family": "small",
   "theme": "light",
   "refresh": "none",
