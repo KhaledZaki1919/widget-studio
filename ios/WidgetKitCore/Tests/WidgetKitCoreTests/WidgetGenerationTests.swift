@@ -208,13 +208,21 @@ struct WidgetGenerationTests {
 
         #expect(try parseError("Sorry, I can't.").contains("no JSON object"))
 
+        // ADR-019: invented icon symbols are dropped, not fatal.
+        let invented = try editedReply { object in
+            var all = layers(object)
+            all[3]["symbol"] = "quote.opening"
+            object["layers"] = all
+        }
+        #expect(try AIWidgetParser.parse(invented, options: GenerationOptions(), id: "gen.icon").spec.layers.count == 5)
+
         // ADR-019: text frames that cover each other go back to the model.
         let overlapping = try editedReply { object in
             var all = layers(object)
             all[4]["frame"] = ["x": 20, "y": 70, "w": 120, "h": 40]
             object["layers"] = all
         }
-        #expect(try parseError(overlapping).contains("layers[2] and layers[4]: text frames overlap"))
+        #expect(try parseError(overlapping).contains("layers[2] and layers[4]: frames overlap"))
     }
 
     func parseError(_ text: String, options: GenerationOptions = GenerationOptions()) throws -> String {

@@ -12,6 +12,9 @@ public enum SpecSnapshot {
         context.freezesLiveText = true
         let canvas = spec.family.canvas
         let view = SpecView(spec: spec, context: context)
+            // ImageRenderer can't draw `Link` and paints a yellow "unsupported" sign instead (AI
+            // eval run 5); buttons are invisible anyway.
+            .environment(\.specActionButton) { _, _ in AnyView(Color.clear) }
             .frame(width: canvas.width, height: canvas.height)
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         let renderer = ImageRenderer(content: view)

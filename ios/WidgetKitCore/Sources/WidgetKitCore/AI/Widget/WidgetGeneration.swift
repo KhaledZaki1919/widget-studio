@@ -397,6 +397,7 @@ public enum AIWidgetParser {
         object["category"] = nil
         object["inventory"] = nil
         object["differences"] = nil
+        object["layers"] = object["layers"].map(withoutUnknownIcons)
         object["schemaVersion"] = 1
         object["id"] = .string(id)
         if let family = options.size.family { object["family"] = .string(family.rawValue) }
@@ -412,6 +413,28 @@ public enum AIWidgetParser {
             spec.refresh = refresh(for: spec)
             return (spec, colors)
         }
+    }
+
+    /// Icon layers (and list row icons) with symbols outside the whitelist are dropped instead of
+    /// failing the widget: in JSON mode nothing stops a model from inventing "quote.opening"
+    /// (eval run 5), and a missing decoration beats no widget.
+    static func withoutUnknownIcons(_ layers: JSONValue) -> JSONValue {
+        guard case .array(let items) = layers else { return layers }
+        return .array(items.compactMap { layer -> JSONValue? in
+            guard case .object(var fields) = layer else { return layer }
+            if fields["type"] == "icon", let symbol = fields["symbol"]?.stringValue,
+               !Icons.isAllowed(symbol), Bindings.soleBinding(symbol) == nil {
+                return nil
+            }
+            if case .array(let rows)? = fields["items"] {
+                fields["items"] = .array(rows.map { row in
+                    guard case .object(var cells) = row, let icon = cells["icon"]?.stringValue, !Icons.isAllowed(icon) else { return row }
+                    cells["icon"] = nil
+                    return .object(cells)
+                })
+            }
+            return .object(fields)
+        })
     }
 
     /// Recreate: no image layers (the screenshot is never embedded). Photo: the photo is shown.
@@ -430,14 +453,24 @@ public enum AIWidgetParser {
         }
     }
 
-    /// Text layers whose frames cover each other (more than 20 % of the smaller one): in the eval
-    /// a big temperature ran into its H/L labels (run 4). Text on shapes is fine.
+    /// Content layers (text, icons, forecast rows, lists, calendars) whose frames cover each other
+    /// (more than 20 % of the smaller one), and icons drawn larger than their frame: in the eval a
+    /// big temperature ran into its H/L labels and a big icon into the day row (runs 4–5). Text on
+    /// shapes, rings and clocks is fine.
     static func overlappingTexts(_ spec: WidgetSpec) -> [String] {
-        let texts = spec.layers.indices.filter {
-            if case .text = spec.layers[$0].content { return true }
-            return false
-        }
         var problems: [String] = []
+        let texts = spec.layers.indices.filter {
+            switch spec.layers[$0].content {
+            case .text, .forecastRow, .list, .calendarMonth: return true
+            case .icon(let icon):
+                let frame = spec.layers[$0].frame
+                if icon.size > min(frame.w, frame.h) * 1.15 {
+                    problems.append("layers[\($0)]: icon size \(Int(icon.size)) is bigger than its frame; make the frame at least as big as the size")
+                }
+                return true
+            default: return false
+            }
+        }
         for (position, first) in texts.enumerated() {
             for second in texts[(position + 1)...] {
                 let a = spec.layers[first].frame
@@ -446,7 +479,7 @@ public enum AIWidgetParser {
                 let height = min(a.y + a.h, b.y + b.h) - max(a.y, b.y)
                 guard width > 0, height > 0 else { continue }
                 if width * height > 0.2 * min(a.w * a.h, b.w * b.h) {
-                    problems.append("layers[\(first)] and layers[\(second)]: text frames overlap; move or shrink them so they don't")
+                    problems.append("layers[\(first)] and layers[\(second)]: frames overlap; move or shrink them so they don't")
                 }
             }
         }
