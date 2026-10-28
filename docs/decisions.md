@@ -6,7 +6,7 @@ Short records of decisions that shape the code. Newest last. The locked product 
 **Status:** Accepted (2026-10-20).
 - **D1** iOS first, native Swift / SwiftUI, iOS 17+ (interactive widgets via AppIntents, `containerBackground`). Android (Kotlin + Glance) later, same spec.
 - **D2** No Mac. All iOS builds, tests and IPA packaging run on GitHub Actions macOS runners. The repo is public (free Actions minutes), so a secret scan must pass before every push.
-- **D3** Distribution: unsigned IPA from CI → Sideloadly → owner's iPhone with a free Apple ID (7-day re-sign, max 3 apps, 10 App IDs per week; app + widget = 2). Nothing that blocks App Store review later.
+- **D3** Distribution: unsigned IPA from CI → owner's iPhone. The brief planned Sideloadly with a free Apple ID; in practice **every install, from M0 on, was done with Fast Store**, a paid signing store that re-signs the app and the extension with its own certificate (correction 2026-10-28). Nothing that blocks App Store review later.
 - **D4** Bring-your-own-key AI: Gemini (default, free key), Anthropic, OpenAI, OpenRouter. Key in the Keychain.
 - **D5** No backend in v1. Templates are bundled.
 - **D6** AI returns a JSON spec, never code; validated on device before rendering.
@@ -23,7 +23,7 @@ Open questions use the brief's defaults: name "Widget Studio", Android after iOS
 
 ### ADR-003 — Unsigned IPA from CI, ad-hoc signed for entitlements
 **Status:** Accepted (2026-10-20). Same as Lakhas ADR-012.
-**Decision:** CI builds Release for `iphoneos` with `CODE_SIGNING_ALLOWED=NO`, then `ios/scripts/build-ipa.sh` ad-hoc signs (`codesign --sign -`, no certificate, no secret) the widget extension first and then the app with their entitlements, so Sideloadly can see the requested App Group (and HealthKit). The script fails if either bundle lacks the App Group entitlement, if `UILaunchScreen` is missing, or if a secret-like string is in the bundle. The IPA is uploaded as artifact `WidgetStudio-ipa`, kept 30 days.
+**Decision:** CI builds Release for `iphoneos` with `CODE_SIGNING_ALLOWED=NO`, then `ios/scripts/build-ipa.sh` ad-hoc signs (`codesign --sign -`, no certificate, no secret) the widget extension first and then the app with their entitlements, so the installer (Fast Store) can see the requested App Group (and HealthKit). The script fails if either bundle lacks the App Group entitlement, if `UILaunchScreen` is missing, or if a secret-like string is in the bundle. The IPA is uploaded as artifact `WidgetStudio-ipa`, kept 30 days.
 
 ### ADR-004 — Runtime App Group resolution (free Apple ID fallbacks)
 **Status:** Accepted (2026-10-20); behavior on device to be confirmed by the M0 Diagnostics report.
@@ -49,7 +49,7 @@ Never hardcode the bundle ID, team prefix or group at runtime. No Keychain shari
 - The app requests HealthKit read for step count and sleep analysis only (the bindings in brief §4.5).
 - Outcomes go in a "Device findings" update of this ADR. Templates whose capability fails are dropped or rebound.
 
-**Device findings (2026-10-20, M0 IPA, Sideloadly, free Apple ID):**
+**Device findings (2026-10-20, M0 IPA, installed with Fast Store):** (corrected 2026-10-28: this entry first said Sideloadly with a free Apple ID; every install was Fast Store.)
 | Check | Result |
 |---|---|
 | Install, launch, widget in the gallery | ✅ the app installs; the widget appears and renders |
@@ -63,7 +63,7 @@ Never hardcode the bundle ID, team prefix or group at runtime. No Keychain shari
 - Weather, prayer/Qibla, location and battery templates can work: the widget gets location and battery itself.
 - Health templates can rely on HealthKit. Read access is a separate prompt, and a denial looks like "no data".
 - **The app can't hand data to the widget on this install.** Saved designs, user photos, counters written by the app and the app's caches are invisible to the widget. M1 therefore renders **bundled specs** in the widget, chosen through the widget's AppIntent configuration, which the system stores without an App Group (see ADR-004). M3 has to design "My widgets" around this, or ship it only to installs where an App Group resolves.
-- With no profile, the resolver only has the compiled ID and `ALTAppGroups` to try. AltStore/SideStore register `ALTAppGroups` on free accounts, so those installers may give a working group (ADR-004 order). Sideloadly with a free Apple ID doesn't.
+- With no profile, the resolver only has the compiled ID and `ALTAppGroups` to try. AltStore/SideStore register `ALTAppGroups` on free accounts, so those installers may give a working group (ADR-004 order). Fast Store, the installer actually used, doesn't grant the group.
 
 ### ADR-006 — Swift 5 language mode; CI compile-first, lint non-blocking
 **Status:** Accepted (2026-10-20). Learned on Lakhas (ADR-019 there).
@@ -105,7 +105,7 @@ Never hardcode the bundle ID, team prefix or group at runtime. No Keychain shari
   - Fonts are registered per process (app and extension) and ship with their OFL licenses.
 - **Buttons** are `Link`s to `widgetstudio://action/<action>?spec=<id>&arg=<value>` until the interactive AppIntents arrive (M4).
 - **Data:** M1 renders `DataSnapshot.sample` (Cairo); real providers replace it in M4.
-- **Widget:** the spec widget uses `AppIntentConfiguration` to pick a **bundled** spec, because the App Group doesn't work on Sideloadly installs (ADR-005). Its timeline follows the spec's `refresh`, and content margins are disabled so the canvas fills the widget.
+- **Widget:** the spec widget uses `AppIntentConfiguration` to pick a **bundled** spec, because the App Group doesn't work on the owner's Fast Store install (ADR-005). Its timeline follows the spec's `refresh`, and content margins are disabled so the canvas fills the widget.
 
 ### ADR-010 — RTL without flipping, fonts through UIAppFonts, render tests (M1 device fixes)
 **Status:** Accepted (2026-10-25). Fixes from the M1 device test.
@@ -210,7 +210,7 @@ Never hardcode the bundle ID, team prefix or group at runtime. No Keychain shari
 ### ADR-012 — Gray template widgets: diagnosis tools, error text, one widget kind per size, signing diagnostics
 **Status:** Accepted (2026-10-25). The cause is **not confirmed yet**; this build is meant to find it on the device.
 **Context:**
-- M2 device test, installed with Fast Store (a paid re-signing store; the owner's install method from now on).
+- M2 device test, installed with Fast Store (a paid re-signing store; the owner's install method for every build since M0).
 - The template widgets stay a gray redacted placeholder. The check widget renders in the same install. No spec-rendered widget has ever rendered on the device.
 
 **Evidence so far:**

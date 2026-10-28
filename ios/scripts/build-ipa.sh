@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Packages an unsigned WidgetStudio.app into an .ipa for Sideloadly (ADR-003).
+# Packages an unsigned WidgetStudio.app into an .ipa for a re-signing installer (Fast Store, ADR-003).
 # The binaries are ad-hoc signed ("-": no certificate, no secret) only to embed the
 # requested entitlements, so the re-signing tool can see that we ask for an App Group.
 # Usage: build-ipa.sh <path/to/WidgetStudio.app> <output.ipa> [--no-healthkit]
-# --no-healthkit drops the HealthKit entitlement from the app (fallback if Sideloadly
-# refuses it on a free Apple ID; ADR-005).
+# --no-healthkit drops the HealthKit entitlement from the app (unused fallback in case an
+# installer refuses it; ADR-005, ADR-014).
 set -euo pipefail
 
 APP="$1"

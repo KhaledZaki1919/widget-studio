@@ -19,7 +19,7 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     TARGETED_DEVICE_FAMILY: "1"
     # No team: Simulator builds are ad-hoc signed ("-"); device builds run with
-    # CODE_SIGNING_ALLOWED=NO and are signed by Sideloadly at install time (ADR-003).
+    # CODE_SIGNING_ALLOWED=NO and are re-signed by the installer (Fast Store) at install time (ADR-003).
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "-"
     DEVELOPMENT_TEAM: ""
