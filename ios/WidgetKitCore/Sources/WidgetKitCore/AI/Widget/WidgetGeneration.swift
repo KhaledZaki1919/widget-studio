@@ -420,12 +420,37 @@ public enum AIWidgetParser {
             if case .image = spec.layers[$0].content { return true }
             return false
         }
+        let overlaps = overlappingTexts(spec)
         switch mode {
         case .recreate:
             return images.map { "layers[\($0)]: image layers are not allowed when recreating a design; draw it with shapes, text and icons" }
+                + overlaps
         case .photo:
-            return images.isEmpty ? ["layers: add one image layer with \"source\": \"user_image\" for the user's photo"] : []
+            return (images.isEmpty ? ["layers: add one image layer with \"source\": \"user_image\" for the user's photo"] : []) + overlaps
         }
+    }
+
+    /// Text layers whose frames cover each other (more than 20 % of the smaller one): in the eval
+    /// a big temperature ran into its H/L labels (run 4). Text on shapes is fine.
+    static func overlappingTexts(_ spec: WidgetSpec) -> [String] {
+        let texts = spec.layers.indices.filter {
+            if case .text = spec.layers[$0].content { return true }
+            return false
+        }
+        var problems: [String] = []
+        for (position, first) in texts.enumerated() {
+            for second in texts[(position + 1)...] {
+                let a = spec.layers[first].frame
+                let b = spec.layers[second].frame
+                let width = min(a.x + a.w, b.x + b.w) - max(a.x, b.x)
+                let height = min(a.y + a.h, b.y + b.h) - max(a.y, b.y)
+                guard width > 0, height > 0 else { continue }
+                if width * height > 0.2 * min(a.w * a.h, b.w * b.h) {
+                    problems.append("layers[\(first)] and layers[\(second)]: text frames overlap; move or shrink them so they don't")
+                }
+            }
+        }
+        return problems
     }
 
     /// Minute for clocks, hourly for other live data, daily for dates, none otherwise.

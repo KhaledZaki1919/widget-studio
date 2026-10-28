@@ -397,3 +397,27 @@ Empty field values fall back to the template defaults.
 **Tests:** recorded provider responses (`Fixtures/AI`) through a URL stub (no keys, no network): request bodies, parsing, structured output, error mapping, retry with validation errors, each provider's generation reply, prompt builder, schema strictness, downscaling. UI test with `-uiTestingStubAI` (canned provider, generated sample image, because the Simulator photo library isn't scriptable).
 
 **Unverified on device:** real-key behavior of each provider's structured output with this schema (prompt-only fallback covers rejections), and free-tier Gemini rate limits.
+
+### ADR-019 — Better image-to-widget: new layers, fonts, prompt v2, self-review, AI eval (M5 fixes)
+**Status:** Accepted (2026-10-28).
+
+**Context:** M5 device test: a month calendar (AUG, M–S row, day numbers, red Sundays, today boxed, handwritten font) came back as the current time, a dot grid and no weekday row. Colors were right, structure wrong. The spec had no way to say "calendar", and the prompt didn't insist on keeping visible text.
+
+**Spec additions** (optional, validator, exported schema and AI schema updated):
+- `calendarMonth`: current month; `titleFormat` (none, MMM, MMMM, MMM yyyy, MMMM yyyy), `titleCase`, `titleFont/Color/Align`, `weekdays` (none, narrow, short) with font/color, `weekStart` (locale, saturday, sunday, monday), `weekendDays` + `weekendColor`, `todayStyle` (filled, circle, ring, dot, none) + colors, `otherDays` (hidden, dimmed). `mirror` runs columns right to left. Layout is `CalendarMonthLayout` (tested without SwiftUI).
+- `list`: up to 8 rows of title, trailing detail (bindings allowed, e.g. prayer times), marker (none, dot, circle, check, icon, bar), divider.
+- `progressBar`: continuous or 2–20 segments; `mirror` fills from the right.
+- Fonts (OFL, static, unmodified, both `UIAppFonts`): `hand` Patrick Hand, `serif-display` DM Serif Display, `condensed` Bebas Neue; Arabic text in them uses Aref Ruqaa, Amiri and Lalezar.
+- AI output may declare `date` fields (countdowns with `live` timer or `{{days.<field>}}`); field dates also parse without a zone (local time).
+
+**Prompt `generate_v2`** (v1 kept): write an `inventory` of every visible element first (text, position as fractions, color, font style), then map each to a layer; never replace text or numbers with dots or shapes; bindings that match the content (month → `date.MMM`); closest font; proportional positions; prefer compound layers (`forecastRow`, `list`, `calendarMonth`); countdowns are date fields, not clock times; public names (a quote's author) are not personal data. The request states today's date.
+
+**High quality (2 requests):** the result is drawn with the real renderer (`SpecSnapshot`, sample data like gallery previews) and sent back with the original and the spec (`review_v1`); the model returns a corrected spec and `differences`. One round; if it fails, the first result stays. Default on for Anthropic, OpenAI and OpenRouter, off for Gemini (free keys: tight limits); Settings → AI toggle.
+
+**Reliability, from the eval runs:**
+- Gemini's `responseSchema` with the strict all-required schema ran past 180 s on most images (runs 1–2), and a compact form (nullable → optional) didn't fix it; JSON mode with the schema in the prompt answered in 1–12 s (run 3). **Gemini now starts in JSON mode**; Anthropic (strict tool), OpenAI (strict json_schema) and OpenRouter (JSON mode) are unchanged. Every reply is still validated with one retry.
+- Generation requests time out after 110 s; a structured attempt that times out or is cut off retries once in JSON mode inside the 240 s budget.
+- 5xx and Anthropic's 529 retry twice (3 s, 8 s) on every provider; 503/529 show "Google is busy right now. Try again." (`AIError.busy`).
+- Free Gemini 3.8 Flash allows 20 requests a day per model; a daily quota shows its own message (`AIError.dailyQuota`: try tomorrow or another model). The default Gemini model is now `gemini-3.5-flash-lite` (fast, good results in the eval); `gemini-3.8-flash` is the suggested alternative.
+
+**AI eval:** `docs/ai-eval/` holds 10 widgets drawn for this purpose (calendar like the device test, reminders, quote, forecast, steps, analog, countdown, big date, day & zone, a landscape for photo mode) and `cases.json`. Crops of the third-party reference image are never committed (`.gitignore`; seven were pushed once and then removed). Manual workflow **AI eval** runs `AIEvalTests` (`AI_EVAL=1`) with the secret `GEMINI_API_KEY` (never printed): real prompt, schema, parser and renderer (bundled fonts registered for the run), uploading side-by-side PNGs, specs and `summary.md`. Inputs: model, review, structured, cases. Picked results are kept in `docs/ai-eval/results/`.
