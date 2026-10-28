@@ -8,6 +8,7 @@ import WidgetKitCore
 /// in My widgets. The image goes only to the provider the user chose, with their own key.
 struct CreateFromImageView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(NetworkStatus.self) private var network
     @State private var photoItem: PhotosPickerItem?
     /// Upright, ≤ 2048 px: preview and the photo a "Build around my photo" design keeps.
     @State private var picked: CGImage?
@@ -127,12 +128,17 @@ struct CreateFromImageView: View {
                         .frame(maxWidth: .infinity)
                         .font(.headline)
                 }
-                .disabled(picked == nil || isLoadingImage)
+                .disabled(picked == nil || isLoadingImage || !network.isOnline)
                 .accessibilityIdentifier("ax.create.generate")
+                if !network.isOnline {
+                    NoticeRow(symbol: "wifi.slash", title: "notice.offline.title", message: "notice.offline.body")
+                        .accessibilityIdentifier("ax.create.offline")
+                }
                 if !service.hasKey {
                     Label("create.noKey", systemImage: "key")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                    keyGuideLink
                     settingsLink
                 }
             } footer: {
@@ -172,6 +178,16 @@ struct CreateFromImageView: View {
         } footer: {
             Text("create.pick.footer")
         }
+    }
+
+    private var keyGuideLink: some View {
+        NavigationLink {
+            FreeKeyGuideView()
+                .onDisappear { settings = AISettings.load() }
+        } label: {
+            Label("create.getFreeKey", systemImage: "gift")
+        }
+        .accessibilityIdentifier("ax.create.keyGuide")
     }
 
     private var settingsLink: some View {
@@ -237,6 +253,7 @@ struct CreateFromImageView: View {
                     Label("create.back", systemImage: "slider.horizontal.3")
                 }
                 .accessibilityIdentifier("ax.create.back")
+                if error == .noKey { keyGuideLink }
                 if error.needsSettings { settingsLink }
             }
         }

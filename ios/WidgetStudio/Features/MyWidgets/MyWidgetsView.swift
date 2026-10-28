@@ -24,11 +24,25 @@ struct MyWidgetsView: View {
             }
             if designs.designs.isEmpty {
                 Section {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("mywidgets.empty.title").font(.headline)
-                        Text("mywidgets.empty.body").font(.footnote).foregroundStyle(.secondary)
+                    VStack(spacing: 12) {
+                        LogoMark(onDark: true)
+                            .frame(width: 72, height: 72)
+                            .background(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(Color(red: 0.055, green: 0.055, blue: 0.055)))
+                            .accessibilityHidden(true)
+                        Text("mywidgets.empty.title").font(.headline).multilineTextAlignment(.center)
+                        Text("mywidgets.empty.body").font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                        Button {
+                            appState.tab = .library
+                        } label: {
+                            Label("mywidgets.empty.browse", systemImage: "square.grid.2x2")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("ax.mywidgets.empty.browse")
                     }
-                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .accessibilityElement(children: .contain)
                     .accessibilityIdentifier("ax.mywidgets.empty")
                 }
             }

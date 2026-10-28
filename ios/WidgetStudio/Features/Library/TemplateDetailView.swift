@@ -28,6 +28,8 @@ struct TemplateDetailView: View {
                 .controlSize(.large)
                 .accessibilityIdentifier("ax.detail.customize")
 
+                PermissionNotices(spec: spec)
+
                 Picker("detail.appearance", selection: $theme) {
                     Text("detail.light").tag(SpecTheme.light)
                     Text("detail.dark").tag(SpecTheme.dark)

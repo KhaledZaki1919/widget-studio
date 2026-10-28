@@ -26,7 +26,8 @@ struct WidgetPickerTests {
         let items = WidgetPicker.items(size: .small, store: store)
         let designs = items.filter(\.isDesign)
         #expect(Set(designs.map(\.id)) == ["design:\(clock.id)", "design:\(ai.id)"])
-        #expect(items.prefix(2).allSatisfy(\.isDesign))
+        let firstTwo = items.prefix(2).filter { $0.isDesign }.count
+        #expect(firstTwo == 2)
         #expect(items.contains { $0.id == "template:mono.clock.digital" && !$0.isDesign })
         // Medium widgets list the small designs too (they fit), large templates never fit small ones.
         #expect(WidgetPicker.items(size: .medium, store: store).filter(\.isDesign).count == 2)

@@ -738,13 +738,13 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "مفتاح Gemini المجاني من Google AI Studio يكفي. يبدأ المفتاح بـ AIza أو AQ."
+            "value": "مفتاح Gemini المجاني من Google AI Studio يكفي، ويسمح بنحو ٢٠ طلبًا في اليوم لكل نموذج. يبدأ المفتاح بـ AIza أو AQ."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "A free Gemini key from Google AI Studio is enough. Keys start with AIza or AQ."
+            "value": "A free Gemini key from Google AI Studio is enough; it allows about 20 requests a day per model. Keys start with AIza or AQ."
           }
         }
       }
@@ -1663,6 +1663,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ is reading the image and building the widget. This can take a minute."
+          }
+        }
+      }
+    },
+    "create.getFreeKey": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "احصل على مفتاح مجاني"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get a free key"
           }
         }
       }
@@ -3877,6 +3894,176 @@
         }
       }
     },
+    "keyguide.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يُحفظ المفتاح على جهازك فقط. لا يكلّفك شيئًا ما دمت في الحد المجاني."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The key stays on your device. It costs nothing while you stay within the free limit."
+          }
+        }
+      }
+    },
+    "keyguide.intro": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تحتاج «صمّم من صورة» إلى مفتاح من مزوّد ذكاء اصطناعي. Google تعطيك مفتاح Gemini مجانًا في دقيقتين، ويكفي لنحو ٢٠ تصميمًا في اليوم لكل نموذج."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create from image needs a key from an AI provider. Google gives you a free Gemini key in two minutes; it allows about 20 designs a day per model."
+          }
+        }
+      }
+    },
+    "keyguide.open": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فتح Google AI Studio"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Google AI Studio"
+          }
+        }
+      }
+    },
+    "keyguide.paste": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لصق المفتاح في الإعدادات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste the key in Settings"
+          }
+        }
+      }
+    },
+    "keyguide.step1": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "افتح Google AI Studio بالزر أدناه."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Google AI Studio with the button below."
+          }
+        }
+      }
+    },
+    "keyguide.step2": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سجّل الدخول بحساب Google."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in with your Google account."
+          }
+        }
+      }
+    },
+    "keyguide.step3": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط «Create API key» ثم انسخ المفتاح."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap Create API key, then copy the key."
+          }
+        }
+      }
+    },
+    "keyguide.step4": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ارجع للتطبيق والصقه في الإعدادات ← الذكاء الاصطناعي."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Come back and paste it in Settings → AI."
+          }
+        }
+      }
+    },
+    "keyguide.steps": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الخطوات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Steps"
+          }
+        }
+      }
+    },
+    "keyguide.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مفتاح Gemini مجاني"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get a free Gemini key"
+          }
+        }
+      }
+    },
     "library.all": {
       "extractionState": "manual",
       "localizations": {
@@ -4013,6 +4200,23 @@
         }
       }
     },
+    "mywidgets.empty.browse": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تصفّح القوالب"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Browse templates"
+          }
+        }
+      }
+    },
     "mywidgets.empty.title": {
       "extractionState": "manual",
       "localizations": {
@@ -4111,6 +4315,108 @@
           "stringUnit": {
             "state": "translated",
             "value": "My widgets"
+          }
+        }
+      }
+    },
+    "notice.health.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لعرض الخطوات والنوم. تُقرأ على جهازك فقط ولا تُرسل لأي مكان."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To show steps and sleep. They are read on your phone only and never sent anywhere."
+          }
+        }
+      }
+    },
+    "notice.health.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "هذا الويدجت يحتاج بيانات الصحة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This widget needs Health data"
+          }
+        }
+      }
+    },
+    "notice.location.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "للطقس ومواقيت الصلاة والقبلة. يبقى الموقع على جهازك ولا يُرسل إلا للحصول على الطقس."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For weather, prayer times and the Qibla. Your location stays on your phone and is only sent to get the weather."
+          }
+        }
+      }
+    },
+    "notice.location.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "هذا الويدجت يحتاج موقعك"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This widget needs your location"
+          }
+        }
+      }
+    },
+    "notice.offline.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التصميم من صورة يحتاج الإنترنت. القوالب وودجاتي تعمل بدونه."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Creating from an image needs the internet. Templates and My widgets work without it."
+          }
+        }
+      }
+    },
+    "notice.offline.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يوجد اتصال بالإنترنت"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You're offline"
           }
         }
       }

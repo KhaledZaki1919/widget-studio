@@ -112,7 +112,14 @@ struct AISettingsView: View {
                 .disabled(clean.isEmpty)
                 .accessibilityIdentifier("ax.ai.saveKey")
             }
-            if let url = provider.keyPageURL {
+            if storedKey == nil && provider == .gemini {
+                NavigationLink {
+                    FreeKeyGuideView()
+                } label: {
+                    Label("create.getFreeKey", systemImage: "gift")
+                }
+                .accessibilityIdentifier("ax.ai.keyGuide")
+            } else if let url = provider.keyPageURL {
                 Link(destination: url) {
                     Label("ai.key.get", systemImage: "arrow.up.forward.square")
                 }

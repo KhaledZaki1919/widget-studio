@@ -9,6 +9,8 @@ struct WidgetStudioApp: App {
     @State private var live = LiveDataModel()
     /// Shortcut tiles' setup and runs (ADR-017).
     @State private var tiles = TilesModel()
+    /// Online/offline for the AI flow's notice (M6).
+    @State private var network = NetworkStatus()
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -37,6 +39,7 @@ struct WidgetStudioApp: App {
                 .environment(appState)
                 .environment(live)
                 .environment(tiles)
+                .environment(network)
                 .task { await live.refresh() }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active { Task { await live.refresh() } }
