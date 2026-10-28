@@ -45,7 +45,12 @@ struct WidgetPickerTests {
     @Test func nothingIsChosenAutomatically() throws {
         let (store, clock, _) = try filled()
         #expect(WidgetPicker.resolve(itemID: nil, store: store) == .none)
-        #expect(WidgetPicker.resolve(itemID: "design:\(clock.id)", store: store) == .design(clock))
+        // Read back from disk (dates lose sub-second precision), so compare by id.
+        if case .design(let found) = WidgetPicker.resolve(itemID: "design:\(clock.id)", store: store) {
+            #expect(found.id == clock.id && found.name == "My clock")
+        } else {
+            Issue.record("saved design not resolved")
+        }
         #expect(WidgetPicker.resolve(itemID: "design:deleted", store: store) == .missingDesign)
         if case .template(let spec) = WidgetPicker.resolve(itemID: "template:mono.clock.digital", store: store) {
             #expect(spec.id == "mono.clock.digital")
