@@ -3486,6 +3486,23 @@
         }
       }
     },
+    "editor.color.muted": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لون النص الثانوي"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Secondary text color"
+          }
+        }
+      }
+    },
     "editor.color.reset": {
       "extractionState": "manual",
       "localizations": {

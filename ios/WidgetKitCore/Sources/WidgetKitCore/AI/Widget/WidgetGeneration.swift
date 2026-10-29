@@ -381,7 +381,7 @@ public enum AIWidgetParser {
 
         // Palette → overrides of the editable tokens.
         var colors: [String: String] = [:]
-        for token in SavedDesign.editableColors {
+        for token in ["accent", "bg", "fg"] {   // the palette the model returns; muted comes from AIColorTokens
             guard let hex = object["palette"]?[token]?.stringValue, HexColor.parse(hex) != nil else {
                 problems.append("palette.\(token): must be a #RRGGBB color")
                 continue
@@ -404,7 +404,8 @@ public enum AIWidgetParser {
         object["schemaVersion"] = 1
         object["id"] = .string(id)
         if let family = options.size.family { object["family"] = .string(family.rawValue) }
-        let cleaned = JSONValue.object(object).removingNulls()
+        // Palette hex values become tokens, so the editor's color pickers reach them (M6.1).
+        let cleaned = AIColorTokens.tokenize(JSONValue.object(object).removingNulls(), colors: &colors)
 
         switch SpecValidator(mode: .ai).validate(data: cleaned.jsonData()) {
         case .failure(let failure):

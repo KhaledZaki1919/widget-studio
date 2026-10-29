@@ -153,6 +153,7 @@ struct EditorView: View {
             colorRow("editor.color.accent", token: "accent")
             colorRow("editor.color.bg", token: "bg")
             colorRow("editor.color.fg", token: "fg")
+            colorRow("editor.color.muted", token: "muted")
         }
     }
 
