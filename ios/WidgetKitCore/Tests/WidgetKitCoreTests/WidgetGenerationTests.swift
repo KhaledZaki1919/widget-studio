@@ -218,13 +218,16 @@ struct WidgetGenerationTests {
         }
         #expect(try AIWidgetParser.parse(invented, options: GenerationOptions(), id: "gen.icon").spec.layers.count == 5)
 
-        // ADR-019: text frames that cover each other go back to the model.
+        // M6.1: text frames that cover each other are a validator error in AI mode.
         let overlapping = try editedReply { object in
             var all = layers(object)
             all[4]["frame"] = ["x": 20, "y": 70, "w": 120, "h": 40]
             object["layers"] = all
         }
-        #expect(try parseError(overlapping).contains("layers[2] and layers[4]: frames overlap"))
+        #expect(try parseError(overlapping).contains("its text overlaps layers[2]"))
+        #expect(throws: AIValidationError.self) {
+            try AIWidgetParser.parse(overlapping, options: GenerationOptions(), id: "gen.soft", enforceLayout: false)
+        }
     }
 
     func parseError(_ text: String, options: GenerationOptions = GenerationOptions()) throws -> String {
@@ -251,11 +254,12 @@ struct WidgetGenerationTests {
         #expect(provider.requests[0].request.images == [image.jpeg])
     }
 
-    /// Overlaps send the retry; if the retry still overlaps, it's accepted (eval run 6).
+    /// Layout problems (an oversized icon) send the retry; if the retry still has them, it's
+    /// accepted (eval run 6). Overlapping text is never accepted (M6.1).
     @Test func layoutProblemsAreSoftOnTheRetry() async throws {
         let overlapping = try editedReply { object in
             var all = layers(object)
-            all[4]["frame"] = ["x": 20, "y": 70, "w": 120, "h": 40]
+            all[3]["size"] = 40
             object["layers"] = all
         }
         let provider = ScriptedProvider([.success(overlapping), .success(overlapping)])
@@ -263,7 +267,7 @@ struct WidgetGenerationTests {
                                                            provider: provider))
         let result = try await generator.generate(image: image, options: GenerationOptions())
         #expect(result.attempts == 2)
-        #expect(provider.requests[1].request.userText.contains("frames overlap"))
+        #expect(provider.requests[1].request.userText.contains("bigger than its frame"))
         #expect(throws: AIValidationError.self) {
             try AIWidgetParser.parse(overlapping, options: GenerationOptions(), id: "gen.strict")
         }

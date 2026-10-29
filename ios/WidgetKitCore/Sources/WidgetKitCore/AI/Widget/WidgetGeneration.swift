@@ -69,11 +69,11 @@ public struct GeneratedWidget: Sendable, Equatable {
 
 // MARK: - Prompt
 
-/// Builds the request: the versioned system prompt (`Prompts/generate_v2.md`, ADR-019), the user
+/// Builds the request: the versioned system prompt (`Prompts/generate_v3.md`, ADR-019, M6.1), the user
 /// text with mode, size and the user's instructions, the image, and the AI schema. Also the one
 /// self-review request (`Prompts/review_v1.md`).
 public enum WidgetPrompt {
-    public static let version = "generate_v2"
+    public static let version = "generate_v3"
     public static let reviewVersion = "review_v1"
     /// Room for 30 layers with their nulls; thinking providers get extra on top.
     public static let maxOutputTokens = 16000
@@ -263,30 +263,75 @@ public enum AIWidgetSchema {
         return JSONSchema.object(all)
     }
 
+    /// A stack's child: no frame, an optional size instead (M6.1).
+    static func child(_ type: String, _ properties: [String: JSONValue]) -> JSONValue {
+        var all = properties
+        all["type"] = JSONSchema.enumeration([type])
+        all["width"] = nullableNumber
+        all["height"] = nullableNumber
+        return JSONSchema.object(all)
+    }
+
+    static let textProperties: [String: JSONValue] = [
+        "value": localized,
+        "font": font,
+        "color": JSONSchema.string,
+        "align": nullableEnum(TextAlign.allCases.map(\.rawValue)),
+        "maxLines": JSONSchema.nullable(JSONSchema.integer),
+        "live": JSONSchema.nullable(JSONSchema.object([
+            "kind": JSONSchema.enumeration(["timer", "relative", "time"]),
+            "target": nullableString,
+        ])),
+    ]
+    static let shapeProperties: [String: JSONValue] = [
+        "kind": JSONSchema.enumeration(ShapeLayer.Kind.allCases.map(\.rawValue)),
+        "fill": nullableString,
+        "stroke": JSONSchema.nullable(JSONSchema.object(["color": JSONSchema.string, "width": JSONSchema.number])),
+        "cornerRadius": nullableNumber,
+    ]
+    static let iconProperties: [String: JSONValue] = [
+        "symbol": JSONSchema.enumeration(Icons.whitelist.keys.sorted() + ["{{weather.symbol}}"]),
+        "size": JSONSchema.number,
+        "color": JSONSchema.string,
+    ]
+    static let ringProperties: [String: JSONValue] = [
+        "progress": JSONSchema.string, "color": JSONSchema.string, "trackColor": nullableString,
+        "lineWidth": JSONSchema.number,
+    ]
+    static let progressBarProperties: [String: JSONValue] = [
+        "progress": JSONSchema.string, "color": JSONSchema.string, "trackColor": nullableString,
+        "segments": JSONSchema.nullable(JSONSchema.integer), "cornerRadius": nullableNumber,
+    ]
+
+    static func stackProperties(children: [JSONValue]) -> [String: JSONValue] {
+        [
+            "axis": JSONSchema.enumeration(StackLayer.Axis.allCases.map(\.rawValue)),
+            "spacing": nullableNumber,
+            "padding": nullableNumber,
+            "alignItems": nullableEnum(StackLayer.Align.allCases.map(\.rawValue)),
+            "justify": nullableEnum(StackLayer.Align.allCases.map(\.rawValue)),
+            "columns": JSONSchema.nullable(JSONSchema.integer),
+            "children": JSONSchema.array(JSONSchema.anyOf(children)),
+        ]
+    }
+
+    /// What a stack holds: texts and small pieces, plus (one level down) another stack.
+    static func childShapes(nested: Bool) -> [JSONValue] {
+        var shapes = [
+            child("text", textProperties), child("icon", iconProperties), child("shape", shapeProperties),
+            child("ring", ringProperties), child("progressBar", progressBarProperties),
+            child("spacer", ["minLength": nullableNumber]),
+        ]
+        if nested { shapes.append(child("stack", stackProperties(children: childShapes(nested: false)))) }
+        return shapes
+    }
+
+    /// Prompt v3 (M6.1): text only inside stacks, so the top level has no text shape.
     static func layerShapes(mode: GenerationMode) -> [JSONValue] {
         var shapes = [
-            layer("text", [
-                "value": localized,
-                "font": font,
-                "color": JSONSchema.string,
-                "align": nullableEnum(TextAlign.allCases.map(\.rawValue)),
-                "maxLines": JSONSchema.nullable(JSONSchema.integer),
-                "live": JSONSchema.nullable(JSONSchema.object([
-                    "kind": JSONSchema.enumeration(["timer", "relative", "time"]),
-                    "target": nullableString,
-                ])),
-            ]),
-            layer("shape", [
-                "kind": JSONSchema.enumeration(ShapeLayer.Kind.allCases.map(\.rawValue)),
-                "fill": nullableString,
-                "stroke": JSONSchema.nullable(JSONSchema.object(["color": JSONSchema.string, "width": JSONSchema.number])),
-                "cornerRadius": nullableNumber,
-            ]),
-            layer("icon", [
-                "symbol": JSONSchema.enumeration(Icons.whitelist.keys.sorted() + ["{{weather.symbol}}"]),
-                "size": JSONSchema.number,
-                "color": JSONSchema.string,
-            ]),
+            layer("stack", stackProperties(children: childShapes(nested: true))),
+            layer("shape", shapeProperties),
+            layer("icon", iconProperties),
             layer("analogClock", [
                 "style": nullableEnum(AnalogClockLayer.Style.allCases.map(\.rawValue)),
                 "faceColor": nullableString, "tickColor": nullableString, "hourColor": nullableString,
@@ -302,10 +347,7 @@ public enum AIWidgetSchema {
                 "color": JSONSchema.string, "offColor": nullableString, "labels": JSONSchema.nullable(localized),
                 "highlightColor": nullableString,
             ]),
-            layer("ring", [
-                "progress": JSONSchema.string, "color": JSONSchema.string, "trackColor": nullableString,
-                "lineWidth": JSONSchema.number,
-            ]),
+            layer("ring", ringProperties),
             layer("forecastRow", ["days": JSONSchema.integer, "color": JSONSchema.string]),
             layer("button", ["action": JSONSchema.enumeration([ButtonLayer.Action.openApp.rawValue])]),
             // ADR-019.
@@ -334,10 +376,7 @@ public enum AIWidgetSchema {
                 "marker": nullableEnum(ListLayer.Marker.allCases.map(\.rawValue)),
                 "markerColor": nullableString, "dividerColor": nullableString,
             ]),
-            layer("progressBar", [
-                "progress": JSONSchema.string, "color": JSONSchema.string, "trackColor": nullableString,
-                "segments": JSONSchema.nullable(JSONSchema.integer), "cornerRadius": nullableNumber,
-            ]),
+            layer("progressBar", progressBarProperties),
         ]
         if mode == .photo {
             shapes.append(layer("image", [
@@ -431,6 +470,7 @@ public enum AIWidgetParser {
                !Icons.isAllowed(symbol), Bindings.soleBinding(symbol) == nil {
                 return nil
             }
+            if let children = fields["children"] { fields["children"] = withoutUnknownIcons(children) }
             if case .array(let rows)? = fields["items"] {
                 fields["items"] = .array(rows.map { row in
                     guard case .object(var cells) = row, let icon = cells["icon"]?.stringValue, !Icons.isAllowed(icon) else { return row }
@@ -456,33 +496,29 @@ public enum AIWidgetParser {
         }
     }
 
-    /// Content layers (text, icons, forecast rows, lists, calendars) whose frames cover each other
-    /// (more than 20 % of the smaller one), and icons drawn larger than their frame: in the eval a
-    /// big temperature ran into its H/L labels and a big icon into the day row (runs 4–5). Text on
-    /// shapes, rings and clocks is fine.
+    /// Layout problems that send the retry: icons drawn larger than their frame, and icons covering
+    /// text (more than 20 % of the smaller frame). Text on text is a validator error in AI mode
+    /// (M6.1); text on shapes, rings and clocks is fine.
     static func overlappingTexts(_ spec: WidgetSpec) -> [String] {
         var problems: [String] = []
-        let texts = spec.layers.indices.filter {
-            switch spec.layers[$0].content {
-            case .text, .forecastRow, .list, .calendarMonth: return true
-            case .icon(let icon):
-                let frame = spec.layers[$0].frame
-                if icon.size > min(frame.w, frame.h) * 1.15 {
-                    problems.append("layers[\($0)]: icon size \(Int(icon.size)) is bigger than its frame; make the frame at least as big as the size")
-                }
-                return true
-            default: return false
+        let icons = spec.layers.indices.filter {
+            guard case .icon(let icon) = spec.layers[$0].content else { return false }
+            let frame = spec.layers[$0].frame
+            if icon.size > min(frame.w, frame.h) * 1.15 {
+                problems.append("layers[\($0)]: icon size \(Int(icon.size)) is bigger than its frame; make the frame at least as big as the size")
             }
+            return true
         }
-        for (position, first) in texts.enumerated() {
-            for second in texts[(position + 1)...] {
-                let a = spec.layers[first].frame
-                let b = spec.layers[second].frame
+        let texts = spec.layers.indices.filter { spec.layers[$0].showsText && spec.layers[$0].when == nil }
+        for icon in icons {
+            for text in texts {
+                let a = spec.layers[icon].frame
+                let b = spec.layers[text].frame
                 let width = min(a.x + a.w, b.x + b.w) - max(a.x, b.x)
                 let height = min(a.y + a.h, b.y + b.h) - max(a.y, b.y)
                 guard width > 0, height > 0 else { continue }
                 if width * height > 0.2 * min(a.w * a.h, b.w * b.h) {
-                    problems.append("layers[\(first)] and layers[\(second)]: frames overlap; move or shrink them so they don't")
+                    problems.append("layers[\(icon)] and layers[\(text)]: the icon covers the text; move it or put both in one stack")
                 }
             }
         }
@@ -492,7 +528,7 @@ public enum AIWidgetParser {
     /// Minute for clocks, hourly for other live data, daily for dates, none otherwise.
     static func refresh(for spec: WidgetSpec) -> RefreshPolicy {
         let names = DataRequirements.bindingNames(in: spec).map { $0.trimmingCharacters(in: .whitespaces) }
-        let hasClock = spec.layers.contains { layer in
+        let hasClock = spec.allLayers.contains { layer in
             switch layer.content {
             case .analogClock: true
             case .text(let text): text.live?.kind == .time
