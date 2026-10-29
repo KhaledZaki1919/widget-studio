@@ -46,6 +46,8 @@ struct OnboardingView: View {
             .accessibilityIdentifier(page < pages - 1 ? "ax.onboarding.next" : "ax.onboarding.start")
         }
         .background(Color(uiColor: .systemBackground))
+        // A container element, so this identifier doesn't replace the buttons' own.
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("ax.onboarding")
     }
 }
