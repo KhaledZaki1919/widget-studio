@@ -7,8 +7,13 @@ name: AI eval
 on:
   workflow_dispatch:
     inputs:
+      provider:
+        description: "Provider (its key comes from the matching repository secret)"
+        type: choice
+        options: [gemini, nvidia, openrouter, groq]
+        default: gemini
       model:
-        description: "Gemini model ID (empty = the app's default)"
+        description: "Model ID (empty = the provider's default in the app)"
         type: string
         default: ""
       review:
@@ -38,10 +43,10 @@ jobs:
 
       - name: Check the secret
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          AI_EVAL_KEY: ${{ inputs.provider == 'nvidia' && secrets.NVIDIA_API_KEY || inputs.provider == 'openrouter' && secrets.OPENROUTER_API_KEY || inputs.provider == 'groq' && secrets.GROQ_API_KEY || secrets.GEMINI_API_KEY }}
         run: |
-          if [ -z "$GEMINI_API_KEY" ]; then
-            echo "::error::Add the repository secret GEMINI_API_KEY (Settings → Secrets and variables → Actions)."
+          if [ -z "$AI_EVAL_KEY" ]; then
+            echo "::error::Add the repository secret for ${{ inputs.provider }} (GEMINI_API_KEY, NVIDIA_API_KEY, OPENROUTER_API_KEY or GROQ_API_KEY)."
             exit 1
           fi
 
@@ -54,7 +59,8 @@ jobs:
       - name: Run the eval
         env:
           AI_EVAL: "1"
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          AI_EVAL_PROVIDER: ${{ inputs.provider }}
+          AI_EVAL_KEY: ${{ inputs.provider == 'nvidia' && secrets.NVIDIA_API_KEY || inputs.provider == 'openrouter' && secrets.OPENROUTER_API_KEY || inputs.provider == 'groq' && secrets.GROQ_API_KEY || secrets.GEMINI_API_KEY }}
           AI_EVAL_DIR: ${{ github.workspace }}/docs/ai-eval
           AI_EVAL_OUT: ${{ github.workspace }}/ai-eval-out
           AI_EVAL_FONTS: ${{ github.workspace }}/ios/Fonts

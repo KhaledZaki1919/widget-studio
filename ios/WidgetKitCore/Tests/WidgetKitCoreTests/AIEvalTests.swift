@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 @testable import WidgetKitCore
 
 /// The AI eval (ADR-019), run only by the `ai-eval` workflow (`AI_EVAL=1`) with the repository
-/// secret `GEMINI_API_KEY`: for every case in `docs/ai-eval/cases.json`, generate a spec with the
+/// secret for the chosen provider (`AI_EVAL_PROVIDER`, key in `AI_EVAL_KEY`): for every case in `docs/ai-eval/cases.json`, generate a spec with the
 /// app's real prompt, schema and parser, render it with the real renderer, and write a
 /// side-by-side PNG (original | render), the spec and a summary. Never prints the key; a failed
 /// case is written to the summary, not thrown, so one bad case doesn't hide the others.
@@ -23,26 +23,28 @@ struct AIEvalTests {
     let environment = ProcessInfo.processInfo.environment
 
     @Test @MainActor func generateAndRenderEveryCase() async throws {
-        let key = try #require(environment["GEMINI_API_KEY"].flatMap { $0.isEmpty ? nil : $0 }, "GEMINI_API_KEY is not set")
+        let kind = AIProviderKind(rawValue: environment["AI_EVAL_PROVIDER"] ?? "gemini") ?? .gemini
+        let key = try #require((environment["AI_EVAL_KEY"] ?? environment["GEMINI_API_KEY"]).flatMap { $0.isEmpty ? nil : $0 },
+                               "no key for the provider")
         let input = URL(fileURLWithPath: try #require(environment["AI_EVAL_DIR"]))
         let output = URL(fileURLWithPath: environment["AI_EVAL_OUT"] ?? NSTemporaryDirectory() + "ai-eval")
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
         if let fonts = environment["AI_EVAL_FONTS"] { registerFonts(in: URL(fileURLWithPath: fonts)) }
 
-        let model = environment["AI_EVAL_MODEL"].flatMap { $0.isEmpty ? nil : $0 } ?? AIProviderKind.gemini.recommendedModel
+        let model = environment["AI_EVAL_MODEL"].flatMap { $0.isEmpty ? nil : $0 } ?? kind.recommendedModel
         let review = environment["AI_EVAL_REVIEW"] == "1"
         let only = environment["AI_EVAL_CASES"].map { Set($0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }) }
         let cases = try JSONDecoder().decode([Case].self, from: Data(contentsOf: input.appendingPathComponent("cases.json")))
 
         let keys = AIKeyStore(storage: MemoryKeyStorage())
-        try keys.save(key, for: .gemini)
+        try keys.save(key, for: kind)
         let defaults = testDefaults()
-        AISettings(provider: .gemini, models: ["gemini": model]).save(to: defaults)
+        AISettings(provider: kind, models: [kind.rawValue: model]).save(to: defaults)
         let service = AIService(keyStore: keys, defaults: defaults)
         service.structuredFirst = environment["AI_EVAL_STRUCTURED"] != "0"
         let generator = WidgetGenerator(service: service)
 
-        var summary = ["# AI eval", "", "Model: `\(model)` · prompt `\(WidgetPrompt.version)` · review: \(review ? "on" : "off") · structured: \(service.structuredFirst)", ""]
+        var summary = ["# AI eval", "", "Provider: \(kind.displayName) · model: `\(model)` · prompt `\(WidgetPrompt.version)` · review: \(review ? "on" : "off") · structured: \(service.structuredFirst)", ""]
         for item in cases where only.map({ $0.contains(item.file) || $0.isEmpty }) ?? true {
             let name = (item.file as NSString).deletingPathExtension
             summary.append("## \(name)")

@@ -52,6 +52,74 @@
         }
       }
     },
+    "ai.custom.url": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عنوان الخدمة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Base URL"
+          }
+        }
+      }
+    },
+    "ai.custom.url.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أي خدمة متوافقة مع OpenAI Chat Completions وتقرأ الصور. أدخل العنوان حتى /v1، ثم المفتاح، ثم اكتب معرّف النموذج في «النموذج»."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Any OpenAI Chat Completions–compatible service that reads images. Enter the URL up to /v1, then the key, then type the model ID under Model."
+          }
+        }
+      }
+    },
+    "ai.custom.url.invalid": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "العنوان يجب أن يبدأ بـ https://"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The URL must start with https://"
+          }
+        }
+      }
+    },
+    "ai.custom.url.placeholder": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "https://example.com/v1"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "https://example.com/v1"
+          }
+        }
+      }
+    },
     "ai.diag.copy": {
       "extractionState": "manual",
       "localizations": {
@@ -1119,6 +1187,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Provider"
+          }
+        }
+      }
+    },
+    "ai.provider.custom": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مخصّص (متوافق مع OpenAI)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom (OpenAI-compatible)"
+          }
+        }
+      }
+    },
+    "ai.provider.free": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لهذا المزوّد خطة مجانية تقرأ الصور، بحدود يومية."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This provider has a free plan that reads images, with daily limits."
           }
         }
       }

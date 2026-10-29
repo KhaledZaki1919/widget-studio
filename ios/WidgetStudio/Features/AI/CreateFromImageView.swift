@@ -58,7 +58,7 @@ struct CreateFromImageView: View {
                 if let item { Task { await load(item) } }
             }
             .sheet(isPresented: $askConsent) {
-                ConsentSheet(provider: settings.provider) {
+                ConsentSheet(providerName: settings.providerName) {
                     settings.setConsent(true, for: settings.provider)
                     settings.save()
                     askConsent = false
@@ -142,7 +142,7 @@ struct CreateFromImageView: View {
                     settingsLink
                 }
             } footer: {
-                Text("create.provider \(settings.provider.displayName) \(settings.model)")
+                Text("create.provider \(settings.providerName) \(settings.model)")
             }
         }
     }
@@ -216,7 +216,7 @@ struct CreateFromImageView: View {
             ProgressView()
                 .controlSize(.large)
             Text(step == .reviewing ? LocalizedStringKey("create.reviewing") : "create.generating").font(.headline)
-            Text(step == .reviewing ? LocalizedStringKey("create.reviewing.detail") : "create.generating.detail \(settings.provider.displayName)")
+            Text(step == .reviewing ? LocalizedStringKey("create.reviewing.detail") : "create.generating.detail \(settings.providerName)")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -348,7 +348,7 @@ struct CreateFromImageView: View {
 
 /// Asked before the first image goes to a provider (brief §5 step 3); revocable in Settings → AI.
 private struct ConsentSheet: View {
-    let provider: AIProviderKind
+    let providerName: String
     let onAllow: () -> Void
     let onCancel: () -> Void
 
@@ -359,7 +359,7 @@ private struct ConsentSheet: View {
                     Image(systemName: "paperplane.circle.fill")
                         .font(.system(size: 44))
                         .foregroundStyle(Color.accentColor)
-                    Text("create.consent.body \(provider.displayName)")
+                    Text("create.consent.body \(providerName)")
                         .font(.body)
                     Label("create.consent.points", systemImage: "photo.badge.checkmark")
                         .font(.footnote)
