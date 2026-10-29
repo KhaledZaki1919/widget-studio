@@ -17,7 +17,7 @@ The product brief is `widget-app-brief.md` (template catalog: `TEMPLATES.md`, vi
 | Path | What |
 |---|---|
 | `ios/project.yml` | XcodeGen spec (app + widget extension + tests). Never hand-edit the generated `.xcodeproj` |
-| `ios/WidgetStudio/` | App target: `App/` (entry, root), `Features/<Area>/` (Library: tab, detail with Customize, previews; Editor: editor + field controls; MyWidgets: saved designs, `DesignsModel`; Settings: `LiveDataModel` (real data for previews), settings, dhikr list, Shortcut guide; AI: Settings → AI, Create from image flow, error messages (ADR-018); Qibla: live compass; Tiles: `TilesModel`, tile setup screens (ADR-017); Diagnostics with TestSpecs and data sources), `Resources/` |
+| `ios/WidgetStudio/` | App target: `App/` (entry, root), `Features/<Area>/` (Library: tab, detail with Customize, previews; Editor: editor + field controls; MyWidgets: saved designs, `DesignsModel`; Settings: `LiveDataModel` (real data for previews), settings, dhikr list, Shortcut guide; AI: Settings → AI, Create from image flow, error messages (ADR-018); Qibla: live compass; Tiles: `TilesModel`, tile setup screens (ADR-017); Diagnostics with TestSpecs and data sources, opened only by long-pressing the version; Onboarding: introduction and `LogoMark`), `Resources/` |
 | `ios/WidgetStudioWidgets/` | Widget extension: `SpecWidget.swift` (one `StaticConfiguration` widget per template, `TemplateWidget<ID>`, picked by swiping the widget gallery; error text instead of gray; step log — ADR-013), `ProbeWidget` (check widget; large shows the step log). **No AppIntentConfiguration**: it never renders on the owner's Fast Store install (ADR-013). A new template needs a `TemplateIDs` entry and a line in its category bundle |
 | `ios/WidgetStudioTests/` | App-hosted unit tests: font availability, RTL invariants, every spec through the widget view, snapshots (`Snapshots/<id>.<lang>.png`) |
 | `ios/WidgetStudioUITests/` | Simulator UI smoke tests |
@@ -27,7 +27,8 @@ The product brief is `widget-app-brief.md` (template catalog: `TEMPLATES.md`, vi
 | `ios/scripts/` | `build-ipa.sh`, `check-strings.py`, `pick-simulator.py` |
 | `scripts/secret-scan.sh` | Secret scan, run before push and in CI |
 | `docs/ai-eval/` | AI eval set: drawn widgets + `cases.json`; workflow **AI eval** (`.github/workflows/ai-eval.yml`, manual, secret `GEMINI_API_KEY`) uploads side-by-side renders (ADR-019). Never commit crops of the reference image |
-| `docs/` | `decisions.md` (ADRs), `reference/` |
+| `docs/` | `decisions.md` (ADRs), `reference/` (gitignored image), `app-store/` (listing, privacy label, review notes, screenshots, `when-account.md` — ADR-020) |
+| `site/` | Privacy policy and support pages (ar/en), deployed to GitHub Pages by `pages.yml` (ADR-020) |
 
 ## Environment
 - Development machine is **Windows**; there is no Mac. iOS builds and tests run **only in GitHub Actions** (`.github/workflows/ios.yml`, `macos-15`).
@@ -82,6 +83,7 @@ Docs-only commits (`**.md`, `docs/**`) skip CI. SwiftLint is a separate, non-blo
 - **Templates (ADR-011):** one JSON per template in `Resources/Templates/<id>.json`, colors as tokens (`@bg`, `@fg`, `@accent`…), every visible text `{en, ar}`, and `catalogOrder` in `TemplateLibrary` updated. Spec extensions (`when`, `rotation`, `highlightColor`, `icon` fields, new bindings) are listed in ADR-011.
 - **Snapshots:** an intended visual change means re-recording references from the `snapshots` artifact (`ios/WidgetStudioTests/Snapshots/README.md`); look at the renders before committing them.
 - **Sideloading (ADR-004):** never hardcode the bundle ID, team prefix or App Group at runtime. Use `AppGroupResolver.resolve()`. The widget extension never calls the network for AI and never reads the Keychain.
+- **Release (ADR-020):** no visible Diagnostics entry and no check widget in release builds; no `print`; the widget step log is debug-only; keep `PrivacyInfo.xcprivacy` (app and widget) in sync with any new data flow or required-reason API, and the privacy page in `site/` with it. App Store screenshots: run the manual **Screenshots** workflow.
 - **Data on the device only:** saved designs and photos go only through `SharedStore` (App Group if resolved, else the app container; ADR-015); other shared files through `FileProtection.write`. Secrets only in the Keychain.
 - **Widget memory (~30 MB):** downscale images to the widget's pixel size before saving them to the App Group.
 - **Live data (ADR-016):** the widget extension gets its own data (`WidgetStudioWidgets/WidgetData.swift`); never pass data from the app except through the store container (only shared with an App Group). Missing data shows a `DataGap` message, never sample numbers; only gallery previews, snapshot tests and the M1 test designs use `DataSnapshot.sample`.

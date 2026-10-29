@@ -435,3 +435,19 @@ Empty field values fall back to the template defaults.
 Picked side-by-sides are in `docs/ai-eval/results/` (left: the drawn original, right: our render with sample data, so live values differ).
 
 **Open:** fidelity of hand-built rows when a model ignores `forecastRow` (soft-accepted now); italic serif has no matching font; the review round with paid providers is not yet measured.
+
+### ADR-020 — M6 polish and App Store readiness
+**Status:** Accepted (2026-10-29).
+
+- **Install method correction:** every install, including M0, was done with Fast Store; ADR-001/003/005/009/012 and CLAUDE.md now say so.
+- **History:** the seven reference crops (ADR-019) were removed from every commit with `git filter-branch` and `main` was force-pushed (2026-10-28); a fresh mirror clone has no crop path in any commit. GitHub may serve old commit pages by SHA until its garbage collection; a purge request to GitHub Support removes them sooner.
+- **Name:** Widget Studio / ستوديو الويدجت (Arabic display name in `InfoPlist.xcstrings`).
+- **Onboarding:** three pages (what, how to add with an animated mini home screen that is static under Reduce Motion, privacy), shown once (`onboardingDone`), skippable, reopenable in Settings. UI tests skip it unless `-uiTestingOnboarding`.
+- **Icon and logo:** an original 2×2 grid of widget shapes (dot-matrix card, circle, ring, red circle) on black; dark and tinted variants; `scripts/make-icon.ps1` regenerates it; `LogoMark` draws the same geometry in SwiftUI. No third-party marks.
+- **Empty and error states:** permission notices on templates that need location or Health; offline notice in Create from image (`NetworkStatus`, NWPathMonitor); "Get a free key" guide; richer empty My widgets; the free Gemini limit (~20 requests a day per model) is stated in Settings → AI and the guide.
+- **Arabic copy:** terms ويدجت / قالب / ودجاتي (ويدجتي for the single My widget); the brand in Arabic sentences; steps that name iOS buttons use iOS's Arabic labels («إضافة أداة»، «تعديل الأداة»), since iOS calls widgets «أداة»; colloquial template names replaced with standard Arabic.
+- **Accessibility:** one VoiceOver element per template card (name, size, hint); preview labels; readable icon names; `@ScaledMetric` for large numerals; a lighter red accent in dark mode.
+- **Release hygiene:** Diagnostics only by long-pressing the version (Library footer, Settings) or `widgetstudio://diagnostics`, and disclosed in the review notes; the check widget is built only in debug and developer builds; the widget step log only in debug builds; `PrivacyInfo.xcprivacy` in the app and the extension (UserDefaults CA92.1; coarse location for weather; photos for Create from image; no tracking), enforced by `build-ipa.sh`. Open-Meteo now gets coordinates rounded to two decimals (~1 km).
+- **Pages:** `site/` (privacy policy, support, landing; ar/en) deployed by `.github/workflows/pages.yml` to https://khaledzaki1919.github.io/widget-studio/; linked in Settings.
+- **App Store docs:** `docs/app-store/` holds the listing (ar/en, limits checked), privacy label answers, review notes (BYOK, Shortcut tiles, Diagnostics), screenshots (5 per language, 6.9", from the manual **Screenshots** workflow with `-uiTestingSampleData`, `-uiTestingSeedDesigns`, `-uiTestingStubCalendar`), and `when-account.md`.
+- **Developer-mode picker:** `WidgetPicker` (package) lists saved designs from SharedStore (customized templates and AI-made designs), then templates that fit, searchable in both languages, and resolves a choice; a placed widget without a choice shows "Choose a design" and is never filled automatically. Unit-tested; the first item of `when-account.md` tests it on device.
