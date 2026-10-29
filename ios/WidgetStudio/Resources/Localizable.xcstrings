@@ -4812,6 +4812,176 @@
         }
       }
     },
+    "permissions.allow": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سماح"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow"
+          }
+        }
+      }
+    },
+    "permissions.askAgain": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فتح «صحتي»"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Health"
+          }
+        }
+      }
+    },
+    "permissions.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بعض القوالب تحتاج إذنًا لتعرض بياناتك. اسمح بما تريد الآن، أو لاحقًا من الإعدادات."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some templates need a permission to show your data. Allow what you like now, or later in Settings."
+          }
+        }
+      }
+    },
+    "permissions.health.noData": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد بيانات أو لم يُسمح بالقراءة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No data, or reading not allowed"
+          }
+        }
+      }
+    },
+    "permissions.health.reason": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لعرض خطواتك ونومك في الويدجت. تُقرأ على جهازك فقط ولا تُرسل لأي مكان."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To show your steps and sleep in widgets. They are read on your phone only and never sent anywhere."
+          }
+        }
+      }
+    },
+    "permissions.health.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "صحتي (الخطوات والنوم)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Health (steps and sleep)"
+          }
+        }
+      }
+    },
+    "permissions.later": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يمكنك تغيير ذلك في أي وقت من الإعدادات ← الأذونات، أو من تطبيق «صحتي»."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can change this any time in Settings → Permissions, or in the Health app."
+          }
+        }
+      }
+    },
+    "permissions.location.reason": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "للطقس ومواقيت الصلاة واتجاه القبلة. يبقى موقعك على جهازك، ولا يُرسل إلا تقريبيًا للحصول على الطقس."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For weather, prayer times and the Qibla. Your location stays on your phone; only an approximate one is sent to get the weather."
+          }
+        }
+      }
+    },
+    "permissions.location.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الموقع (أثناء استخدام التطبيق)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Location (While Using the App)"
+          }
+        }
+      }
+    },
+    "permissions.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أذونات اختيارية"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Optional permissions"
+          }
+        }
+      }
+    },
     "settings.clock": {
       "extractionState": "manual",
       "localizations": {

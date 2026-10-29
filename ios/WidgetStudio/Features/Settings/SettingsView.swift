@@ -92,7 +92,7 @@ struct SettingsView: View {
                     .accessibilityIdentifier("ax.settings.shortcutGuide")
             }
             Section {
-                Button("settings.intro") { appState.isShowingOnboarding = true }
+                Button("settings.intro") { appState.showIntroduction() }
                     .accessibilityIdentifier("ax.settings.intro")
                 Link(destination: AppInfo.privacyURL) {
                     Label("settings.privacy", systemImage: "hand.raised")
