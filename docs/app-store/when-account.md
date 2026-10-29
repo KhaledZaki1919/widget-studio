@@ -79,7 +79,7 @@ Ask Claude to do these in one change (they're small):
    - write `ASC_KEY_P8` to `~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8` and upload: `xcrun altool --upload-app -f build/export/WidgetStudio.ipa -t ios --apiKey $ASC_KEY_ID --apiIssuer $ASC_ISSUER_ID`;
    - delete the temporary keychain in an `always()` step. Never print secrets.
 3. Keep `ios.yml` as is: it still compiles both modes and ships the unsigned store-mode IPA for Fast Store until you switch.
-4. Decide what the App Store build contains: developer mode has the configurable **Widget Studio** widget (one per size, Edit Widget picks any design or template) and the check widget. The 28 fixed template widgets are store-mode only (ADR-013/014). Recommended: ship developer mode (a tidy gallery), and remove the check widget from it before submitting.
+4. Decide what the App Store build contains: developer mode has the configurable **Widget Studio** widget (one per size, Edit Widget picks any design or template) and the check widget. The 28 fixed template widgets are store-mode only (ADR-013/014). Decided (ADR-021): ship developer mode, without the 28 fixed widgets; remove the check widget from it before submitting.
 
 ## 7. App Store Connect
 

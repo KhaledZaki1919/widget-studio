@@ -451,3 +451,14 @@ Picked side-by-sides are in `docs/ai-eval/results/` (left: the drawn original, r
 - **Pages:** `site/` (privacy policy, support, landing; ar/en) deployed by `.github/workflows/pages.yml` to https://khaledzaki1919.github.io/widget-studio/; linked in Settings.
 - **App Store docs:** `docs/app-store/` holds the listing (ar/en, limits checked), privacy label answers, review notes (BYOK, Shortcut tiles, Diagnostics), screenshots (5 per language, 6.9", from the manual **Screenshots** workflow with `-uiTestingSampleData`, `-uiTestingSeedDesigns`, `-uiTestingStubCalendar`), and `when-account.md`.
 - **Developer-mode picker:** `WidgetPicker` (package) lists saved designs from SharedStore (customized templates and AI-made designs), then templates that fit, searchable in both languages, and resolves a choice; a placed widget without a choice shows "Choose a design" and is never filled automatically. Unit-tested; the first item of `when-account.md` tests it on device.
+
+### ADR-021 — Release decisions: conservative privacy label, developer mode for the App Store
+**Status:** Accepted (2026-10-29), owner's decisions after the M6 device test.
+
+1. **Privacy label stays conservative.** App Store Connect declares, as in `docs/app-store/privacy-label.md` and both `PrivacyInfo.xcprivacy` files:
+   - **Coarse Location** (rounded to ~1 km, sent to Open-Meteo for weather);
+   - **Photos or Videos** (the image picked for Create from image, sent to the AI provider the user chose, with their own key).
+
+   Both for App Functionality, not linked to identity, no tracking. Neither reaches us; they are declared because the third parties may keep the data under their own terms. Any new data flow must update the label, both manifests and `site/privacy.html` together.
+2. **The App Store build is developer mode** (`WS_DEVELOPER`): one configurable **Widget Studio** widget per size; Edit Widget picks any saved design (including AI-made ones) or template, with search and Appearance, and never picks automatically (ADR-020). The 28 fixed template widgets (ADR-013) are **not** shipped; they remain only in store mode for Fast Store installs. Before submitting, remove the check widget from the developer-mode bundle (it is built in developer mode today for testing, ADR-020).
+3. **Status:** the app is complete for now (M0–M6). Next steps happen when the owner buys the Apple Developer account: follow `docs/app-store/when-account.md`, starting with the picker test. Android (M7) stays later.
