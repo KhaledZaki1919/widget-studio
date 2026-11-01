@@ -34,7 +34,7 @@ struct StackTests {
         #expect(stack.children[2].frame == Frame(x: 0, y: 0, w: 0, h: 1))
         let encoded = String(decoding: try JSONEncoder().encode(decoded), as: UTF8.self)
         #expect(encoded.contains(#""height":1"#))
-        #expect(!encoded.contains(#""frame":{"h":1"#))
+        #expect(encoded.components(separatedBy: #""frame""#).count == 2, "only the stack has a frame")
         #expect(try JSONDecoder().decode(WidgetSpec.self, from: Data(encoded.utf8)) == decoded)
         #expect(decoded.allLayers.count == 4)
     }
