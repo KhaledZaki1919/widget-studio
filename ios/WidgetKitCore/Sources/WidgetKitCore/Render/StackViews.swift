@@ -113,8 +113,8 @@ private struct StackChildView: View {
     }
 
     @ViewBuilder private var sized: some View {
-        let width = layer.frame.w > 0 ? layer.frame.w * scale : nil
-        let height = layer.frame.h > 0 ? layer.frame.h * scale : nil
+        let width: CGFloat? = layer.frame.w > 0 ? CGFloat(layer.frame.w) * scale : nil
+        let height: CGFloat? = layer.frame.h > 0 ? CGFloat(layer.frame.h) * scale : nil
         switch layer.content {
         case .spacer(let spacer):
             Spacer(minLength: (spacer.minLength ?? 0) * scale)

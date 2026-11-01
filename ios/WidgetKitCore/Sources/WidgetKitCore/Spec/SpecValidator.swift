@@ -141,6 +141,7 @@ enum SpecValidatorID {
 }
 
 /// Collects issues for one spec.
+// swiftlint:disable:next type_body_length
 private struct Check {
     let spec: WidgetSpec
     let mode: SpecValidator.Mode

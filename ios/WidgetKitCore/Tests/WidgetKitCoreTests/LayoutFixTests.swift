@@ -15,7 +15,7 @@ struct LayoutFixTests {
 
     func spec(_ layers: [Layer]) throws -> WidgetSpec {
         let json = """
-        {"schemaVersion": 1, "id": "ai.layout", "name": {"en": "L", "ar": "ل"}, "family": "small", "theme": "dark",
+        {"schemaVersion": 1, "id": "test.layout", "name": {"en": "L", "ar": "ل"}, "family": "small", "theme": "dark",
          "background": {"type": "solid", "color": "@bg"}, "layers": []}
         """
         var spec = try JSONDecoder().decode(WidgetSpec.self, from: Data(json.utf8))
