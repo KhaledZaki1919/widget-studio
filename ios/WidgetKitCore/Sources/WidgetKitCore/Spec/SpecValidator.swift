@@ -45,9 +45,13 @@ public struct SpecValidator: Sendable {
     public static let minAIFontSize: Double = 11
 
     public let mode: Mode
+    /// AI mode only: false skips the text-overlap rule, so the last answer can be repaired
+    /// locally instead of failing (`AILayoutFix`, ADR-022).
+    public let checksTextOverlaps: Bool
 
-    public init(mode: Mode = .standard) {
+    public init(mode: Mode = .standard, checksTextOverlaps: Bool = true) {
         self.mode = mode
+        self.checksTextOverlaps = checksTextOverlaps
     }
 
     public func validate(data: Data) -> Result<WidgetSpec, SpecIssues> {
@@ -61,7 +65,7 @@ public struct SpecValidator: Sendable {
     }
 
     public func validate(_ spec: WidgetSpec) -> Result<WidgetSpec, SpecIssues> {
-        var check = Check(spec: spec, mode: mode)
+        var check = Check(spec: spec, mode: mode, checksTextOverlaps: checksTextOverlaps)
         check.run()
         guard check.issues.isEmpty else { return .failure(SpecIssues(check.issues)) }
         var normalized = spec
@@ -140,11 +144,13 @@ enum SpecValidatorID {
 private struct Check {
     let spec: WidgetSpec
     let mode: SpecValidator.Mode
+    let checksTextOverlaps: Bool
     var issues: [SpecIssue] = []
 
-    init(spec: WidgetSpec, mode: SpecValidator.Mode) {
+    init(spec: WidgetSpec, mode: SpecValidator.Mode, checksTextOverlaps: Bool) {
         self.spec = spec
         self.mode = mode
+        self.checksTextOverlaps = checksTextOverlaps
     }
 
     mutating func fail(_ path: String, _ message: String) {
@@ -166,23 +172,13 @@ private struct Check {
         for (index, layer) in spec.layers.enumerated() {
             checkLayer(layer, path: "layers[\(index)]")
         }
-        if mode == .ai { checkTextOverlaps() }
+        if mode == .ai && checksTextOverlaps { checkTextOverlaps() }
     }
 
-    /// AI output (M6.1): layers that show text must not cover each other (more than 20 % of the
-    /// smaller frame). Layers with a `when` condition are exempt, since they may take turns.
+    /// AI output (M6.1): layers that show text must not cover each other (`SpecLayout`).
     mutating func checkTextOverlaps() {
-        let texts = spec.layers.indices.filter { spec.layers[$0].showsText && spec.layers[$0].when == nil }
-        for (position, first) in texts.enumerated() {
-            for second in texts[(position + 1)...] {
-                let a = spec.layers[first].frame
-                let b = spec.layers[second].frame
-                let width = min(a.x + a.w, b.x + b.w) - max(a.x, b.x)
-                let height = min(a.y + a.h, b.y + b.h) - max(a.y, b.y)
-                if width > 0, height > 0, width * height > 0.2 * min(a.w * a.h, b.w * b.h) {
-                    fail("layers[\(second)]", "its text overlaps layers[\(first)]; put texts that belong together in one stack, or move the frames apart")
-                }
-            }
+        for (first, second) in SpecLayout.textOverlaps(in: spec.layers) {
+            fail("layers[\(second)]", "its text overlaps layers[\(first)]; put texts that belong together in one stack, or move the frames apart")
         }
     }
 

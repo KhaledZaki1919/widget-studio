@@ -225,9 +225,15 @@ struct WidgetGenerationTests {
             object["layers"] = all
         }
         #expect(try parseError(overlapping).contains("its text overlaps layers[2]"))
-        #expect(throws: AIValidationError.self) {
-            try AIWidgetParser.parse(overlapping, options: GenerationOptions(), id: "gen.soft", enforceLayout: false)
+        // ADR-022: on the last attempt the overlap is repaired locally (the two texts in one stack).
+        let soft = try AIWidgetParser.parseWidget(overlapping, options: GenerationOptions(), id: "gen.soft", enforceLayout: false)
+        guard case .fixed = soft.layout else {
+            Issue.record("expected a local layout fix, got \(soft.layout)")
+            return
         }
+        #expect(soft.spec.layers.count == 5)
+        #expect(SpecLayout.textOverlaps(in: soft.spec.layers).isEmpty)
+        #expect(soft.spec.layers.contains { if case .stack(let stack) = $0.content { stack.axis == .vertical } else { false } })
     }
 
     func parseError(_ text: String, options: GenerationOptions = GenerationOptions()) throws -> String {
@@ -268,6 +274,9 @@ struct WidgetGenerationTests {
         let result = try await generator.generate(image: image, options: GenerationOptions())
         #expect(result.attempts == 2)
         #expect(provider.requests[1].request.userText.contains("bigger than its frame"))
+        // ADR-022: the retry's oversized icon is shrunk to its frame.
+        if case .icon(let icon) = result.spec.layers[3].content { #expect(icon.size <= 22) }
+        if case .fixed = result.layout {} else { Issue.record("expected a local layout fix") }
         #expect(throws: AIValidationError.self) {
             try AIWidgetParser.parse(overlapping, options: GenerationOptions(), id: "gen.strict")
         }

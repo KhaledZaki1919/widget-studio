@@ -49,15 +49,24 @@ public struct GeneratedWidget: Sendable, Equatable {
     public let reviewed: Bool
     /// What the review round said it fixed.
     public let differences: [String]
+    /// Whether the layout was repaired locally, or still needs the layer editor (ADR-022).
+    public let layout: LayoutRepair
 
     public init(spec: WidgetSpec, colors: [String: String], model: String, attempts: Int, reviewed: Bool = false,
-                differences: [String] = []) {
+                differences: [String] = [], layout: LayoutRepair = .clean) {
         self.spec = spec
         self.colors = colors
         self.model = model
         self.attempts = attempts
         self.reviewed = reviewed
         self.differences = differences
+        self.layout = layout
+    }
+
+    /// Overlaps are left that the user should fix in the layer editor.
+    public var needsEditing: Bool {
+        if case .needsEditing = layout { return true }
+        return false
     }
 
     /// A new, unsaved design named after the widget in `language`.
@@ -408,10 +417,24 @@ public enum AIWidgetParser {
     /// Minimum `fg`/`bg` contrast accepted (WCAG AA for large text; the prompt asks for 4.5).
     public static let minimumContrast = 3.0
 
-    /// `enforceLayout`: overlapping frames and oversized icons are problems (they send the retry);
-    /// false accepts them, for the last attempt, so a slightly messy layout still gives a widget.
+    /// A parsed answer and what happened to its layout.
+    public struct Parsed: Sendable, Equatable {
+        public let spec: WidgetSpec
+        public let colors: [String: String]
+        public let layout: LayoutRepair
+    }
+
+    /// `enforceLayout`: overlapping frames and oversized icons are problems (they send the retry).
+    /// False is for the last attempt: the layout is repaired locally (`AILayoutFix`) and whatever
+    /// is left is reported in `layout`, so the user never ends up without a widget (ADR-022).
     public static func parse(_ text: String, options: GenerationOptions, id: String,
                              enforceLayout: Bool = true) throws -> (spec: WidgetSpec, colors: [String: String]) {
+        let parsed = try parseWidget(text, options: options, id: id, enforceLayout: enforceLayout)
+        return (parsed.spec, parsed.colors)
+    }
+
+    public static func parseWidget(_ text: String, options: GenerationOptions, id: String,
+                                   enforceLayout: Bool = true) throws -> Parsed {
         guard let data = StructuredAI.extractJSON(text),
               case .object(var object)? = try? JSONDecoder().decode(JSONValue.self, from: data) else {
             throw AIValidationError("no JSON object found")
@@ -446,7 +469,7 @@ public enum AIWidgetParser {
         // Palette hex values become tokens, so the editor's color pickers reach them (M6.1).
         let cleaned = AIColorTokens.tokenize(JSONValue.object(object).removingNulls(), colors: &colors)
 
-        switch SpecValidator(mode: .ai).validate(data: cleaned.jsonData()) {
+        switch SpecValidator(mode: .ai, checksTextOverlaps: enforceLayout).validate(data: cleaned.jsonData()) {
         case .failure(let failure):
             problems += failure.issues.prefix(20).map(\.description)
             throw AIValidationError(problems.joined(separator: "; "))
@@ -454,9 +477,27 @@ public enum AIWidgetParser {
             problems += modeProblems(spec, mode: options.mode)
             if enforceLayout { problems += overlappingTexts(spec) }
             guard problems.isEmpty else { throw AIValidationError(problems.joined(separator: "; ")) }
+            var layout = LayoutRepair.clean
+            if !enforceLayout { (spec, layout) = repaired(spec) }
             spec.refresh = refresh(for: spec)
-            return (spec, colors)
+            return Parsed(spec: spec, colors: colors, layout: layout)
         }
+    }
+
+    /// The last answer's layout problems, fixed locally where possible (ADR-022). The fixed spec is
+    /// used only if it passes the AI validator's other rules; otherwise the answer stays as written
+    /// and the remaining problems go to the editor.
+    static func repaired(_ spec: WidgetSpec) -> (WidgetSpec, LayoutRepair) {
+        func problems(_ spec: WidgetSpec) -> [String] {
+            SpecLayout.textOverlaps(in: spec.layers).map { "layers[\($0.1)]: its text overlaps layers[\($0.0)]" } + overlappingTexts(spec)
+        }
+        let before = problems(spec)
+        guard !before.isEmpty else { return (spec, .clean) }
+        if case .success(let fixed) = SpecValidator(mode: .ai, checksTextOverlaps: false).validate(AILayoutFix.fix(spec)) {
+            let left = problems(fixed)
+            return left.isEmpty ? (fixed, .fixed(before: spec)) : (fixed, .needsEditing(left))
+        }
+        return (spec, .needsEditing(before))
     }
 
     /// Icon layers (and list row icons) with symbols outside the whitelist are dropped instead of
@@ -501,26 +542,15 @@ public enum AIWidgetParser {
     /// (M6.1); text on shapes, rings and clocks is fine.
     static func overlappingTexts(_ spec: WidgetSpec) -> [String] {
         var problems: [String] = []
-        let icons = spec.layers.indices.filter {
-            guard case .icon(let icon) = spec.layers[$0].content else { return false }
-            let frame = spec.layers[$0].frame
+        for index in spec.layers.indices {
+            guard case .icon(let icon) = spec.layers[index].content else { continue }
+            let frame = spec.layers[index].frame
             if icon.size > min(frame.w, frame.h) * 1.15 {
-                problems.append("layers[\($0)]: icon size \(Int(icon.size)) is bigger than its frame; make the frame at least as big as the size")
+                problems.append("layers[\(index)]: icon size \(Int(icon.size)) is bigger than its frame; make the frame at least as big as the size")
             }
-            return true
         }
-        let texts = spec.layers.indices.filter { spec.layers[$0].showsText && spec.layers[$0].when == nil }
-        for icon in icons {
-            for text in texts {
-                let a = spec.layers[icon].frame
-                let b = spec.layers[text].frame
-                let width = min(a.x + a.w, b.x + b.w) - max(a.x, b.x)
-                let height = min(a.y + a.h, b.y + b.h) - max(a.y, b.y)
-                guard width > 0, height > 0 else { continue }
-                if width * height > 0.2 * min(a.w * a.h, b.w * b.h) {
-                    problems.append("layers[\(icon)] and layers[\(text)]: the icon covers the text; move it or put both in one stack")
-                }
-            }
+        for (icon, text) in SpecLayout.iconOverlaps(in: spec.layers) {
+            problems.append("layers[\(icon)] and layers[\(text)]: the icon covers the text; move it or put both in one stack")
         }
         return problems
     }
@@ -573,7 +603,8 @@ public typealias SpecRenderer = @Sendable (WidgetSpec, [String: String]) async -
 /// Image → widget: builds the request, runs it through `AIService` (deadline, diagnostics) and
 /// parses with the retry. With `review`, the result is rendered and sent back with the original
 /// for one correction round ("High quality", ADR-019); if that round fails, the first result
-/// stands. Errors are `AIError`s; still-invalid output after the retry is `.invalidOutput`.
+/// stands. Errors are `AIError`s; still-invalid output after the retry is `.invalidOutput`,
+/// except layout problems, which the retry's answer gets repaired locally (ADR-022).
 public struct WidgetGenerator: Sendable {
     private let service: AIService
 
@@ -589,9 +620,10 @@ public struct WidgetGenerator: Sendable {
         // The retry's answer is accepted with layout problems (overlaps); only the first is strict.
         let firstRound = AttemptCounter()
         let result = try await service.run(request: request, feature: .generateWidget) { text in
-            try AIWidgetParser.parse(text, options: options, id: id, enforceLayout: firstRound.next() == 1)
+            try AIWidgetParser.parseWidget(text, options: options, id: id, enforceLayout: firstRound.next() == 1)
         }
-        let first = GeneratedWidget(spec: result.value.spec, colors: result.value.colors, model: result.model, attempts: result.attempts)
+        let first = GeneratedWidget(spec: result.value.spec, colors: result.value.colors, model: result.model, attempts: result.attempts,
+                                    layout: result.value.layout)
         guard let review, let render = await review(first.spec, first.colors) else { return first }
         if Task.isCancelled { throw AIError.cancelled }
 
@@ -600,11 +632,14 @@ public struct WidgetGenerator: Sendable {
         do {
             let reviewRound = AttemptCounter()
             let reviewed = try await service.run(request: reviewRequest, feature: .reviewWidget) { text in
-                let parsed = try AIWidgetParser.parse(text, options: options, id: id, enforceLayout: reviewRound.next() == 1)
-                return (parsed.spec, parsed.colors, AIWidgetParser.differences(in: text))
+                let parsed = try AIWidgetParser.parseWidget(text, options: options, id: id, enforceLayout: reviewRound.next() == 1)
+                return (parsed, AIWidgetParser.differences(in: text))
             }
-            return GeneratedWidget(spec: reviewed.value.0, colors: reviewed.value.1, model: reviewed.model,
-                                   attempts: first.attempts + reviewed.attempts, reviewed: true, differences: reviewed.value.2)
+            // A review that still needs editing doesn't replace a first round that didn't.
+            if case .needsEditing = reviewed.value.0.layout, !first.needsEditing { return first }
+            return GeneratedWidget(spec: reviewed.value.0.spec, colors: reviewed.value.0.colors, model: reviewed.model,
+                                   attempts: first.attempts + reviewed.attempts, reviewed: true, differences: reviewed.value.1,
+                                   layout: reviewed.value.0.layout)
         } catch AIError.cancelled {
             throw AIError.cancelled
         } catch {

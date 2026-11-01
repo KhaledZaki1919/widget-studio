@@ -13,7 +13,7 @@ on:
         options: [gemini, nvidia, openrouter, groq]
         default: gemini
       model:
-        description: "Model ID (empty = the provider's default in the app)"
+        description: "Model IDs, comma-separated (empty = the provider's default in the app)"
         type: string
         default: ""
       review:
@@ -37,7 +37,7 @@ jobs:
   eval:
     name: Generate and render
     runs-on: macos-15
-    timeout-minutes: 40
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
 
