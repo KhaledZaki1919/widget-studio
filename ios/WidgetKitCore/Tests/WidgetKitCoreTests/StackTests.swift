@@ -129,7 +129,8 @@ struct StackTests {
         #expect(Set(types(children)) == ["text", "icon", "shape", "ring", "progressBar", "spacer", "stack"])
         guard case .array(let childList)? = children,
               let nested = childList.first(where: { typeOf($0) == "stack" }) else { return }
-        #expect(!types(nested["properties"]?["children"]?["items"]?["anyOf"]).contains("stack"))
+        let nestedTypes = types(nested["properties"]?["children"]?["items"]?["anyOf"])
+        #expect(!nestedTypes.contains("stack"))
     }
 
     @Test func aiReplyWithStacksParses() throws {
