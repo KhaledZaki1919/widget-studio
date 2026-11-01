@@ -30,7 +30,7 @@ on:
         default: ""
 
 concurrency:
-  group: ai-eval
+  group: ai-eval-${{ inputs.provider }}
   cancel-in-progress: true
 
 jobs:
