@@ -25,7 +25,7 @@ struct CreateFromImageView: View {
         case setup
         case generating
         case failed(AIError)
-        case result(design: SavedDesign, photo: CGImage?)
+        case result(design: SavedDesign, photo: CGImage?, layout: LayoutRepair)
     }
 
     private let service = AIService()
@@ -35,8 +35,8 @@ struct CreateFromImageView: View {
 
     var body: some View {
         switch phase {
-        case .result(let design, let photo):
-            EditorView(design: design, isNew: true, photo: photo, onRegenerate: generate)
+        case .result(let design, let photo, let layout):
+            EditorView(design: design, isNew: true, photo: photo, layout: layout, onRegenerate: generate)
                 .id(design.id)
         default:
             NavigationStack {
@@ -319,7 +319,7 @@ struct CreateFromImageView: View {
                 if options.mode == .photo, let slot = design.imageLayer {
                     photo = ImageProcessing.prepare(picked, frame: slot.frame, layer: slot.layer)
                 }
-                phase = .result(design: design, photo: photo)
+                phase = .result(design: design, photo: photo, layout: generated.layout)
             } catch AIError.cancelled {
                 phase = .setup
             } catch let error as AIError {
