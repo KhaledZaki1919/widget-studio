@@ -164,7 +164,7 @@ private struct TextSettings: View {
     let model: EditorModel
 
     var body: some View {
-        Section("editor.layer.kind.text") {
+        Section {
             TextField(text: Binding(get: { text.value.resolved(language: "ar") }, set: { setValue(ar: $0) })) { Text("editor.arabic") }
                 .environment(\.layoutDirection, .rightToLeft)
                 .multilineTextAlignment(.trailing)
@@ -192,6 +192,8 @@ private struct TextSettings: View {
                 }
             }
             ColorTokenPicker(title: "editor.layer.color", value: $text.color, model: model)
+        } header: {
+            Text("editor.layer.kind.text")
         } footer: {
             Text("editor.layer.text.footer")
         }

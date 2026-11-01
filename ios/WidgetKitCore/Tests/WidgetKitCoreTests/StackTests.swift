@@ -11,7 +11,7 @@ struct StackTests {
         """.utf8)
     }
 
-    let text = #"{"type": "text", "value": {"en": "Hi", "ar": "أهلا"}, "font": {"family": "system", "size": 13}, "color": "#FFFFFF"}"#
+    let text = ##"{"type": "text", "value": {"en": "Hi", "ar": "أهلا"}, "font": {"family": "system", "size": 13}, "color": "#FFFFFF"}"##
 
     func issues(_ layers: String, mode: SpecValidator.Mode = .standard) -> [String] {
         switch SpecValidator(mode: mode).validate(data: spec(layers: layers)) {
@@ -79,7 +79,7 @@ struct StackTests {
 
     @Test func aiRejectsOverlappingText() {
         func placed(_ x: Int, _ y: Int) -> String {
-            text.replacingOccurrences(of: #""color": "#FFFFFF"}"#, with: #""color": "#FFFFFF", "frame": {"x": \#(x), "y": \#(y), "w": 100, "h": 30}}"#)
+            text.replacingOccurrences(of: ##""color": "#FFFFFF"}"##, with: ##""color": "#FFFFFF", "frame": {"x": \##(x), "y": \##(y), "w": 100, "h": 30}}"##)
         }
         #expect(issues(placed(10, 10) + "," + placed(20, 15), mode: .ai).contains { $0.contains("overlaps") })
         #expect(issues(placed(10, 10) + "," + placed(10, 60), mode: .ai).isEmpty)
