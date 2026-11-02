@@ -78,11 +78,15 @@ public enum WidgetDetector {
 
     /// The same card found twice: intersection over union above 0.7 (a ring inside a pill is not
     /// the pill, eval 2026-11-02).
+    /// Also when one box lies inside the other and is at least 60 % of its size: a contour traced
+    /// a little inside the edge.
     static func sameBox(_ a: CGRect, _ b: CGRect) -> Bool {
         let common = a.intersection(b)
         guard !common.isNull else { return false }
         let union = area(a) + area(b) - area(common)
-        return union > 0 && area(common) / union > 0.7
+        if union > 0, area(common) / union > 0.7 { return true }
+        let (small, big) = area(a) < area(b) ? (a, b) : (b, a)
+        return inside(small, big) > 0.9 && area(big) > 0 && area(small) / area(big) >= 0.6
     }
 
     /// Share of `inner` inside `outer`.
