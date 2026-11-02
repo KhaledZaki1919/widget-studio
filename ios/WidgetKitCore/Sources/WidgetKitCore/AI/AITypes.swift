@@ -64,13 +64,14 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable, Identifiabl
     }
 
     /// Fast, low-cost vision model used by default. IDs checked in each provider's model docs
-    /// (ADR-018, ADR-019, ADR-022). Custom has none: the user types it.
+    /// (ADR-018, ADR-019); the free providers' picks come from the AI eval of 2026-11-01/02
+    /// (ADR-022): every free preset reads images at no cost. Custom has none: the user types it.
     public var recommendedModel: String {
         switch self {
         case .gemini: "gemini-3.5-flash-lite"
         case .nvidia: "nvidia/nemotron-3.5-super-vl-120b-a12b"
         case .groq: "qwen/qwen3.8-27b"
-        case .openrouter: "google/gemini-3.8-flash"
+        case .openrouter: "nvidia/nemotron-3.5-super-vl:free"
         case .anthropic: "claude-haiku-5-5"
         case .openai: "gpt-6-luna"
         case .custom: ""
@@ -81,9 +82,9 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable, Identifiabl
     public var alternativeModel: String {
         switch self {
         case .gemini: "gemini-3.8-flash"
-        case .nvidia: "google/gemma-4-31b-it"
+        case .nvidia: "meta/llama-3.2-90b-vision-instruct"
         case .groq: "qwen/qwen3.8-27b"
-        case .openrouter: "nvidia/nemotron-3.5-super-vl:free"
+        case .openrouter: "openrouter/free"
         case .anthropic: "claude-sonnet-5-5"
         case .openai: "gpt-6.1-sol"
         case .custom: ""
@@ -94,10 +95,10 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable, Identifiabl
     public var builtInModels: [String] {
         switch self {
         case .gemini: ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.6-flash"]
-        case .nvidia: ["nvidia/nemotron-3.5-super-vl-120b-a12b", "google/gemma-4-31b-it", "meta/llama-3.2-90b-vision-instruct"]
+        case .nvidia: ["nvidia/nemotron-3.5-super-vl-120b-a12b", "meta/llama-3.2-90b-vision-instruct", "google/gemma-4-31b-it"]
         case .groq: ["qwen/qwen3.8-27b"]
-        case .openrouter: ["google/gemini-3.8-flash", "nvidia/nemotron-3.5-super-vl:free", "google/gemma-4-31b-it:free",
-                           "anthropic/claude-haiku-5.5", "openai/gpt-6-luna"]
+        case .openrouter: ["nvidia/nemotron-3.5-super-vl:free", "openrouter/free", "google/gemma-4-31b-it:free",
+                           "google/gemini-3.8-flash", "anthropic/claude-haiku-5.5", "openai/gpt-6-luna"]
         case .anthropic: ["claude-haiku-5-5", "claude-sonnet-5-5"]
         case .openai: ["gpt-6-luna", "gpt-6.1-sol"]
         case .custom: []

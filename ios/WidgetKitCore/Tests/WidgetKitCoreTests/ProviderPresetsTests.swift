@@ -14,6 +14,10 @@ struct ProviderPresetsTests {
         #expect(AIProviderKind.nvidia.recommendedModel == "nvidia/nemotron-3.5-super-vl-120b-a12b")
         #expect(AIProviderKind.groq.recommendedModel == "qwen/qwen3.8-27b")
         #expect(AIProviderKind.openrouter.builtInModels.contains("nvidia/nemotron-3.5-super-vl:free"))
+        // ADR-022: the free providers default to free vision models (AI eval 2026-11-01/02).
+        #expect(AIProviderKind.gemini.recommendedModel == "gemini-3.5-flash-lite")
+        #expect(AIProviderKind.openrouter.recommendedModel.hasSuffix(":free"))
+        #expect(AIProviderKind.openrouter.alternativeModel == "openrouter/free")
         #expect(AIProviderKind.allCases.filter(\.hasFreeTier) == [.gemini, .nvidia, .groq, .openrouter])
         #expect(!AIProviderKind.nvidia.prefersStructuredOutput && !AIProviderKind.custom.prefersStructuredOutput)
         #expect(AIProviderKind.groq.prefersStructuredOutput)
