@@ -158,7 +158,9 @@ public enum WidgetDetector {
         let saliency = VNGenerateObjectnessBasedSaliencyImageRequest()
         let text = VNDetectTextRectanglesRequest()
         guard (try? VNImageRequestHandler(cgImage: image, options: [:]).perform([saliency, text])) != nil else { return nil }
-        let boxes = (saliency.results?.first?.salientObjects ?? []).map(.boundingBox) + (text.results ?? []).map(.boundingBox)
+        let salient: [CGRect] = (saliency.results?.first?.salientObjects ?? []).map { $0.boundingBox }
+        let texts: [CGRect] = (text.results ?? []).map { $0.boundingBox }
+        let boxes = salient + texts
         guard !boxes.isEmpty else { return nil }
         let union = boxes.map { pixels($0, size: size) }.reduce(CGRect.null) { $0.union($1) }
         let pad = floatingPadding * max(union.width, union.height)
