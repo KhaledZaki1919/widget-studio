@@ -110,12 +110,16 @@ public enum WidgetDetector {
     }
 
     /// From how much of its box a closed shape fills and its aspect.
+    /// The corner radius the missing area implies, r = √((1 − fill)·w·h / (4 − π)), against the
+    /// short side: about half for circles and capsules, about a quarter for widget squircles.
     static func classify(fill: CGFloat, aspect: CGFloat) -> WidgetCardShape? {
-        guard fill >= 0.72, aspect >= 0.25, aspect <= 4 else { return nil }
-        let squareish = aspect > 0.85 && aspect < 1.18
-        if squareish && fill < 0.86 { return .circle }            // π/4 ≈ 0.785
-        if !squareish && fill < 0.935 { return .capsule }          // 1 − (short/long)(1 − π/4)
-        return fill >= 0.86 ? .roundedRect : nil
+        guard fill >= 0.72, aspect >= 0.2, aspect <= 5 else { return nil }
+        let width = max(aspect, 1)
+        let height = max(1 / aspect, 1)
+        let radius = sqrt(max(0, 1 - fill) * width * height / (4 - .pi))
+        let round = radius >= 0.4 * min(width, height)
+        if !round { return .roundedRect }
+        return aspect > 0.85 && aspect < 1.18 ? .circle : .capsule
     }
 
     // MARK: Vision

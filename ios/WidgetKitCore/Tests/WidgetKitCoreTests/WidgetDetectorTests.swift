@@ -84,6 +84,7 @@ struct WidgetDetectorTests {
     @Test func classification() {
         #expect(WidgetDetector.classify(fill: 0.785, aspect: 1) == .circle)
         #expect(WidgetDetector.classify(fill: 0.89, aspect: 2) == .capsule)
+        #expect(WidgetDetector.classify(fill: 0.937, aspect: 3.4) == .capsule)   // the long pill of the eval
         #expect(WidgetDetector.classify(fill: 0.97, aspect: 2.1) == .roundedRect)
         #expect(WidgetDetector.classify(fill: 0.96, aspect: 1) == .roundedRect)
         #expect(WidgetDetector.classify(fill: 0.5, aspect: 1) == nil)
