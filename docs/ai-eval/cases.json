@@ -58,5 +58,11 @@
     "mode": "photo",
     "size": "small",
     "note": "Drawn sunset landscape: build a widget around it"
+  },
+  {
+    "file": "draw-glass.png",
+    "mode": "recreate",
+    "size": "medium",
+    "note": "Frosted glass card (drawn for this set): handwritten hello top-left, date top-right, weather bottom-left, month bottom-right, center line with the time stacked in an orange pill"
   }
 ]

@@ -5,7 +5,8 @@ mode and size to generate with.
 
 - `draw-*.png`: widgets drawn for this set in the Mono style (Doto for dot numerals): calendar like
   the M5 device test, reminders list, quote, forecast, steps, analog clock, countdown, big date,
-  day and zone, and a drawn landscape for photo mode. Crops of the third-party reference image
+  day and zone, a frosted glass card with corner texts and a time pill (ADR-023), and a drawn
+  landscape for photo mode. Crops of the third-party reference image
   are never committed (`.gitignore`).
 
 Run it: Actions → **AI eval** → Run workflow (model, review on/off). It needs the repository
