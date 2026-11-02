@@ -50,13 +50,17 @@ public enum WidgetDetector {
     public static func detect(_ image: CGImage) -> [DetectedWidget] {
         #if canImport(Vision)
         let size = CGSize(width: image.width, height: image.height)
-        let pixels = RGBA(image)
-        var candidates = contourCandidates(image, size: size) + rectangleCandidates(image, size: size) + salientCandidates(image, size: size)
+        guard let pixels = RGBA(image) else { return [] }
+        // Salient objects count only when every corner reaches solid card color (not a column of icons).
+        let salient = salientCandidates(image, size: size).filter { cornerRadius(of: $0.rect, in: pixels) != nil }
+        var candidates = contourCandidates(image, size: size) + rectangleCandidates(image, size: size) + salient
+        // Rectangle and saliency boxes can be off a little: grow or trim each to the card's edges.
+        candidates = candidates.map { DetectedWidget(rect: refined($0.rect, in: pixels, size: size), shape: $0.shape) }
         candidates = candidates.filter { candidate in
             let share = candidate.rect.width * candidate.rect.height / (size.width * size.height)
             guard share >= minimumArea, !touchesEdge(candidate.rect, size: size) else { return false }
             // A soft gradient can look like a rectangle (eval 2026-11-02: a square around a round card).
-            return pixels.map { hasEdge(candidate.rect, in: $0) } ?? true
+            return hasEdge(candidate.rect, in: pixels)
         }
         var kept: [DetectedWidget] = []
         for candidate in candidates.sorted(by: { area($0.rect) > area($1.rect) }) {
@@ -69,7 +73,7 @@ public enum WidgetDetector {
             kept.append(candidate)
         }
         // Rectangle detection can't tell a pill from a card: measure the corners in the pixels.
-        if kept.contains(where: { $0.shape == .roundedRect }), let pixels = RGBA(image) {
+        if kept.contains(where: { $0.shape == .roundedRect }) {
             kept = kept.map { widget in
                 guard widget.shape == .roundedRect, let radius = cornerRadius(of: widget.rect, in: pixels) else { return widget }
                 let short = min(widget.rect.width, widget.rect.height)
@@ -276,26 +280,71 @@ public enum WidgetDetector {
         return differing.count >= 3
     }
 
-    /// The corner radius of the card in `rect`, from how far each corner's diagonal runs before
-    /// it reaches the card's color (sampled just inside the middle of the left and right edges):
-    /// a corner of radius r leaves r(√2 − 1) along the diagonal. The median of the four corners.
-    static func cornerRadius(of rect: CGRect, in pixels: RGBA) -> CGFloat? {
+    /// The card's color: on the left and right sides, the first inside sample (4 % or 12 % deep)
+    /// that differs from just outside, so a box overshooting the card doesn't sample the wallpaper.
+    static func cardColors(of rect: CGRect, in pixels: RGBA) -> [(Double, Double, Double)] {
         let short = min(rect.width, rect.height)
         let midY = Int(rect.midY)
         let out = Int(max(3, 0.03 * short))
-        // The card's color: on each side, the first inside sample (4 % or 12 % deep) that differs
-        // from just outside, so a box overshooting the card doesn't sample the wallpaper.
-        var card: [(Double, Double, Double)] = []
+        var colors: [(Double, Double, Double)] = []
         for (edge, direction) in [(Int(rect.minX), 1), (Int(rect.maxX), -1)] {
             let outside = pixels.color(edge - direction * out, midY)
             for depth in [0.04, 0.12] {
                 let inside = pixels.color(edge + direction * Int(max(3, depth * short)), midY)
                 if abs(inside.0 - outside.0) + abs(inside.1 - outside.1) + abs(inside.2 - outside.2) > 0.15 {
-                    card.append(inside)
+                    colors.append(inside)
                     break
                 }
             }
         }
+        return colors
+    }
+
+    /// The box grown or trimmed to the card (eval 2026-11-02: half a pill from saliency, a box
+    /// overshooting a pill's ends): from just inside each side's middle (first moving inward to the
+    /// card's color if needed), walk outward until `gap` pixels in a row aren't the card's color,
+    /// so text on the card doesn't stop the walk. Unchanged when the walk looks wrong.
+    static func refined(_ rect: CGRect, in pixels: RGBA, size: CGSize) -> CGRect {
+        let colors = cardColors(of: rect, in: pixels)
+        guard !colors.isEmpty else { return rect }
+        let short = min(rect.width, rect.height)
+        let gap = max(6, Int(0.15 * short))
+        let inset = Int(max(3, 0.04 * short))
+        func isCard(_ x: Int, _ y: Int) -> Bool {
+            let c = pixels.color(x, y)
+            return colors.contains { abs($0.0 - c.0) + abs($0.1 - c.1) + abs($0.2 - c.2) < 0.18 }
+        }
+        /// `point(t)` is the pixel at position t on the scan line; returns the last card position.
+        func edge(from start: Int, step: Int, limit: Int, _ point: (Int) -> (Int, Int)) -> Int {
+            var position = start
+            var moved = 0
+            while !isCard(point(position).0, point(position).1), moved < Int(0.15 * short) {
+                position -= step
+                moved += 1
+            }
+            var last = position
+            while position != limit, abs(position - last) < gap {
+                position += step
+                if isCard(point(position).0, point(position).1) { last = position }
+            }
+            return last
+        }
+        let midX = Int(rect.midX)
+        let midY = Int(rect.midY)
+        let left = edge(from: Int(rect.minX) + inset, step: -1, limit: 0) { ($0, midY) }
+        let right = edge(from: Int(rect.maxX) - inset, step: 1, limit: pixels.width - 1) { ($0, midY) }
+        let top = edge(from: Int(rect.minY) + inset, step: -1, limit: 0) { (midX, $0) }
+        let bottom = edge(from: Int(rect.maxY) - inset, step: 1, limit: pixels.height - 1) { (midX, $0) }
+        let grown = CGRect(x: left, y: top, width: right - left + 1, height: bottom - top + 1)
+        guard grown.width >= 0.5 * rect.width, grown.height >= 0.5 * rect.height, !touchesEdge(grown, size: size) else { return rect }
+        return grown
+    }
+
+    /// The corner radius of the card in `rect`, from how far each corner's diagonal runs before
+    /// it reaches the card's color (sampled just inside the middle of the left and right edges):
+    /// a corner of radius r leaves r(√2 − 1) along the diagonal. The median of the four corners.
+    static func cornerRadius(of rect: CGRect, in pixels: RGBA) -> CGFloat? {
+        let card = cardColors(of: rect, in: pixels)
         guard !card.isEmpty else { return nil }
         func matches(_ c: (Double, Double, Double)) -> Bool {
             card.contains { abs($0.0 - c.0) + abs($0.1 - c.1) + abs($0.2 - c.2) < 0.18 }

@@ -45,8 +45,10 @@ struct CropView: View {
         self.onDone = onDone
         self.onCancel = onCancel
         let whole = CGRect(x: 0, y: 0, width: image.width, height: image.height)
-        _selection = State(initialValue: detected.first?.rect ?? whole)
-        _selectedIndex = State(initialValue: detected.isEmpty ? nil : 0)
+        // The biggest detection is most likely the widget the user means; the list stays in reading order.
+        let biggest = detected.indices.max { detected[$0].rect.width * detected[$0].rect.height < detected[$1].rect.width * detected[$1].rect.height }
+        _selection = State(initialValue: biggest.map { detected[$0].rect } ?? whole)
+        _selectedIndex = State(initialValue: biggest)
     }
 
     private var imageSize: CGSize { CGSize(width: image.width, height: image.height) }

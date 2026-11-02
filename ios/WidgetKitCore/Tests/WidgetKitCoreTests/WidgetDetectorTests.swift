@@ -85,6 +85,8 @@ struct WidgetDetectorTests {
                 try Self.writeOutlined(picture, found, name: "\(side)-\(name)")
                 // One widget: the biggest detection; a gallery: the first in reading order.
                 let main = count == 1 ? found.max { WidgetDetector.area($0.rect) < WidgetDetector.area($1.rect) } : found.first
+                // The pill must be whole, not half of it (eval 2026-11-02).
+                if shape == .capsule, let main { #expect(main.rect.width > 0.7 * CGFloat(picture.width), "(name) at (side): (main.rect)") }
                 #expect(found.count >= count && main?.shape == shape, "\(name) at \(side): \(found)")
             }
         }
