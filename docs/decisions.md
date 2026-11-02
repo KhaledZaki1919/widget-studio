@@ -544,3 +544,5 @@ Picked side-by-sides are in `docs/ai-eval/results/` (left: the drawn original, r
   - Only a widget spec is accepted, never code. Nothing is sent anywhere by the app.
 
   A text shared from a chat app (not a file) goes through the clipboard: a share extension would need an App Group to hand it over, which the Fast Store install doesn't have (ADR-004).
+- **AI eval** (4 runs, `gemini-3.5-flash-lite`, drawn case `draw-glass.png`): before (prompt v3), the model's own layout was clean but had no glass. After (prompt v4), run 2 failed on an invented shape kind (`"line"`), and run 3 on a field `default` written inside its label; both are now repaired in the parser instead of failing. Run 4 used the glass background, kept every text in its corner and the time on its pill, though the model wrote the live time twice instead of hours over minutes. Reminders, forecast and quote still pass with v4 (2 of them fixed locally).
+- **Results kept:** `docs/ai-eval/results/adr23-*.png` (eval before/after, frosted-card local fix before/after); `docs/accented/` (accented before | after for Prayer Times, analog clock, stopwatch, Shortcut tiles, and the solid-share table).
