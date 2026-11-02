@@ -22,7 +22,8 @@ struct TextLayerView: View {
             .tracking(arabic ? 0 : (layer.tracking ?? 0) * scale)
             .foregroundStyle(Color(hex: layer.color))
             .multilineTextAlignment(textAlignment)
-            .lineLimit(layer.maxLines ?? 1)
+            // Explicit line breaks ("09⏎41" in a pill) always get their lines; long lines shrink instead.
+            .lineLimit(max(layer.maxLines ?? 1, value.components(separatedBy: "\n").count))
             .minimumScaleFactor(0.5)
             .frame(maxWidth: fill.contains(.horizontal) ? .infinity : nil,
                    maxHeight: fill.contains(.vertical) ? .infinity : nil, alignment: frameAlignment)
