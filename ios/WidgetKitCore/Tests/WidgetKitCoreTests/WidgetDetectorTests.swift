@@ -91,8 +91,14 @@ struct WidgetDetectorTests {
     }
 
     static func writeOutlined(_ image: CGImage, _ widgets: [DetectedWidget], name: String) throws {
+        guard let picture = outlined(image, widgets) else { return }
+        try RenderSnapshotTests.write(picture, "detect/\(name)")
+    }
+
+    /// The image with each detection outlined in its shape (the first in pink, the rest in cyan).
+    static func outlined(_ image: CGImage, _ widgets: [DetectedWidget]) -> CGImage? {
         let size = CGSize(width: image.width, height: image.height)
-        guard let outlined = ImageProcessing.draw(size: size, { context in
+        return ImageProcessing.draw(size: size, { context in
             context.draw(image, in: CGRect(origin: .zero, size: size))
             for (index, widget) in widgets.enumerated() {
                 // Drawing coordinates have the origin at the bottom left.
@@ -107,8 +113,7 @@ struct WidgetDetectorTests {
                 case .roundedRect: context.addPath(CGPath(roundedRect: rect, cornerWidth: 30, cornerHeight: 30, transform: nil)); context.strokePath()
                 }
             }
-        }) else { return }
-        try RenderSnapshotTests.write(outlined, "detect/\(name)")
+        })
     }
 }
 

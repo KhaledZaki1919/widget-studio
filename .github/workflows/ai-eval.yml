@@ -28,6 +28,11 @@ on:
         description: "Comma-separated image file names (empty = all)"
         type: string
         default: ""
+      crop:
+        description: "Crop to the detected widget(s) first: off, on, or both to compare (ADR-024)"
+        type: choice
+        options: [off, on, both]
+        default: "off"
       pause:
         description: "Seconds between requests (free tiers have per-minute limits)"
         type: string
@@ -73,6 +78,7 @@ jobs:
           AI_EVAL_CASES: ${{ inputs.cases }}
           AI_EVAL_STRUCTURED: ${{ inputs.structured && '1' || '0' }}
           AI_EVAL_PAUSE: ${{ inputs.pause }}
+          AI_EVAL_CROP: ${{ inputs.crop }}
         run: swift test --package-path ios/WidgetKitCore --filter AIEvalTests
 
       - name: Summary
