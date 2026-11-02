@@ -48,12 +48,30 @@ public struct SpecView: View {
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
+        // Tinted and Clear home screens: the accented variant of every layer (ADR-023).
+        .modifier(AccentedModeReader())
         // Absolute canvas coordinates, whatever the host's direction.
         .environment(\.layoutDirection, .leftToRight)
         // Live texts (time, relative, timer) format in the spec's language with Latin digits.
         .environment(\.locale, context.locale)
         .environment(\.timeZone, context.timeZone)
         .environment(\.colorScheme, spec.theme == .dark ? .dark : .light)
+    }
+}
+
+/// A frosted panel (ADR-023): a neutral base for the theme, the translucent tint, a sheen from
+/// the top leading corner and a thin light border inside the edge.
+struct GlassBackground: View {
+    let tint: String?
+    let dark: Bool
+
+    var body: some View {
+        ZStack {
+            Color(hex: dark ? "#1C1F24" : "#E4E7EB")
+            Color(hex: tint ?? "#FFFFFF2E")
+            LinearGradient(colors: [Color.white.opacity(0.22), Color.white.opacity(0)], startPoint: .topLeading, endPoint: .center)
+            ContainerRelativeShape().strokeBorder(Color.white.opacity(0.28), lineWidth: 1)
+        }
     }
 }
 
@@ -95,6 +113,8 @@ public struct SpecBackground: View {
         switch spec.background.type {
         case .solid:
             Color(hex: spec.background.color ?? "#000000")
+        case .glass:
+            GlassBackground(tint: spec.background.color, dark: spec.theme == .dark)
         case .gradient:
             let angle = Angle(degrees: spec.background.angle ?? 90)
             let dx = cos(angle.radians) / 2

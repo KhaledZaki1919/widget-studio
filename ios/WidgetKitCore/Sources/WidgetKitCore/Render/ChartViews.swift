@@ -4,10 +4,13 @@ import SwiftUI
 struct AnalogClockView: View {
     let layer: AnalogClockLayer
     let resolver: BindingResolver
+    @Environment(\.specAccented) private var accented
 
     var body: some View {
         let dark = resolver.spec.theme == .dark
-        let face = Color(hex: layer.faceColor ?? (dark ? "#1A1A1A" : "#FFFFFF"))
+        // Accented mode: the face is a faint disc with an outline, not a solid white circle (ADR-023).
+        let face = Accented.fill(layer.faceColor ?? (dark ? "#1A1A1A" : "#FFFFFF"), accented: accented)
+        let rim = accented
         let ink = Color(hex: layer.tickColor ?? (dark ? "#FFFFFF" : "#0E0E0E"))
         let hour = Color(hex: layer.hourColor ?? (dark ? "#FFFFFF" : "#0E0E0E"))
         let minute = Color(hex: layer.minuteColor ?? (dark ? "#FFFFFF" : "#0E0E0E"))
@@ -19,7 +22,11 @@ struct AnalogClockView: View {
             let side = min(size.width, size.height)
             let center = CGPoint(x: size.width / 2, y: size.height / 2)
             let radius = side / 2
-            context.fill(Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: side, height: side)), with: .color(face))
+            let disc = Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: side, height: side))
+            context.fill(disc, with: .color(face))
+            if rim {
+                context.stroke(disc.strokedPath(StrokeStyle(lineWidth: 1)), with: .color(ink.opacity(Accented.outlineOpacity)))
+            }
 
             for tick in 0..<60 {
                 let isHour = tick % 5 == 0

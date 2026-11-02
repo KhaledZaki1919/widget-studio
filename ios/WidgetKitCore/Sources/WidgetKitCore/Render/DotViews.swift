@@ -8,10 +8,12 @@ struct DotGridView: View {
     let levels: [Double]
     let scale: CGFloat
     let mirrored: Bool
+    @Environment(\.specAccented) private var accented
 
     var body: some View {
         let on = Color(hex: layer.onColor)
-        let off = Color(hex: layer.offColor)
+        // Accented mode: unlit dots stay faint, so the lit ones read (ADR-023).
+        let off = accented ? Color(hex: layer.offColor).opacity(0.35) : Color(hex: layer.offColor)
         let highlight = Color(hex: layer.highlightColor ?? layer.onColor)
         Canvas { context, size in
             let dot = layer.dotSize * scale
@@ -46,12 +48,13 @@ struct DotBarsView: View {
     let resolver: BindingResolver
     let scale: CGFloat
     let mirrored: Bool
+    @Environment(\.specAccented) private var accented
 
     var body: some View {
         let levels = ordered(resolver.levels(layer.values), count: layer.bars, filler: 0)
         let labels = ordered(self.labels, count: layer.bars, filler: "")
         let color = Color(hex: layer.color)
-        let off = Color(hex: layer.offColor ?? "#FFFFFF26")
+        let off = accented ? Color(hex: layer.offColor ?? "#FFFFFF26").opacity(0.35) : Color(hex: layer.offColor ?? "#FFFFFF26")
         // With a highlight color, the highest bar (first one on ties) is drawn in it.
         let best = layer.highlightColor == nil ? nil : levels.indices.max { levels[$0] < levels[$1] }
         let highlight = Color(hex: layer.highlightColor ?? layer.color)

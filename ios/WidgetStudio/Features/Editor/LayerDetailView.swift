@@ -114,6 +114,12 @@ struct LayerDetailView: View {
                     changed.fill = $0
                     layer.wrappedValue.content = .shape(changed)
                 }), model: model)
+                Toggle("editor.layer.glass", isOn: Binding(get: { shape.glass == true }, set: {
+                    var changed = shape
+                    changed.glass = $0 ? true : nil
+                    if $0, changed.fill.map({ !$0.hasPrefix("#") || $0.count == 7 }) ?? true { changed.fill = "#FFFFFF2E" }
+                    layer.wrappedValue.content = .shape(changed)
+                }))
             }
         case .stack(let stack):
             StackSettings(stack: Binding(get: { stack }, set: { layer.wrappedValue.content = .stack($0) }))

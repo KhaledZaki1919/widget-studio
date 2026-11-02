@@ -155,7 +155,9 @@ public enum LocalizedText: Codable, Sendable, Equatable, ExpressibleByStringLite
 }
 
 public struct Background: Codable, Sendable, Equatable {
-    public enum Kind: String, Codable, Sendable { case solid, gradient }
+    /// `glass` (eval 2026-11-02): a frosted panel, a translucent tint (`color`, default white at
+    /// 18 %) with a sheen and a thin light border, for designs drawn as frosted cards.
+    public enum Kind: String, Codable, Sendable, CaseIterable { case solid, gradient, glass }
 
     public var type: Kind
     public var color: String?

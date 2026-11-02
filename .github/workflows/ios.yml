@@ -128,7 +128,18 @@ jobs:
           key: spm-${{ runner.os }}-${{ hashFiles('ios/WidgetKitCore/Package.swift') }}
 
       - name: WidgetKitCore tests
+        env:
+          # Renders written by the package tests (accented snapshots, layout fix before/after, ADR-023).
+          RENDER_OUT: ${{ github.workspace }}/renders
         run: swift test --package-path WidgetKitCore
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: package-renders
+          path: renders
+          if-no-files-found: ignore
+          retention-days: 14
 
   # Build rule (CLAUDE.md): Simulator tests only with [full] or [ipa] in the head commit
   # message, or a manual run.

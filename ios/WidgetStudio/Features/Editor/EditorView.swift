@@ -212,6 +212,8 @@ struct EditorView: View {
                 Text("settings.clock.h24").tag(ClockFormat.h24.rawValue)
             }
             .accessibilityIdentifier("ax.editor.clock")
+            Toggle("editor.glass", isOn: $model.glassBackground)
+                .accessibilityIdentifier("ax.editor.glass")
             colorRow("editor.color.accent", token: "accent")
             colorRow("editor.color.bg", token: "bg")
             colorRow("editor.color.fg", token: "fg")

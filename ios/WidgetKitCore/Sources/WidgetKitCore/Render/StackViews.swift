@@ -10,18 +10,36 @@ struct StackLayerView: View {
     let mirrored: Bool
 
     var body: some View {
-        content
-            .padding((layer.padding ?? 0) * scale)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: frameAlignment)
+        // The content always fits the frame: if it doesn't at full size, the whole stack is drawn
+        // smaller, step by step, instead of running past the frame and off the widget (eval
+        // 2026-11-02: corner texts in one row lost "hello" and "Nov" at the edges). The last step
+        // is used when nothing fits; its texts still shrink further on their own.
+        ViewThatFits(in: fitAxes) {
+            content(scale: scale)
+            content(scale: scale * 0.85)
+            content(scale: scale * 0.7)
+            content(scale: scale * 0.55)
+            content(scale: scale * 0.4)
+        }
+        .padding((layer.padding ?? 0) * scale)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: frameAlignment)
     }
 
-    private var spacing: CGFloat { (layer.spacing ?? StackLayer.defaultSpacing) * scale }
+    /// The axis the items run along; texts wrap across it.
+    private var fitAxes: Axis.Set {
+        switch layer.axis {
+        case .vertical: .vertical
+        case .horizontal: .horizontal
+        case .grid: [.horizontal, .vertical]
+        }
+    }
 
     private var visible: [Layer] {
         layer.children.filter { $0.when.map(resolver.isSatisfied) ?? true }
     }
 
-    @ViewBuilder private var content: some View {
+    @ViewBuilder private func content(scale: CGFloat) -> some View {
+        let spacing = (layer.spacing ?? StackLayer.defaultSpacing) * scale
         switch layer.axis {
         case .vertical:
             VStack(alignment: horizontal(layer.alignItems ?? .start), spacing: spacing) {

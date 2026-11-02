@@ -352,6 +352,8 @@ private struct Check {
             if !(2...4).contains(colors.count) { fail("background.colors", "a gradient needs 2 to 4 colors") }
             for (index, value) in colors.enumerated() { color("background.colors[\(index)]", value) }
             number("background.angle", background.angle, in: -360...360)
+        case .glass:
+            color("background.color", background.color)   // optional tint
         }
         color("background.outerColor", background.outerColor)
     }

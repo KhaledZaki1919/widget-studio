@@ -78,11 +78,11 @@ public struct GeneratedWidget: Sendable, Equatable {
 
 // MARK: - Prompt
 
-/// Builds the request: the versioned system prompt (`Prompts/generate_v3.md`, ADR-019, M6.1), the user
+/// Builds the request: the versioned system prompt (`Prompts/generate_v4.md`, ADR-019, ADR-023), the user
 /// text with mode, size and the user's instructions, the image, and the AI schema. Also the one
 /// self-review request (`Prompts/review_v1.md`).
 public enum WidgetPrompt {
-    public static let version = "generate_v3"
+    public static let version = "generate_v4"
     public static let reviewVersion = "review_v1"
     /// Room for 30 layers with their nulls; thinking providers get extra on top.
     public static let maxOutputTokens = 16000
@@ -229,7 +229,7 @@ public enum AIWidgetSchema {
             "theme": JSONSchema.enumeration(SpecTheme.allCases.map(\.rawValue)),
             "palette": JSONSchema.object(["bg": JSONSchema.string, "fg": JSONSchema.string, "accent": JSONSchema.string]),
             "background": JSONSchema.object([
-                "type": JSONSchema.enumeration(["solid", "gradient"]),
+                "type": JSONSchema.enumeration(Background.Kind.allCases.map(.rawValue)),
                 "color": nullableString,
                 "colors": JSONSchema.nullable(JSONSchema.array(JSONSchema.string)),
                 "angle": nullableNumber,
@@ -297,6 +297,7 @@ public enum AIWidgetSchema {
         "fill": nullableString,
         "stroke": JSONSchema.nullable(JSONSchema.object(["color": JSONSchema.string, "width": JSONSchema.number])),
         "cornerRadius": nullableNumber,
+        "glass": JSONSchema.nullable(JSONSchema.boolean),
     ]
     static let iconProperties: [String: JSONValue] = [
         "symbol": JSONSchema.enumeration(Icons.whitelist.keys.sorted() + ["{{weather.symbol}}"]),
@@ -493,7 +494,9 @@ public enum AIWidgetParser {
         }
         let before = problems(spec)
         guard !before.isEmpty else { return (spec, .clean) }
-        if case .success(let fixed) = SpecValidator(mode: .ai, checksTextOverlaps: false).validate(AILayoutFix.fix(spec)) {
+        // The fix must keep every text (eval 2026-11-02: "hello" vanished off the canvas).
+        if case .success(let fixed) = SpecValidator(mode: .ai, checksTextOverlaps: false).validate(AILayoutFix.fix(spec)),
+           AILayoutFix.texts(in: fixed) == AILayoutFix.texts(in: spec) {
             let left = problems(fixed)
             return left.isEmpty ? (fixed, .fixed(before: spec)) : (fixed, .needsEditing(left))
         }
@@ -551,6 +554,9 @@ public enum AIWidgetParser {
         }
         for (icon, text) in SpecLayout.iconOverlaps(in: spec.layers) {
             problems.append("layers[\(icon)] and layers[\(text)]: the icon covers the text; move it or put both in one stack")
+        }
+        for (cover, text) in SpecLayout.coveredTexts(in: spec.layers) {
+            problems.append("layers[\(cover)] is drawn on top of the text in layers[\(text)] and hides it; list the shape before the text")
         }
         return problems
     }

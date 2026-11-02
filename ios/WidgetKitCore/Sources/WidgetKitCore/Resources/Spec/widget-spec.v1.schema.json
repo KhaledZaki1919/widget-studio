@@ -17,7 +17,7 @@
       "type": "object",
       "required": ["type"],
       "properties": {
-        "type": { "type": "string", "enum": ["solid", "gradient"] },
+        "type": { "type": "string", "enum": ["solid", "gradient", "glass"] },
         "color": { "$ref": "#/$defs/color" },
         "colors": { "type": "array", "items": { "$ref": "#/$defs/color" }, "minItems": 2, "maxItems": 4 },
         "angle": { "type": "number", "minimum": -360, "maximum": 360 },
@@ -116,6 +116,7 @@
         "cornerRadius": { "type": "number", "minimum": 0, "maximum": 200 },
         "filter": { "type": "string", "enum": ["none", "mono", "halftone"] },
         "kind": { "type": "string", "enum": ["rect", "roundedRect", "circle", "capsule"] },
+        "glass": { "type": "boolean", "description": "Frosted glass: translucent fill, sheen, thin light border" },
         "fill": { "$ref": "#/$defs/color" },
         "stroke": {
           "type": "object",

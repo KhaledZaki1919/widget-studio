@@ -97,6 +97,21 @@ final class EditorModel {
         design.colors[token] = nil
     }
 
+    /// The frosted glass background (ADR-023); turning it off restores the one it replaced.
+    var glassBackground: Bool {
+        get { design.spec.background.type == .glass }
+        set {
+            let current = design.spec.background
+            if newValue, current.type != .glass {
+                replacedBackground = current
+                design.spec.background = Background(type: .glass, outerColor: current.outerColor)
+            } else if !newValue, current.type == .glass {
+                design.spec.background = replacedBackground ?? Background(type: .solid, color: "@bg", outerColor: current.outerColor)
+            }
+        }
+    }
+    private var replacedBackground: Background?
+
     static func hex(_ color: Color) -> String {
         var red: CGFloat = 0
         var green: CGFloat = 0

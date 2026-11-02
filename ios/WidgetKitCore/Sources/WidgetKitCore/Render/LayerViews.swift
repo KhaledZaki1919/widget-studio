@@ -8,6 +8,7 @@ struct TextLayerView: View {
     let mirrored: Bool
     /// The axes the text fills (its frame); inside a stack it keeps its natural size (M6.1).
     var fill: Axis.Set = [.horizontal, .vertical]
+    @Environment(\.specAccented) private var accented
 
     var body: some View {
         let raw = layer.value.resolved(language: resolver.context.language)
@@ -25,6 +26,7 @@ struct TextLayerView: View {
             .minimumScaleFactor(0.5)
             .frame(maxWidth: fill.contains(.horizontal) ? .infinity : nil,
                    maxHeight: fill.contains(.vertical) ? .infinity : nil, alignment: frameAlignment)
+            .accentable(layer.color, accented: accented)
     }
 
     @ViewBuilder private func content(_ value: String) -> some View {
@@ -117,6 +119,7 @@ struct ImageLayerView: View {
     let layer: ImageLayer
     let image: CGImage?
     let scale: CGFloat
+    @Environment(\.specAccented) private var accented
 
     var body: some View {
         picture
@@ -128,6 +131,7 @@ struct ImageLayerView: View {
         if layer.source == "user_image", let image {
             Image(decorative: image, scale: 1)
                 .resizable()
+                .accentedPhoto(accented)
                 .aspectRatio(contentMode: layer.fit == .fit ? .fit : .fill)
         } else {
             // No photo yet (or an asset that arrives with the template library): a neutral placeholder.
@@ -152,17 +156,32 @@ struct ImageLayerView: View {
 struct ShapeLayerView: View {
     let layer: ShapeLayer
     let scale: CGFloat
+    @Environment(\.specAccented) private var accented
 
     var body: some View {
+        let glass = layer.glass == true
+        let fill = layer.fill ?? (glass ? "#FFFFFF26" : nil)
         ZStack {
-            if let fill = layer.fill {
-                shape.fill(Color(hex: fill))
+            if let fill {
+                // Accented mode: a faint panel in the accent tint, never a solid block (ADR-023).
+                shape.fill(Accented.fill(fill, accented: accented))
+                    .accentable(fill, accented: accented)
+            }
+            if glass && !accented {
+                shape.fill(LinearGradient(colors: [Color.white.opacity(0.2), Color.white.opacity(0)],
+                                          startPoint: .topLeading, endPoint: .center))
             }
             if let stroke = layer.stroke {
                 shape.stroke(Color(hex: stroke.color), style: StrokeStyle(
                     lineWidth: stroke.width * scale,
                     dash: (stroke.dash ?? []).map { $0 * scale }
                 ))
+                .accentable(stroke.color, accented: accented)
+            } else if glass {
+                shape.stroke(Color.white.opacity(0.3), lineWidth: max(0.5, scale))
+            } else if accented, let fill {
+                shape.stroke(Color(hex: fill).opacity(Accented.outlineOpacity), lineWidth: max(0.5, scale))
+                    .accentable(fill, accented: accented)
             }
         }
     }
@@ -181,12 +200,14 @@ struct IconLayerView: View {
     let layer: IconLayer
     let resolver: BindingResolver
     let scale: CGFloat
+    @Environment(\.specAccented) private var accented
 
     var body: some View {
         let symbol = resolver.soleValue(layer.symbol)?.display ?? layer.symbol
         Image(systemName: Icons.isAllowed(symbol) ? symbol : "questionmark")
             .font(.system(size: layer.size * scale))
             .foregroundStyle(Color(hex: layer.color))
+            .accentable(layer.color, accented: accented)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
@@ -195,16 +216,18 @@ struct RingView: View {
     let layer: RingLayer
     let progress: Double
     let scale: CGFloat
+    @Environment(\.specAccented) private var accented
 
     var body: some View {
         let width = layer.lineWidth * scale
         ZStack {
             Circle()
-                .stroke(Color(hex: layer.trackColor ?? "#FFFFFF33"), lineWidth: width)
+                .stroke(Accented.fill(layer.trackColor ?? "#FFFFFF33", accented: accented), lineWidth: width)
             Circle()
                 .trim(from: 0, to: min(max(progress, 0), 1))
                 .stroke(Color(hex: layer.color), style: StrokeStyle(lineWidth: width, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+                .widgetAccentableIf(accented)
         }
         .padding(width / 2)
         .aspectRatio(1, contentMode: .fit)

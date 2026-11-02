@@ -263,12 +263,16 @@ public struct ShapeLayer: Codable, Sendable, Equatable {
     public var fill: String?
     public var stroke: Stroke?
     public var cornerRadius: Double?
+    /// Frosted glass (ADR-023): the fill (default white at 15 %) gets a sheen and, without a
+    /// stroke, a thin light border. Over a photo it reads as a frosted card.
+    public var glass: Bool?
 
-    public init(kind: Kind, fill: String? = nil, stroke: Stroke? = nil, cornerRadius: Double? = nil) {
+    public init(kind: Kind, fill: String? = nil, stroke: Stroke? = nil, cornerRadius: Double? = nil, glass: Bool? = nil) {
         self.kind = kind
         self.fill = fill
         self.stroke = stroke
         self.cornerRadius = cornerRadius
+        self.glass = glass
     }
 }
 

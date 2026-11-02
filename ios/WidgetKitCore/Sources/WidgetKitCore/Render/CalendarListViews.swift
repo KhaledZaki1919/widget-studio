@@ -7,6 +7,7 @@ struct CalendarMonthView: View {
     let resolver: BindingResolver
     let scale: CGFloat
     let mirrored: Bool
+    @Environment(\.specAccented) private var accented
 
     var body: some View {
         let context = resolver.context
@@ -72,7 +73,9 @@ struct CalendarMonthView: View {
 
     @ViewBuilder private func cell(_ cell: CalendarMonthLayout.Cell, width: CGFloat, height: CGFloat) -> some View {
         let side = min(width, height) * 0.86
-        let style = layer.todayStyle ?? .filled
+        // Accented mode: today's box and circle become outlines in the accent tint (ADR-023).
+        let base = layer.todayStyle ?? .filled
+        let style: CalendarMonthLayer.TodayStyle = accented && (base == .filled || base == .circle) ? .ring : base
         let highlight = Color(hex: layer.todayColor ?? layer.color)
         let onHighlight = cell.isToday && (style == .filled || style == .circle)
         ZStack {
@@ -81,6 +84,7 @@ struct CalendarMonthView: View {
                 case .filled: RoundedRectangle(cornerRadius: side * 0.28, style: .continuous).fill(highlight).frame(width: side, height: side)
                 case .circle: Circle().fill(highlight).frame(width: side, height: side)
                 case .ring: Circle().stroke(highlight, lineWidth: max(1, 1.5 * scale)).frame(width: side, height: side)
+                    .widgetAccentableIf(accented)
                 case .dot: Circle().fill(highlight).frame(width: side * 0.16, height: side * 0.16).offset(y: side * 0.42)
                 case .none: EmptyView()
                 }
@@ -172,13 +176,14 @@ struct ProgressBarView: View {
     let progress: Double
     let scale: CGFloat
     let mirrored: Bool
+    @Environment(\.specAccented) private var accented
 
     var body: some View {
         GeometryReader { proxy in
             let value = min(max(progress, 0), 1)
             let radius = layer.cornerRadius.map { $0 * scale } ?? proxy.size.height / 2
             let fill = Color(hex: layer.color)
-            let track = Color(hex: layer.trackColor ?? "#8080804D")
+            let track = Accented.fill(layer.trackColor ?? "#8080804D", accented: accented)
             let segments = layer.segments ?? 1
             if segments > 1 {
                 let lit = Int((value * Double(segments)).rounded())
@@ -193,6 +198,7 @@ struct ProgressBarView: View {
                     RoundedRectangle(cornerRadius: radius, style: .continuous).fill(track)
                     RoundedRectangle(cornerRadius: radius, style: .continuous).fill(fill)
                         .frame(width: proxy.size.width * value)
+                        .widgetAccentableIf(accented)
                 }
             }
         }

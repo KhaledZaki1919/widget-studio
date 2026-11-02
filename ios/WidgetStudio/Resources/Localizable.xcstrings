@@ -3554,6 +3554,23 @@
         }
       }
     },
+    "editor.glass": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "خلفية زجاجية"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glass background"
+          }
+        }
+      }
+    },
     "editor.icon": {
       "extractionState": "manual",
       "localizations": {
@@ -3805,6 +3822,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Position and size"
+          }
+        }
+      }
+    },
+    "editor.layer.glass": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "زجاج مصنفر"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frosted glass"
           }
         }
       }
