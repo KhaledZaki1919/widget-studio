@@ -546,3 +546,20 @@ Picked side-by-sides are in `docs/ai-eval/results/` (left: the drawn original, r
   A text shared from a chat app (not a file) goes through the clipboard: a share extension would need an App Group to hand it over, which the Fast Store install doesn't have (ADR-004).
 - **AI eval** (4 runs, `gemini-3.5-flash-lite`, drawn case `draw-glass.png`): before (prompt v3), the model's own layout was clean but had no glass. After (prompt v4), run 2 failed on an invented shape kind (`"line"`), and run 3 on a field `default` written inside its label; both are now repaired in the parser instead of failing. Run 4 used the glass background, kept every text in its corner and the time on its pill, though the model wrote the live time twice instead of hours over minutes. Reminders, forecast and quote still pass with v4 (2 of them fixed locally).
 - **Results kept:** `docs/ai-eval/results/adr23-*.png` (eval before/after, frosted-card local fix before/after); `docs/accented/` (accented before | after for Prayer Times, analog clock, stopwatch, Shortcut tiles, and the solid-share table).
+
+### ADR-024 — Crop to the widget; card shapes; Create all
+**Status:** Accepted (2026-11-02), after the owner reported that screenshots of widgets on a wallpaper made the AI design the wallpaper and corners too.
+
+- **Detection (`WidgetDetector`, Vision, package):**
+  - Contours in both polarities, classified by the corner radius implied by the missing area, r = √((1 − fill)·w·h / (4 − π)): r ≥ 0.4 × the short side is a circle (square box) or a capsule; otherwise a rounded rectangle (widget squircles are about 0.22).
+  - Rectangle detection adds cards the contours missed; their corners are then measured in the pixels (the diagonal from each corner to the card's color, r(√2 − 1)), so a pill found only as a rectangle is still a capsule.
+  - Duplicates merge (IoU > 0.7, or one box inside the other at ≥ 60 % of its size). Shapes inside another candidate, shapes touching the image edge (wallpaper, a tight crop) and shapes under 1.5 % of the image are dropped.
+  - No card: the union of Vision's text boxes and objectness saliency, padded 8 %, is a floating design (`none`).
+  - Results are in reading order; empty means the whole image.
+  - The package tests check all six drawn eval images (busy wallpaper, drop shadow, circle, capsule, floating, a gallery of four) and upload the outlines.
+- **Crop step:** after picking an image, a crop screen outlines every detection (the first selected). It has corner handles, size presets (small 1:1, medium 2.14:1, large 0.95:1, free) and Use whole image. Only the crop goes to the AI, together with the detected shape, the wallpaper color around it (the most common quantized color in a ring outside the box) and "cropped" in the task. Wide crops suggest medium; crops wider than 60 % of the image suggest large; otherwise small. Use another AI has the same step and shares the crop as a PNG (Save Image in the share sheet); its instructions carry the shape.
+- **Create all:** with several detections, one request per widget in order, each saved to My widgets as it finishes, with progress and Stop. Consent and the key are checked first.
+- **Card shapes:** the model reports `card.shape` (`roundedRect`, `circle`, `capsule`, `none`); the detection is a hint and the fallback.
+  - Widgets are always rounded rectangles, so a circle or capsule card is drawn inside the widget (`Background.cardShape`, with `outerColor: @outer`). The wallpaper color goes to the editable `outer` color (Editor → Outside the card).
+  - A floating design gets `background: @bg` with the wallpaper color as `bg`.
+- **Prompt v4 (updated in place, as the owner asked):** the image may show the widget on a home screen; design only the card's content; the background is the card's fill or glass, never the wallpaper; never draw the outer corners, border or shadow; report `card.shape`; keep content inside circle and capsule cards; recreate the main widget when several are shown.
