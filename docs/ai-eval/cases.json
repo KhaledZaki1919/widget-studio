@@ -64,5 +64,41 @@
     "mode": "recreate",
     "size": "medium",
     "note": "Frosted glass card (drawn for this set): handwritten hello top-left, date top-right, weather bottom-left, month bottom-right, center line with the time stacked in an orange pill"
+  },
+  {
+    "file": "draw-wallpaper.png",
+    "mode": "recreate",
+    "size": "auto",
+    "note": "Weather card on a busy home screen wallpaper between rows of app icons (ADR-024): design only the card"
+  },
+  {
+    "file": "draw-shadow.png",
+    "mode": "recreate",
+    "size": "auto",
+    "note": "Steps card with a large drop shadow on a light background (ADR-024): no shadow layers"
+  },
+  {
+    "file": "draw-circle.png",
+    "mode": "recreate",
+    "size": "auto",
+    "note": "Circular orange clock widget on a dark wallpaper (ADR-024): card.shape circle"
+  },
+  {
+    "file": "draw-capsule.png",
+    "mode": "recreate",
+    "size": "auto",
+    "note": "Pill-shaped battery widget on a green wallpaper (ADR-024): card.shape capsule"
+  },
+  {
+    "file": "draw-floating.png",
+    "mode": "recreate",
+    "size": "auto",
+    "note": "Day and date floating on the wallpaper with no card (ADR-024): card.shape none"
+  },
+  {
+    "file": "draw-gallery.png",
+    "mode": "recreate",
+    "size": "auto",
+    "note": "Four widgets in a 2×2 gallery (ADR-024): one per widget with the crop, Create all"
   }
 ]

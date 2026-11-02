@@ -21,7 +21,8 @@
         "color": { "$ref": "#/$defs/color" },
         "colors": { "type": "array", "items": { "$ref": "#/$defs/color" }, "minItems": 2, "maxItems": 4 },
         "angle": { "type": "number", "minimum": -360, "maximum": 360 },
-        "outerColor": { "$ref": "#/$defs/color" }
+        "outerColor": { "$ref": "#/$defs/color" },
+        "cardShape": { "type": "string", "enum": ["circle", "capsule"], "description": "With outerColor: the card drawn inside the widget" }
       }
     },
     "fields": {

@@ -166,8 +166,15 @@ public struct Background: Codable, Sendable, Equatable {
     public var angle: Double?
     /// Drawn behind circle templates, because a widget is always a rounded square (brief §2).
     public var outerColor: String?
+    /// With `outerColor`: the card drawn inside the widget, `circle` (default, the largest
+    /// centered circle) or `capsule` (ADR-024: circular and pill-shaped widgets from images).
+    public var cardShape: CardShape?
 
-    public init(type: Kind, color: String? = nil, colors: [String]? = nil, angle: Double? = nil, outerColor: String? = nil) {
+    public enum CardShape: String, Codable, Sendable, CaseIterable { case circle, capsule }
+
+    public init(type: Kind, color: String? = nil, colors: [String]? = nil, angle: Double? = nil, outerColor: String? = nil,
+                cardShape: CardShape? = nil) {
+        self.cardShape = cardShape
         self.type = type
         self.color = color
         self.colors = colors

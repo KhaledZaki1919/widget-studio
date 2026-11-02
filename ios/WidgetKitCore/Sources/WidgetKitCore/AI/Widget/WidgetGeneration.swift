@@ -27,13 +27,25 @@ public struct GenerationOptions: Sendable, Equatable {
     public var size: SizeChoice
     /// Optional extra instructions (Arabic or English), at most `maxInstructions` characters.
     public var instructions: String
+    /// The card shape the app detected in the image (ADR-024), a hint for the model and the
+    /// fallback when it reports none.
+    public var detectedCard: WidgetCardShape?
+    /// The wallpaper's main color around the widget (ADR-024): the area outside a circle or capsule
+    /// card, and the background of a floating design.
+    public var wallpaperColor: String?
+    /// The image was cropped to the widget (ADR-024).
+    public var cropped = false
 
     public static let maxInstructions = 300
 
-    public init(mode: GenerationMode = .recreate, size: SizeChoice = .auto, instructions: String = "") {
+    public init(mode: GenerationMode = .recreate, size: SizeChoice = .auto, instructions: String = "",
+                detectedCard: WidgetCardShape? = nil, wallpaperColor: String? = nil, cropped: Bool = false) {
         self.mode = mode
         self.size = size
         self.instructions = instructions
+        self.detectedCard = detectedCard
+        self.wallpaperColor = wallpaperColor
+        self.cropped = cropped
     }
 }
 
@@ -147,6 +159,16 @@ public enum WidgetPrompt {
                 + "\"source\": \"user_image\" for the photo (add a field of type image with key \"photo\"), and add text "
                 + "and other layers that suit it. Take the palette from the photo. Describe nothing about who is in it.")
         }
+        if options.mode == .recreate {
+            if options.cropped {
+                lines.append("The image was cropped to the widget; a little wallpaper may still show at the edges. Ignore it.")
+            }
+            if let card = options.detectedCard {
+                let names: [WidgetCardShape: String] = [.roundedRect: "a rounded rectangle", .circle: "a circle",
+                                                         .capsule: "a capsule (pill)", .none: "no card: the content floats on the wallpaper"]
+                lines.append("The app's detection says the widget card is (names[card] ?? "a rounded rectangle"); check it in the image and report it in card.shape.")
+            }
+        }
         let suggested = suggestedFamily(width: imageWidth, height: imageHeight)
         if let family = options.size.family {
             lines.append("Size: \"family\" must be \"\(family.rawValue)\".")
@@ -228,6 +250,7 @@ public enum AIWidgetSchema {
             "family": JSONSchema.enumeration(SpecFamily.allCases.map(\.rawValue)),
             "theme": JSONSchema.enumeration(SpecTheme.allCases.map(\.rawValue)),
             "palette": JSONSchema.object(["bg": JSONSchema.string, "fg": JSONSchema.string, "accent": JSONSchema.string]),
+            "card": JSONSchema.object(["shape": JSONSchema.enumeration(WidgetCardShape.allCases.map { $0.rawValue })]),
             "background": JSONSchema.object([
                 "type": JSONSchema.enumeration(["solid", "gradient", "glass"]),
                 "color": nullableString,
@@ -459,6 +482,9 @@ public enum AIWidgetParser {
             object["theme"] = .string(luminance(bg) < 0.4 ? "dark" : "light")
         }
 
+        let card = object["card"]?["shape"]?.stringValue.flatMap(WidgetCardShape.init(rawValue:)) ?? options.detectedCard
+        if options.mode == .recreate { applyCard(card, to: &object, colors: &colors, wallpaper: options.wallpaperColor) }
+        object["card"] = nil
         object["palette"] = nil
         object["category"] = nil
         object["inventory"] = nil
@@ -525,6 +551,27 @@ public enum AIWidgetParser {
             }
             return .object(fields)
         })
+    }
+
+    /// The card shape (ADR-024). iOS widgets are rounded rectangles, so a circle or capsule card is
+    /// drawn inside the widget with the wallpaper color (`@outer`, editable) around it; a floating
+    /// design gets the wallpaper's color as its background (`@bg`, editable). The wallpaper color
+    /// is the app's sample when there is one, else black.
+    static func applyCard(_ card: WidgetCardShape?, to object: inout [String: JSONValue], colors: inout [String: String], wallpaper: String?) {
+        let sampled = wallpaper.flatMap { HexColor.parse($0) != nil ? $0.uppercased() : nil }
+        guard case .object(var background)? = object["background"] else { return }
+        switch card {
+        case .circle?, .capsule?:
+            background["outerColor"] = "@outer"
+            background["cardShape"] = .string(card == .circle ? "circle" : "capsule")
+            colors["outer"] = sampled ?? "#000000"
+        case .none?:
+            background = ["type": "solid", "color": "@bg"]
+            if let sampled { colors["bg"] = sampled }
+        case .roundedRect?, nil:
+            return
+        }
+        object["background"] = .object(background)
     }
 
     /// Shape kinds models invent, mapped to ours (eval 2026-11-02: a divider as `"kind": "line"`

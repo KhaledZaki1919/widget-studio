@@ -102,7 +102,14 @@ public struct SpecBackground: View {
         if let outer = spec.background.outerColor {
             ZStack {
                 Color(hex: outer)
-                fill.clipShape(Circle()).aspectRatio(1, contentMode: .fit)
+                if spec.background.cardShape == .capsule {
+                    // A pill card, inset a little so its round ends show inside the widget (ADR-024).
+                    GeometryReader { proxy in
+                        fill.clipShape(Capsule()).padding(min(proxy.size.width, proxy.size.height) * 0.04)
+                    }
+                } else {
+                    fill.clipShape(Circle()).aspectRatio(1, contentMode: .fit)
+                }
             }
         } else {
             fill
