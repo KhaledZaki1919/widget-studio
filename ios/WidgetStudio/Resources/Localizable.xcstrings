@@ -1582,6 +1582,108 @@
         }
       }
     },
+    "create.batch.done %lld %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أُنشئ %lld من %lld ويدجت"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Created %lld of %lld widgets"
+          }
+        }
+      }
+    },
+    "create.batch.failed %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر إنشاء %lld. جرّبها واحدًا تلو الآخر."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld couldn't be created. Try them one at a time."
+          }
+        }
+      }
+    },
+    "create.batch.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "طلب واحد لكل ويدجت، ويُحفظ كل واحد في ودجاتي فور انتهائه."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One request per widget. Each one is saved to My widgets as it's done."
+          }
+        }
+      }
+    },
+    "create.batch.progress %lld %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ إنشاء %lld من %lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Creating %lld of %lld"
+          }
+        }
+      }
+    },
+    "create.batch.show": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اعرض ودجاتي"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show My widgets"
+          }
+        }
+      }
+    },
+    "create.batch.stop": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إيقاف"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop"
+          }
+        }
+      }
+    },
     "create.button": {
       "extractionState": "manual",
       "localizations": {
@@ -1697,6 +1799,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Send the image"
+          }
+        }
+      }
+    },
+    "create.crop.adjust": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضبط الاقتصاص"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adjust crop"
           }
         }
       }
@@ -1986,6 +2105,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "Paste from clipboard"
+          }
+        }
+      }
+    },
+    "create.external.pickImage": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر الصورة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick the image"
+          }
+        }
+      }
+    },
+    "create.external.shareImage": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "احفظ الصورة المقتصّة أو شاركها"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save or share the cropped image"
+          }
+        }
+      }
+    },
+    "create.external.step0": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "صورتك"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your image"
+          }
+        }
+      }
+    },
+    "create.external.step0.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اقتصّها على الويدجت، ثم شارك الاقتصاص أو احفظه وارفع تلك الصورة إلى المحادثة."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crop it to the widget, then share or save the crop and upload that image to the chat."
           }
         }
       }
@@ -2547,6 +2734,176 @@
           "stringUnit": {
             "state": "translated",
             "value": "Create from image"
+          }
+        }
+      }
+    },
+    "crop.all %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أنشئ الـ %lld كلها"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create all %lld"
+          }
+        }
+      }
+    },
+    "crop.found": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم تحديد الويدجت. اسحب الزوايا لضبطه."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The widget is selected. Drag the corners to adjust."
+          }
+        }
+      }
+    },
+    "crop.none": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يُعثر على حدود ويدجت. اسحب الزوايا حوله، أو استخدم الصورة كاملة."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No widget outline found. Drag the corners around it, or use the whole image."
+          }
+        }
+      }
+    },
+    "crop.preset": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الشكل"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shape"
+          }
+        }
+      }
+    },
+    "crop.preset.free": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حر"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free"
+          }
+        }
+      }
+    },
+    "crop.several %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عُثر على %lld ويدجت. اضغط واحدًا لتحديده، أو أنشئها كلها."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld widgets found. Tap one to select it, or create all of them."
+          }
+        }
+      }
+    },
+    "crop.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اقتصاص الويدجت"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crop to the widget"
+          }
+        }
+      }
+    },
+    "crop.use": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استخدم هذا الاقتصاص"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use this crop"
+          }
+        }
+      }
+    },
+    "crop.whole": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استخدم الصورة كاملة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use whole image"
+          }
+        }
+      }
+    },
+    "crop.widget %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الويدجت %lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widget %lld"
           }
         }
       }
@@ -3873,6 +4230,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Secondary text color"
+          }
+        }
+      }
+    },
+    "editor.color.outer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حول البطاقة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outside the card"
           }
         }
       }

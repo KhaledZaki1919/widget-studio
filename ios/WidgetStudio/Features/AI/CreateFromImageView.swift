@@ -3,14 +3,24 @@ import SwiftUI
 import UIKit
 import WidgetKitCore
 
-/// Create from image (brief §5, §7.5, M5): pick an image → mode and size → consent (once per
-/// provider) → generating (Cancel) → the result opens in the editor (Regenerate) → Save puts it
-/// in My widgets. The image goes only to the provider the user chose, with their own key.
+/// Create from image (brief §5, §7.5, M5): pick an image → crop to the widget (ADR-024) → mode
+/// and size → consent (once per provider) → generating (Cancel) → the result opens in the editor
+/// (Regenerate) → Save puts it in My widgets. With several widgets, Create all makes one design
+/// per widget (one request each, with progress and Stop). The image goes only to the provider the user chose, with their own key.
 struct CreateFromImageView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(NetworkStatus.self) private var network
     @Environment(AppState.self) private var appState
+    @Environment(DesignsModel.self) private var designs
     @State private var showExternal = false
+    /// Crop step (ADR-024): the widgets found in `picked`, the chosen crop and its card shape.
+    @State private var detected: [DetectedWidget] = []
+    @State private var crop: CGRect?
+    @State private var cardShape: WidgetCardShape?
+    @State private var showCrop = false
+    /// Create all: widgets waiting for consent, and the run's progress.
+    @State private var pendingBatch: [DetectedWidget]?
+    @State private var batch = BatchProgress()
     @State private var photoItem: PhotosPickerItem?
     /// Upright, ≤ 2048 px: preview and the photo a "Build around my photo" design keeps.
     @State private var picked: CGImage?
@@ -30,6 +40,8 @@ struct CreateFromImageView: View {
         case result(design: SavedDesign, photo: CGImage?, layout: LayoutRepair)
         /// From another AI (ADR-023): no Regenerate.
         case imported(design: SavedDesign, layout: LayoutRepair)
+        /// Create all (ADR-024).
+        case batch
     }
 
     private let service = AIService()
@@ -81,13 +93,25 @@ struct CreateFromImageView: View {
             .onChange(of: photoItem) { _, item in
                 if let item { Task { await load(item) } }
             }
+            .sheet(isPresented: $showCrop) {
+                if let picked {
+                    CropView(image: picked, detected: detected, onDone: applyCrop) { showCrop = false }
+                        .interactiveDismissDisabled()
+                }
+            }
             .sheet(isPresented: $askConsent) {
                 ConsentSheet(providerName: settings.providerName) {
                     settings.setConsent(true, for: settings.provider)
                     settings.save()
                     askConsent = false
-                    generate()
+                    if let widgets = pendingBatch {
+                        pendingBatch = nil
+                        createAll(widgets)
+                    } else {
+                        generate()
+                    }
                 } onCancel: {
+                    pendingBatch = nil
                     askConsent = false
                 }
                 .presentationDetents([.medium, .large])
@@ -101,6 +125,8 @@ struct CreateFromImageView: View {
             generatingView
         case .failed(let error):
             failedView(error)
+        case .batch:
+            batchView
         default:
             setupForm
         }
@@ -184,7 +210,7 @@ struct CreateFromImageView: View {
     private var imageSection: some View {
         Section {
             if let picked {
-                Image(decorative: picked, scale: 1)
+                Image(decorative: cropped ?? picked, scale: 1)
                     .resizable()
                     .scaledToFit()
                     .frame(maxHeight: 220)
@@ -197,6 +223,14 @@ struct CreateFromImageView: View {
                 Label(picked == nil ? LocalizedStringKey("create.pick") : "create.pick.change", systemImage: "photo.on.rectangle")
             }
             .accessibilityIdentifier("ax.create.pick")
+            if picked != nil, !offersSample || !detected.isEmpty {
+                Button {
+                    showCrop = true
+                } label: {
+                    Label("create.crop.adjust", systemImage: "crop")
+                }
+                .accessibilityIdentifier("ax.create.crop")
+            }
             if offersSample {
                 Button {
                     picked = Self.sampleImage()
@@ -304,6 +338,135 @@ struct CreateFromImageView: View {
             return
         }
         picked = image
+        crop = nil
+        cardShape = nil
+        // Find the widget(s) off the main thread, then show the crop step (ADR-024).
+        detected = await Task.detached(priority: .userInitiated) { WidgetDetector.detect(image) }.value
+        showCrop = true
+    }
+
+    /// The part of the picked image the AI sees.
+    private var cropped: CGImage? {
+        guard let picked, let crop else { return nil }
+        return WidgetDetector.crop(picked, to: crop)
+    }
+
+    private func applyCrop(_ choice: CropChoice) {
+        showCrop = false
+        switch choice {
+        case .one(let rect, let shape, let size):
+            crop = rect
+            cardShape = shape
+            if size != .auto { options.size = size }
+        case .all(let widgets):
+            startBatch(widgets)
+        }
+    }
+
+    // MARK: Create all
+
+    struct BatchProgress {
+        var total = 0
+        var current = 0
+        var created = 0
+        var failed = 0
+        var finished = false
+        var lastError: AIError?
+    }
+
+    private func startBatch(_ widgets: [DetectedWidget]) {
+        settings = AISettings.load()
+        guard service.hasKey else {
+            phase = .failed(.noKey)
+            return
+        }
+        guard settings.hasConsent(for: settings.provider) else {
+            pendingBatch = widgets
+            askConsent = true
+            return
+        }
+        createAll(widgets)
+    }
+
+    /// One request per widget, in order; each result is saved to My widgets. Stop cancels the
+    /// request in flight and keeps what was made.
+    private func createAll(_ widgets: [DetectedWidget]) {
+        guard let picked else { return }
+        task?.cancel()
+        batch = BatchProgress(total: widgets.count)
+        phase = .batch
+        let base = options
+        let language = language
+        task = Task {
+            for (index, widget) in widgets.enumerated() {
+                if Task.isCancelled { break }
+                batch.current = index
+                guard let image = WidgetDetector.crop(picked, to: widget.rect), let prepared = AIImage.prepare(image: image) else {
+                    batch.failed += 1
+                    continue
+                }
+                var options = base
+                options.mode = .recreate
+                options.size = widget.suggestedSize(imageWidth: picked.width)
+                options.detectedCard = widget.shape
+                options.cropped = true
+                options.wallpaperColor = WidgetDetector.wallpaperColor(picked, around: widget.rect)
+                do {
+                    let generated = try await WidgetGenerator(service: service).generate(image: prepared, options: options)
+                    try designs.save(generated.design(language: language), newPhoto: nil)
+                    batch.created += 1
+                } catch AIError.cancelled {
+                    break
+                } catch {
+                    batch.failed += 1
+                    batch.lastError = error as? AIError
+                }
+            }
+            batch.finished = true
+        }
+    }
+
+    private var batchView: some View {
+        VStack(spacing: 18) {
+            if batch.finished {
+                Image(systemName: batch.created > 0 ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                    .font(.system(size: 48))
+                    .foregroundStyle(batch.created > 0 ? Color.green : Color.orange)
+                Text("create.batch.done \(batch.created) \(batch.total)")
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+                if batch.failed > 0 {
+                    Text("create.batch.failed \(batch.failed)")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Button {
+                    dismiss()
+                    appState.tab = .myWidgets
+                } label: {
+                    Text("create.batch.show").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("ax.create.batch.show")
+            } else {
+                ProgressView(value: Double(batch.current), total: Double(max(batch.total, 1)))
+                Text("create.batch.progress \(batch.current + 1) \(batch.total)")
+                    .font(.headline)
+                Text("create.batch.note")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                Button(role: .destructive) {
+                    task?.cancel()
+                } label: {
+                    Text("create.batch.stop").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .accessibilityIdentifier("ax.create.batch.stop")
+            }
+        }
+        .padding(24)
+        .frame(maxHeight: .infinity)
     }
 
     /// Checks the key and the consent for this provider, then generates.
@@ -323,13 +486,16 @@ struct CreateFromImageView: View {
 
     /// Runs (or re-runs, for Regenerate) with the same image and options.
     private func generate() {
-        guard let picked, let prepared = AIImage.prepare(image: picked) else {
+        guard let picked, let prepared = AIImage.prepare(image: cropped ?? picked) else {
             phase = .setup
             return
         }
         task?.cancel()
         phase = .generating
-        let options = options
+        var options = options
+        options.detectedCard = cardShape
+        options.cropped = crop != nil
+        options.wallpaperColor = crop.flatMap { WidgetDetector.wallpaperColor(picked, around: $0) }
         let language = language
         step = .generating
         // "High quality (2 requests)": render the result and let the model correct it once (ADR-019).

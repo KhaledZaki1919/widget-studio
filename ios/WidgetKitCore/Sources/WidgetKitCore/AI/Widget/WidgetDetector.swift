@@ -65,6 +65,16 @@ public enum WidgetDetector {
             if kept.contains(where: { inside(candidate.rect, $0.rect) > 0.9 }) { continue }
             kept.append(candidate)
         }
+        // Rectangle detection can't tell a pill from a card: measure the corners in the pixels.
+        if kept.contains(where: { $0.shape == .roundedRect }), let pixels = RGBA(image) {
+            kept = kept.map { widget in
+                guard widget.shape == .roundedRect, let radius = cornerRadius(of: widget.rect, in: pixels) else { return widget }
+                let short = min(widget.rect.width, widget.rect.height)
+                guard radius >= 0.4 * short else { return widget }
+                let aspect = widget.rect.width / max(widget.rect.height, 1)
+                return DetectedWidget(rect: widget.rect, shape: aspect > 0.85 && aspect < 1.18 ? .circle : .capsule)
+            }
+        }
         if kept.isEmpty, let floating = floatingContent(image, size: size) { kept = [floating] }
         return readingOrder(kept)
         #else
@@ -199,6 +209,56 @@ public enum WidgetDetector {
             sum += a.x * b.y - b.x * a.y
         }
         return abs(sum) / 2
+    }
+
+    // MARK: Pixels
+
+    /// An image as 8-bit RGBA, top row first.
+    struct RGBA {
+        let width: Int
+        let height: Int
+        let bytes: [UInt8]
+
+        init?(_ image: CGImage) {
+            width = image.width
+            height = image.height
+            var buffer = [UInt8](repeating: 0, count: width * height * 4)
+            guard let context = CGContext(data: &buffer, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                                          space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+            else { return nil }
+            context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+            bytes = buffer
+        }
+
+        func color(_ x: Int, _ y: Int) -> (Double, Double, Double) {
+            let cx = min(max(x, 0), width - 1)
+            let cy = min(max(y, 0), height - 1)
+            let index = (cy * width + cx) * 4
+            return (Double(bytes[index]) / 255, Double(bytes[index + 1]) / 255, Double(bytes[index + 2]) / 255)
+        }
+    }
+
+    /// The corner radius of the card in `rect`, from how far each corner's diagonal runs before
+    /// it reaches the card's color (sampled just inside the middle of the left and right edges):
+    /// a corner of radius r leaves r(√2 − 1) along the diagonal. The median of the four corners.
+    static func cornerRadius(of rect: CGRect, in pixels: RGBA) -> CGFloat? {
+        let inset = max(3, Int(0.04 * min(rect.width, rect.height)))
+        let midY = Int(rect.midY)
+        let card = [pixels.color(Int(rect.minX) + inset, midY), pixels.color(Int(rect.maxX) - inset, midY)]
+        func matches(_ c: (Double, Double, Double)) -> Bool {
+            card.contains { abs($0.0 - c.0) + abs($0.1 - c.1) + abs($0.2 - c.2) < 0.18 }
+        }
+        let limit = Int(min(rect.width, rect.height) / 2)
+        var distances: [CGFloat] = []
+        for (startX, startY, stepX, stepY) in [(rect.minX, rect.minY, 1, 1), (rect.maxX - 1, rect.minY, -1, 1),
+                                                (rect.minX, rect.maxY - 1, 1, -1), (rect.maxX - 1, rect.maxY - 1, -1, -1)] {
+            var step = 0
+            while step < limit, !matches(pixels.color(Int(startX) + step * stepX, Int(startY) + step * stepY)) { step += 1 }
+            guard step < limit else { return nil }   // never reached the card: not a solid card
+            distances.append(CGFloat(step) * 2.0.squareRoot())
+        }
+        let median = distances.sorted()[distances.count / 2]
+        return median / (2.0.squareRoot() - 1)
     }
 
     // MARK: Crop and colors

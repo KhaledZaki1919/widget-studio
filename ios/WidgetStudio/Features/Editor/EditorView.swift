@@ -218,6 +218,10 @@ struct EditorView: View {
             colorRow("editor.color.bg", token: "bg")
             colorRow("editor.color.fg", token: "fg")
             colorRow("editor.color.muted", token: "muted")
+            // Around a circle or capsule card (ADR-024).
+            if model.design.spec.background.outerColor == "@outer" {
+                colorRow("editor.color.outer", token: "outer")
+            }
         }
     }
 

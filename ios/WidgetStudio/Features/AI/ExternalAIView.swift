@@ -1,10 +1,12 @@
+import PhotosUI
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 import WidgetKitCore
 
-/// "Use another AI" (ADR-023), inside Create from image: copy self-contained instructions for
-/// ChatGPT, Claude or Gemini on the web, then import the JSON they return (paste, a .json file,
+/// "Use another AI" (ADR-023), inside Create from image: pick and crop the image to the widget
+/// (ADR-024) and share the crop, copy self-contained instructions for ChatGPT, Claude or Gemini
+/// on the web, then import the JSON they return (paste, a .json file,
 /// or a file shared to the app). The import runs the app's own checks and layout fix, and the
 /// result opens in the editor. Nothing here calls an AI or runs code.
 struct ExternalAIView: View {
@@ -19,10 +21,19 @@ struct ExternalAIView: View {
     @State private var fixCopied = false
     @State private var picksFile = false
     @State private var fileUnreadable = false
+    /// Crop step (ADR-024).
+    @State private var photoItem: PhotosPickerItem?
+    @State private var picked: CGImage?
+    @State private var detected: [DetectedWidget] = []
+    @State private var crop: CGRect?
+    @State private var cardShape: WidgetCardShape?
+    @State private var showCrop = false
+    @State private var croppedFile: URL?
     private let language = RenderContext.preferredLanguage
 
     var body: some View {
         Form {
+            imageSection
             Section {
                 Picker("create.size", selection: $size) {
                     Text("create.size.auto").tag(SizeChoice.auto)
@@ -32,7 +43,8 @@ struct ExternalAIView: View {
                 }
                 .pickerStyle(.segmented)
                 Button {
-                    UIPasteboard.general.string = ExternalAI.instructions(options: GenerationOptions(size: size))
+                    UIPasteboard.general.string = ExternalAI.instructions(
+                        options: GenerationOptions(size: size, detectedCard: cardShape, cropped: crop != nil))
                     copied = true
                 } label: {
                     Label(copied ? LocalizedStringKey("create.external.copied") : "create.external.copy",
@@ -97,6 +109,82 @@ struct ExternalAIView: View {
         .onAppear {
             if let initialText { importText(initialText) }
         }
+        .onChange(of: photoItem) { _, item in
+            if let item { Task { await load(item) } }
+        }
+        .sheet(isPresented: $showCrop) {
+            if let picked {
+                CropView(image: picked, detected: detected, allowsAll: false, onDone: applyCrop) { showCrop = false }
+                    .interactiveDismissDisabled()
+            }
+        }
+    }
+
+    // MARK: Image and crop (ADR-024)
+
+    private var imageSection: some View {
+        Section {
+            if let shown = cropped ?? picked {
+                Image(decorative: shown, scale: 1)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxHeight: 180)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .listRowBackground(Color.clear)
+            }
+            PhotosPicker(selection: $photoItem, matching: .images) {
+                Label(picked == nil ? LocalizedStringKey("create.external.pickImage") : "create.pick.change", systemImage: "photo.on.rectangle")
+            }
+            .accessibilityIdentifier("ax.create.external.pick")
+            if picked != nil {
+                Button {
+                    showCrop = true
+                } label: {
+                    Label("create.crop.adjust", systemImage: "crop")
+                }
+            }
+            if let croppedFile {
+                ShareLink(item: croppedFile) {
+                    Label("create.external.shareImage", systemImage: "square.and.arrow.up")
+                }
+                .accessibilityIdentifier("ax.create.external.share")
+            }
+        } header: {
+            Text("create.external.step0")
+        } footer: {
+            Text("create.external.step0.footer")
+        }
+    }
+
+    private var cropped: CGImage? {
+        guard let picked, let crop else { return nil }
+        return WidgetDetector.crop(picked, to: crop)
+    }
+
+    private func load(_ item: PhotosPickerItem) async {
+        guard let data = try? await item.loadTransferable(type: Data.self), let image = AIImage.upright(data: data) else {
+            fileUnreadable = true
+            return
+        }
+        picked = image
+        crop = nil
+        cardShape = nil
+        croppedFile = nil
+        detected = await Task.detached(priority: .userInitiated) { WidgetDetector.detect(image) }.value
+        showCrop = true
+    }
+
+    private func applyCrop(_ choice: CropChoice) {
+        showCrop = false
+        guard case .one(let rect, let shape, let suggested) = choice else { return }
+        crop = rect
+        cardShape = shape
+        if suggested != .auto { size = suggested }
+        // The image to upload to the web chat: the crop (or the whole image), as a PNG file.
+        guard let shareable = cropped ?? picked, let data = UIImage(cgImage: shareable).pngData() else { return }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("widget-crop.png")
+        croppedFile = (try? data.write(to: url, options: .atomic)).map { url }
     }
 
     private func errorSection(_ error: ExternalAI.ImportError) -> some View {
