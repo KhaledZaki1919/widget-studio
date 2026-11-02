@@ -115,7 +115,7 @@ struct WidgetDetectorTests {
 struct CardShapeTests {
     func reply(card: String?) -> String {
         guard let card else { return ExternalAI.example }
-        return ExternalAI.example.replacingOccurrences(of: "\"fields\":[]", with: "\"card\":{\"shape\":\"(card)\"},\"fields\":[]")
+        return ExternalAI.example.replacingOccurrences(of: "\"fields\":[]", with: "\"card\":{\"shape\":\"\(card)\"},\"fields\":[]")
     }
 
     @Test func circleAndCapsuleCardsUseTheOuterColor() throws {

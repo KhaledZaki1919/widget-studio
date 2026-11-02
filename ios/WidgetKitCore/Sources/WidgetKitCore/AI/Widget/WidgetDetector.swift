@@ -45,7 +45,7 @@ public struct DetectedWidget: Sendable, Equatable {
 public enum WidgetDetector {
     /// Candidates smaller than this share of the image are details, not widgets.
     static let minimumArea = 0.015
-    static let floatingPadding = 0.06
+    static let floatingPadding = 0.08
 
     public static func detect(_ image: CGImage) -> [DetectedWidget] {
         #if canImport(Vision)
@@ -57,7 +57,7 @@ public enum WidgetDetector {
         }
         var kept: [DetectedWidget] = []
         for candidate in candidates.sorted(by: { area($0.rect) > area($1.rect) }) {
-            if let index = kept.firstIndex(where: { overlap($0.rect, candidate.rect) > 0.6 }) {
+            if let index = kept.firstIndex(where: { sameBox($0.rect, candidate.rect) }) {
                 // Same card seen twice: keep the bigger box, take a contour's shape over a rectangle's.
                 if kept[index].shape == .roundedRect, candidate.shape != .roundedRect { kept[index].shape = candidate.shape }
                 continue
@@ -76,11 +76,13 @@ public enum WidgetDetector {
 
     static func area(_ rect: CGRect) -> CGFloat { rect.width * rect.height }
 
-    /// Intersection over the smaller rectangle.
-    static func overlap(_ a: CGRect, _ b: CGRect) -> CGFloat {
+    /// The same card found twice: intersection over union above 0.7 (a ring inside a pill is not
+    /// the pill, eval 2026-11-02).
+    static func sameBox(_ a: CGRect, _ b: CGRect) -> Bool {
         let common = a.intersection(b)
-        guard !common.isNull, min(area(a), area(b)) > 0 else { return 0 }
-        return area(common) / min(area(a), area(b))
+        guard !common.isNull else { return false }
+        let union = area(a) + area(b) - area(common)
+        return union > 0 && area(common) / union > 0.7
     }
 
     /// Share of `inner` inside `outer`.
@@ -150,11 +152,15 @@ public enum WidgetDetector {
         return (request.results ?? []).map { DetectedWidget(rect: pixels($0.boundingBox, size: size), shape: .roundedRect) }
     }
 
+    /// Floating designs are mostly text: the union of Vision's text boxes and the salient objects
+    /// (a big handwritten number may only be salient), padded.
     static func floatingContent(_ image: CGImage, size: CGSize) -> DetectedWidget? {
-        let request = VNGenerateObjectnessBasedSaliencyImageRequest()
-        guard (try? VNImageRequestHandler(cgImage: image, options: [:]).perform([request])) != nil,
-              let objects = request.results?.first?.salientObjects, !objects.isEmpty else { return nil }
-        let union = objects.map { pixels($0.boundingBox, size: size) }.reduce(CGRect.null) { $0.union($1) }
+        let saliency = VNGenerateObjectnessBasedSaliencyImageRequest()
+        let text = VNDetectTextRectanglesRequest()
+        guard (try? VNImageRequestHandler(cgImage: image, options: [:]).perform([saliency, text])) != nil else { return nil }
+        let boxes = (saliency.results?.first?.salientObjects ?? []).map(.boundingBox) + (text.results ?? []).map(.boundingBox)
+        guard !boxes.isEmpty else { return nil }
+        let union = boxes.map { pixels($0, size: size) }.reduce(CGRect.null) { $0.union($1) }
         let pad = floatingPadding * max(union.width, union.height)
         let padded = union.insetBy(dx: -pad, dy: -pad).intersection(CGRect(origin: .zero, size: size))
         // Content covering nearly everything is the widget itself: use the whole image.
