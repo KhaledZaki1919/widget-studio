@@ -71,4 +71,13 @@ struct ShapeKindAliasTests {
             try ExternalAI.importWidget(reply.replacingOccurrences(of: "\"kind\":\"line\"", with: "\"kind\":\"hexagon\""))
         }
     }
+
+    @Test func defaultInsideTheLabelMovesOut() throws {
+        let reply = ExternalAI.example.replacingOccurrences(
+            of: "\"fields\":[]", with: "\"fields\":[{\"key\":\"greeting\",\"type\":\"text\",\"label\":{\"en\":\"Greeting\","
+                + "\"default\":{\"en\":\"hello\",\"ar\":\"أهلا\"},\"ar\":\"التحية\"}}]")
+        let field = try #require(try ExternalAI.importWidget(reply).spec.fields.first)
+        #expect(field.default?.resolved(language: "en") == "hello")
+        #expect(field.label.resolved(language: "ar") == "التحية")
+    }
 }

@@ -464,6 +464,7 @@ public enum AIWidgetParser {
         object["inventory"] = nil
         object["differences"] = nil
         object["layers"] = object["layers"].map(withoutUnknownIcons).map(withKnownShapeKinds)
+        object["fields"] = object["fields"].map(withCleanFieldLabels)
         object["schemaVersion"] = 1
         object["id"] = .string(id)
         if let family = options.size.family { object["family"] = .string(family.rawValue) }
@@ -533,6 +534,19 @@ public enum AIWidgetParser {
         "rounded": "roundedRect", "roundedRectangle": "roundedRect", "roundRect": "roundedRect", "card": "roundedRect",
         "pill": "capsule", "stadium": "capsule", "oval": "circle", "ellipse": "circle", "dot": "circle",
     ]
+
+    /// Field labels hold only `en`/`ar`; a `default` written inside the label (eval 2026-11-02)
+    /// moves out to the field, and other keys there are dropped.
+    static func withCleanFieldLabels(_ fields: JSONValue) -> JSONValue {
+        guard case .array(let items) = fields else { return fields }
+        return .array(items.map { field in
+            guard case .object(var entry) = field, case .object(var label)? = entry["label"] else { return field }
+            if let misplaced = label["default"], entry["default"] == nil || entry["default"] == .null { entry["default"] = misplaced }
+            label = label.filter { ["en", "ar"].contains($0.key) }
+            entry["label"] = .object(label)
+            return .object(entry)
+        })
+    }
 
     static func withKnownShapeKinds(_ layers: JSONValue) -> JSONValue {
         guard case .array(let items) = layers else { return layers }
