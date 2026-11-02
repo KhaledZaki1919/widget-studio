@@ -51,7 +51,7 @@ public enum WidgetDetector {
         #if canImport(Vision)
         let size = CGSize(width: image.width, height: image.height)
         let pixels = RGBA(image)
-        var candidates = contourCandidates(image, size: size) + rectangleCandidates(image, size: size)
+        var candidates = contourCandidates(image, size: size) + rectangleCandidates(image, size: size) + salientCandidates(image, size: size)
         candidates = candidates.filter { candidate in
             let share = candidate.rect.width * candidate.rect.height / (size.width * size.height)
             guard share >= minimumArea, !touchesEdge(candidate.rect, size: size) else { return false }
@@ -175,6 +175,16 @@ public enum WidgetDetector {
 
     /// Floating designs are mostly text: the union of Vision's text boxes and the salient objects
     /// (a big handwritten number may only be salient), padded.
+    /// Salient objects as card candidates: a card that blends into the wallpaper on one side has
+    /// no closed contour and may escape rectangle detection (eval 2026-11-02, a dark pill on a dark
+    /// gradient). The edge and corner checks decide whether each is a card and its shape.
+    static func salientCandidates(_ image: CGImage, size: CGSize) -> [DetectedWidget] {
+        let request = VNGenerateObjectnessBasedSaliencyImageRequest()
+        guard (try? VNImageRequestHandler(cgImage: image, options: [:]).perform([request])) != nil else { return [] }
+        let objects: [VNRectangleObservation] = request.results?.first?.salientObjects ?? []
+        return objects.map { DetectedWidget(rect: pixels($0.boundingBox, size: size), shape: .roundedRect) }
+    }
+
     static func floatingContent(_ image: CGImage, size: CGSize) -> DetectedWidget? {
         let saliency = VNGenerateObjectnessBasedSaliencyImageRequest()
         let text = VNDetectTextRectanglesRequest()
@@ -270,9 +280,23 @@ public enum WidgetDetector {
     /// it reaches the card's color (sampled just inside the middle of the left and right edges):
     /// a corner of radius r leaves r(√2 − 1) along the diagonal. The median of the four corners.
     static func cornerRadius(of rect: CGRect, in pixels: RGBA) -> CGFloat? {
-        let inset = max(3, Int(0.04 * min(rect.width, rect.height)))
+        let short = min(rect.width, rect.height)
         let midY = Int(rect.midY)
-        let card = [pixels.color(Int(rect.minX) + inset, midY), pixels.color(Int(rect.maxX) - inset, midY)]
+        let out = Int(max(3, 0.03 * short))
+        // The card's color: on each side, the first inside sample (4 % or 12 % deep) that differs
+        // from just outside, so a box overshooting the card doesn't sample the wallpaper.
+        var card: [(Double, Double, Double)] = []
+        for (edge, direction) in [(Int(rect.minX), 1), (Int(rect.maxX), -1)] {
+            let outside = pixels.color(edge - direction * out, midY)
+            for depth in [0.04, 0.12] {
+                let inside = pixels.color(edge + direction * Int(max(3, depth * short)), midY)
+                if abs(inside.0 - outside.0) + abs(inside.1 - outside.1) + abs(inside.2 - outside.2) > 0.15 {
+                    card.append(inside)
+                    break
+                }
+            }
+        }
+        guard !card.isEmpty else { return nil }
         func matches(_ c: (Double, Double, Double)) -> Bool {
             card.contains { abs($0.0 - c.0) + abs($0.1 - c.1) + abs($0.2 - c.2) < 0.18 }
         }
