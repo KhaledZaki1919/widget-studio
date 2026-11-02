@@ -9,6 +9,8 @@ import WidgetKitCore
 struct CreateFromImageView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(NetworkStatus.self) private var network
+    @Environment(AppState.self) private var appState
+    @State private var showExternal = false
     @State private var photoItem: PhotosPickerItem?
     /// Upright, ≤ 2048 px: preview and the photo a "Build around my photo" design keeps.
     @State private var picked: CGImage?
@@ -26,6 +28,8 @@ struct CreateFromImageView: View {
         case generating
         case failed(AIError)
         case result(design: SavedDesign, photo: CGImage?, layout: LayoutRepair)
+        /// From another AI (ADR-023): no Regenerate.
+        case imported(design: SavedDesign, layout: LayoutRepair)
     }
 
     private let service = AIService()
@@ -37,6 +41,9 @@ struct CreateFromImageView: View {
         switch phase {
         case .result(let design, let photo, let layout):
             EditorView(design: design, isNew: true, photo: photo, layout: layout, onRegenerate: generate)
+                .id(design.id)
+        case .imported(let design, let layout):
+            EditorView(design: design, isNew: true, layout: layout)
                 .id(design.id)
         default:
             NavigationStack {
@@ -52,8 +59,25 @@ struct CreateFromImageView: View {
                             .accessibilityIdentifier("ax.create.close")
                         }
                     }
+                    .navigationDestination(isPresented: $showExternal) {
+                        ExternalAIView(initialText: appState.pendingImport) { design, layout in
+                            appState.pendingImport = nil
+                            showExternal = false
+                            phase = .imported(design: design, layout: layout)
+                        }
+                    }
             }
-            .onAppear { settings = AISettings.load() }
+            .onAppear {
+                settings = AISettings.load()
+                if appState.pendingImport != nil { showExternal = true }
+            }
+            // A file shared while this screen is open; leaving the import screen drops it.
+            .onChange(of: appState.pendingImport) { _, text in
+                if text != nil { showExternal = true }
+            }
+            .onChange(of: showExternal) { _, showing in
+                if !showing { appState.pendingImport = nil }
+            }
             .onChange(of: photoItem) { _, item in
                 if let item { Task { await load(item) } }
             }
@@ -121,6 +145,16 @@ struct CreateFromImageView: View {
                     .accessibilityIdentifier("ax.create.instructions")
             } header: {
                 Text("create.instructions")
+            }
+            Section {
+                Button {
+                    showExternal = true
+                } label: {
+                    Label("create.external.entry", systemImage: "arrow.down.doc")
+                }
+                .accessibilityIdentifier("ax.create.external")
+            } footer: {
+                Text("create.external.entry.footer")
             }
             Section {
                 Button(action: start) {

@@ -1701,6 +1701,380 @@
         }
       }
     },
+    "create.external.copied": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نُسخت. الصقها الآن مع صورتك"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied. Now paste them with your image"
+          }
+        }
+      }
+    },
+    "create.external.copy": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انسخ التعليمات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy instructions"
+          }
+        }
+      }
+    },
+    "create.external.copyFix": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انسخ طلب إصلاح"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy a fix request"
+          }
+        }
+      }
+    },
+    "create.external.entry": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استخدم ذكاءً اصطناعيًا آخر"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use another AI"
+          }
+        }
+      }
+    },
+    "create.external.entry.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "صمّم باستخدام ChatGPT أو Claude أو Gemini على الويب، ثم استورد النتيجة هنا. لا يلزم مفتاح."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Design with ChatGPT, Claude or Gemini on the web, then import the result here. No key needed."
+          }
+        }
+      }
+    },
+    "create.external.error.empty": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يوجد ما يُستورد. انسخ رد الذكاء الاصطناعي كاملًا أولًا."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There's nothing to import. Copy the AI's whole reply first."
+          }
+        }
+      }
+    },
+    "create.external.error.file": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّرت قراءة هذا الملف. شارك ملف ‎.json‎ أو اختره."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This file couldn't be read. Share or pick a .json file."
+          }
+        }
+      }
+    },
+    "create.external.error.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أرسل طلب الإصلاح إلى المحادثة نفسها، ثم استورد الرد الجديد."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send the fix request to the same chat, then import the new reply."
+          }
+        }
+      }
+    },
+    "create.external.error.invalid": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التصميم لا يجتاز فحوص ستوديو الويدجت (التفاصيل بالأسفل). انسخ طلب الإصلاح وأرسله إلى الذكاء الاصطناعي."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The design doesn't pass Widget Studio's checks (details below). Copy the fix request and send it to the AI."
+          }
+        }
+      }
+    },
+    "create.external.error.noJSON": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يُعثر على تصميم ودجت في هذا النص. اطلب من الذكاء الاصطناعي أن يرد بكائن JSON فقط."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No widget design found in this text. Ask the AI to reply with only the JSON object."
+          }
+        }
+      }
+    },
+    "create.external.error.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر الاستيراد"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't import"
+          }
+        }
+      }
+    },
+    "create.external.error.tooLarge": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "هذا الرد أطول من أن يكون ودجت. اطلب من الذكاء الاصطناعي تصميمًا أبسط."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This reply is too long for a widget. Ask the AI for a simpler design."
+          }
+        }
+      }
+    },
+    "create.external.field": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أو الصق الرد هنا"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Or paste the reply here"
+          }
+        }
+      }
+    },
+    "create.external.file": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "افتح ملف ‎.json‎"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open a .json file"
+          }
+        }
+      }
+    },
+    "create.external.fixCopied": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نُسخ. أرسله إلى الذكاء الاصطناعي"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied. Send it to the AI"
+          }
+        }
+      }
+    },
+    "create.external.import": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استيراد"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import"
+          }
+        }
+      }
+    },
+    "create.external.paste": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الصق من الحافظة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste from clipboard"
+          }
+        }
+      }
+    },
+    "create.external.step1": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "١. انسخ التعليمات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1. Copy the instructions"
+          }
+        }
+      }
+    },
+    "create.external.step1.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الصقها في ChatGPT أو Claude أو Gemini على الويب، وأرفق صورتك في الرسالة نفسها."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste them into ChatGPT, Claude or Gemini on the web and attach your image in the same message."
+          }
+        }
+      }
+    },
+    "create.external.step2": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "٢. استورد الرد"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2. Import the answer"
+          }
+        }
+      }
+    },
+    "create.external.step2.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انسخ رد الذكاء الاصطناعي كاملًا. يُحذف النص الزائد وعلامات الكود، ولا يُقبل إلا تصميم ودجت، وليس كودًا أبدًا. ويمكنك أيضًا مشاركة ملف ‎.json‎ مع ستوديو الويدجت."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy the AI's whole reply. Extra text and code fences are removed; only a widget design is accepted, never code. You can also share a .json file to Widget Studio."
+          }
+        }
+      }
+    },
+    "create.external.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ذكاء اصطناعي آخر"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use another AI"
+          }
+        }
+      }
+    },
     "create.failed": {
       "extractionState": "manual",
       "localizations": {

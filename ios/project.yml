@@ -68,6 +68,14 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: com.khaled.widgetstudio
             CFBundleURLSchemes: [widgetstudio]
+        # A .json widget from another AI, shared to the app ("Open in" / share sheet, ADR-023).
+        # iOS copies the file into the app and opens it; it is imported, never opened in place.
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Widget JSON
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [public.json]
+        LSSupportsOpeningDocumentsInPlace: false
         # Localized in Resources/InfoPlist.xcstrings.
         NSLocationWhenInUseUsageDescription: "يُستخدم موقعك لعرض الطقس ومواقيت الصلاة واتجاه القبلة في الويدجت."
         NSHealthShareUsageDescription: "يقرأ التطبيق عدد خطواتك وساعات نومك لعرضها في الويدجت."

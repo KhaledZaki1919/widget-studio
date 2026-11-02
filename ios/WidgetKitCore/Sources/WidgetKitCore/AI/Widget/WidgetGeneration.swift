@@ -229,7 +229,7 @@ public enum AIWidgetSchema {
             "theme": JSONSchema.enumeration(SpecTheme.allCases.map(\.rawValue)),
             "palette": JSONSchema.object(["bg": JSONSchema.string, "fg": JSONSchema.string, "accent": JSONSchema.string]),
             "background": JSONSchema.object([
-                "type": JSONSchema.enumeration(Background.Kind.allCases.map(.rawValue)),
+                "type": JSONSchema.enumeration(["solid", "gradient", "glass"]),
                 "color": nullableString,
                 "colors": JSONSchema.nullable(JSONSchema.array(JSONSchema.string)),
                 "angle": nullableNumber,

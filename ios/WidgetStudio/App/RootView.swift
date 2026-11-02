@@ -69,6 +69,12 @@ struct RootView: View {
         }
         .onAppear(perform: AppInfo.touchHeartbeat)
         .onOpenURL { url in
+            // A .json file shared to the app: import it as an external AI's answer (ADR-023).
+            if url.isFileURL {
+                appState.pendingImport = ExternalAIView.read(url) ?? ""
+                appState.isCreatingFromImage = true
+                return
+            }
             guard url.scheme == "widgetstudio" else { return }
             switch url.host() {
             case "diagnostics":
