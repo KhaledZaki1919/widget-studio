@@ -243,19 +243,25 @@ public enum WidgetDetector {
 
     /// A real card edge: just inside the middle of at least three sides the color differs from
     /// just outside (a card, a pill or a circle all touch the middle of their box's sides).
+    /// The inside is sampled at 4 % and 12 % of the short side, since a detected box can overshoot
+    /// the card a little (a pill's round ends, eval 2026-11-02).
     static func hasEdge(_ rect: CGRect, in pixels: RGBA) -> Bool {
-        let inset = max(3, 0.04 * min(rect.width, rect.height))
-        let out = max(3, 0.03 * min(rect.width, rect.height))
-        let pairs: [(CGPoint, CGPoint)] = [
-            (CGPoint(x: rect.midX, y: rect.minY + inset), CGPoint(x: rect.midX, y: rect.minY - out)),
-            (CGPoint(x: rect.midX, y: rect.maxY - inset), CGPoint(x: rect.midX, y: rect.maxY + out)),
-            (CGPoint(x: rect.minX + inset, y: rect.midY), CGPoint(x: rect.minX - out, y: rect.midY)),
-            (CGPoint(x: rect.maxX - inset, y: rect.midY), CGPoint(x: rect.maxX + out, y: rect.midY)),
+        let short = min(rect.width, rect.height)
+        let out = max(3, 0.03 * short)
+        // Per side: the outward direction and the point in the middle of the side.
+        let sides: [(CGPoint, CGFloat, CGFloat)] = [
+            (CGPoint(x: rect.midX, y: rect.minY), 0, -1), (CGPoint(x: rect.midX, y: rect.maxY), 0, 1),
+            (CGPoint(x: rect.minX, y: rect.midY), -1, 0), (CGPoint(x: rect.maxX, y: rect.midY), 1, 0),
         ]
-        let differing = pairs.filter { inner, outer in
-            let a = pixels.color(Int(inner.x), Int(inner.y))
-            let b = pixels.color(Int(outer.x), Int(outer.y))
-            return abs(a.0 - b.0) + abs(a.1 - b.1) + abs(a.2 - b.2) > 0.15
+        func differs(_ a: (Double, Double, Double), _ b: (Double, Double, Double)) -> Bool {
+            abs(a.0 - b.0) + abs(a.1 - b.1) + abs(a.2 - b.2) > 0.15
+        }
+        let differing = sides.filter { point, dx, dy in
+            let outside = pixels.color(Int(point.x + dx * out), Int(point.y + dy * out))
+            return [0.04, 0.12].contains { depth in
+                let inside = pixels.color(Int(point.x - dx * max(3, depth * short)), Int(point.y - dy * max(3, depth * short)))
+                return differs(inside, outside)
+            }
         }
         return differing.count >= 3
     }

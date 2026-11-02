@@ -74,6 +74,22 @@ struct WidgetDetectorTests {
         }
     }
 
+    /// The app and the eval detect on downscaled copies (AIImage.upright): the shapes must hold.
+    @Test func shapesHoldWhenScaledDown() throws {
+        for (name, shape, count) in [("draw-circle.png", WidgetCardShape.circle, 1), ("draw-capsule.png", .capsule, 1),
+                                     ("draw-gallery.png", .roundedRect, 4), ("draw-wallpaper.png", .roundedRect, 1)] {
+            for side in [1024, 700] {
+                let data = try Data(contentsOf: Self.folder.appendingPathComponent(name))
+                let picture = try #require(AIImage.upright(data: data, maxSide: side))
+                let found = WidgetDetector.detect(picture)
+                try Self.writeOutlined(picture, found, name: "\(side)-\(name)")
+                // One widget: the biggest detection; a gallery: the first in reading order.
+                let main = count == 1 ? found.max { WidgetDetector.area($0.rect) < WidgetDetector.area($1.rect) } : found.first
+                #expect(found.count >= count && main?.shape == shape, "\(name) at \(side): \(found)")
+            }
+        }
+    }
+
     @Test func wallpaperColorAroundACard() throws {
         let picture = try image("draw-circle.png")
         let hex = try #require(WidgetDetector.wallpaperColor(picture, around: CGRect(x: 190, y: 170, width: 520, height: 520)))
