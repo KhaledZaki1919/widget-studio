@@ -84,7 +84,10 @@ struct LayoutFixTests {
             Issue.record("valid apart from the overlap")
             return
         }
-        #expect(SpecLayout.textOverlaps(in: AILayoutFix.fix(clamped).layers).isEmpty)
+        let fixed = AILayoutFix.fix(clamped)
+        #expect(SpecLayout.textOverlaps(in: fixed.layers).isEmpty)
+        // The header stays above the list (ordered by center, not by the clamped top).
+        #expect(fixed.layers[0].frame.y < fixed.layers[1].frame.y)
     }
 
     @Test func layoutRepairIsReported() throws {

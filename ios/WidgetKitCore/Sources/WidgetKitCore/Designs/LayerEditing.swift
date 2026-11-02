@@ -93,6 +93,12 @@ public enum LayerEditing {
         return spreadX > max(spreadY * 2, 20) ? .horizontal : .vertical
     }
 
+    /// Order along the axis by center: a tall list that starts higher than its header (a frame
+    /// clamped to the canvas) still goes after it (eval 2026-11-01).
+    static func precedes(_ a: Frame, _ b: Frame, axis: StackLayer.Axis) -> Bool {
+        axis == .horizontal ? (a.x + a.w / 2, a.y) < (b.x + b.w / 2, b.y) : (a.y + a.h / 2, a.x) < (b.y + b.h / 2, b.x)
+    }
+
     static func union(_ frames: [Frame]) -> Frame {
         let minX = frames.map(\.x).min() ?? 0
         let minY = frames.map(\.y).min() ?? 0
@@ -114,7 +120,7 @@ public enum LayerEditing {
         let frames = picked.map(\.frame)
         let axis = chosen ?? Self.axis(for: frames)
         let ordered = picked.sorted { a, b in
-            axis == .horizontal ? (a.frame.x, a.frame.y) < (b.frame.x, b.frame.y) : (a.frame.y, a.frame.x) < (b.frame.y, b.frame.x)
+            precedes(a.frame, b.frame, axis: axis)
         }
         let children = ordered.map { member -> Layer in
             var child = member
@@ -194,7 +200,7 @@ public enum LayerEditing {
         let axis = axis(for: frames)
         let bounds = union(frames)
         let order = members.sorted { a, b in
-            axis == .horizontal ? layers[a].frame.x < layers[b].frame.x : layers[a].frame.y < layers[b].frame.y
+            precedes(layers[a].frame, layers[b].frame, axis: axis)
         }
         let gap = 2.0
         let total = order.map { axis == .horizontal ? layers[$0].frame.w : layers[$0].frame.h }.reduce(0, +)
