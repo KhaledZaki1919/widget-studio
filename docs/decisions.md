@@ -510,3 +510,37 @@ Picked side-by-sides are in `docs/ai-eval/results/` (left: the drawn original, r
   - OpenRouter `nvidia/nemotron-3.5-super-vl:free` (alternative `openrouter/free`); the paid `google/gemini-3.8-flash` stays in the list.
 - **Results kept:** `docs/ai-eval/results/m61-*.png` (forecast local fix, reminders before and after the clamped-frame check, calendar/steps/quote per provider).
 - **Unverified on device:** the layer editor and the layout warning (UI test covers opening the editor and a layer); provider free-tier limits change often, so re-run the eval before changing presets.
+
+### ADR-023 — Device feedback: layout fix keeps every text, glass, Tinted home screens, Use another AI
+**Status:** Accepted (2026-11-02), after the owner's device test of M6.1.
+
+- **Layout fix bug:** on a frosted card the local fix grouped the four corner texts into one row wider than the widget. "hello" and the month ran off the edges, and the time stayed hidden under its pill, which the model had drawn after it. The fix (`AILayoutFix`, `LayerEditing.group`) now:
+  - draws stacks so they always fit their frame: `StackLayerView` steps the whole content down (100 → 40 %, `ViewThatFits` along the stack's axis) instead of letting it overflow. Texts still shrink on their own (minimum scale 0.5); nothing is clipped;
+  - groups into rows held apart by spacers inside a column. A spacer goes before a trailing-aligned text and into gaps over 16 units, so corner layouts keep their corners. Layers piled on one spot still become a column;
+  - moves a text that a shape drawn after it hides (`SpecLayout.coveredTexts`) to just above that shape. On the first answer this is a retry problem;
+  - groups only layers that share a container (`SpecLayout.container`: the smallest shape or ring under a layer holding ≥ 80 % of it, smaller than half the widget). A layer outside a pill that overlaps the text inside it is trimmed to the largest part that clears the pill;
+  - uses the fixed spec only if it keeps every text (`AILayoutFix.texts`); otherwise the answer opens in the editor with the warning.
+
+  Explicit line breaks always get their own lines. A package test rebuilds the device case and checks: every text kept, all frames inside the canvas, the time above and inside its pill.
+- **Glass:**
+  - background `{"type": "glass", "color": tint}`: a neutral base for the theme, a translucent tint (default white 18 %), a sheen and a thin light border;
+  - shapes take `"glass": true`: a translucent fill (default white 15 %), a sheen, and a light border when there's no stroke.
+
+  Both are in the validator, both schemas and prompt `generate_v4` (v3 + text on shapes comes after the shape + corner rows + glass). In the editor: Appearance → Glass background, and Frosted glass for shapes. Widgets can't blur the home screen, so glass reads best over a photo layer or as a panel of its own.
+- **Tinted and Clear home screens:** `SpecView` reads `widgetRenderingMode` and sets `specAccented` (tests set it directly). Every layer then draws an accented variant:
+  - fills drop to 20 % with a thin outline;
+  - the clock face is a faint disc with a rim;
+  - today's box or circle becomes a ring;
+  - unlit dots and tracks are faint;
+  - chromatic colors are `widgetAccentable`;
+  - photos use `widgetAccentedRenderingMode(.accentedDesaturated)` on iOS 18;
+  - text, ticks and hands stay opaque.
+
+  `RenderSnapshotTests` renders every template in accented mode on each push. It fails when more than 8 % of 8 pt cells are solid; before the change, 9 templates were at 9–60 %, now all are at 0 %. It uploads `package-renders` (before | after, tinted as iOS shows them).
+- **Use another AI:** Create from image → Use another AI.
+  - **Copy instructions:** one paste with the system prompt, the recreate task for the chosen size, the JSON Schema, an example and the reply rules.
+  - **Import:** from the clipboard, a text field, a `.json` file, or a `.json` file shared to the app (`CFBundleDocumentTypes` public.json, copied in, not opened in place). `ExternalAI` strips fences and extra text, rejects replies over 200 KB, validates in AI mode (recreate only) and applies the same layout fix. The editor opens without Regenerate.
+  - **Errors:** each failure (empty, not JSON, too large, invalid) has an ar/en message and a **Copy a fix request** button for the same chat.
+  - Only a widget spec is accepted, never code. Nothing is sent anywhere by the app.
+
+  A text shared from a chat app (not a file) goes through the clipboard: a share extension would need an App Group to hand it over, which the Fast Store install doesn't have (ADR-004).

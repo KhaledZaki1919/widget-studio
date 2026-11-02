@@ -55,3 +55,20 @@ struct ExternalAITests {
         #expect(widget.layout != .clean)
     }
 }
+
+/// Eval 2026-11-02: invented shape kinds are mapped instead of failing the widget.
+struct ShapeKindAliasTests {
+    @Test func lineBecomesARect() throws {
+        let reply = ExternalAI.example.replacingOccurrences(
+            of: "\"layers\":[", with: "\"layers\":[{\"type\":\"shape\",\"kind\":\"line\",\"fill\":\"@fg\",\"frame\":{\"x\":84,\"y\":10,\"w\":2,\"h\":150}},")
+        let widget = try ExternalAI.importWidget(reply)
+        guard case .shape(let shape) = widget.spec.layers[0].content else {
+            Issue.record("the divider is gone")
+            return
+        }
+        #expect(shape.kind == .rect)
+        #expect(throws: ExternalAI.ImportError.self) {
+            try ExternalAI.importWidget(reply.replacingOccurrences(of: "\"kind\":\"line\"", with: "\"kind\":\"hexagon\""))
+        }
+    }
+}

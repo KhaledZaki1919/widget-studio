@@ -463,7 +463,7 @@ public enum AIWidgetParser {
         object["category"] = nil
         object["inventory"] = nil
         object["differences"] = nil
-        object["layers"] = object["layers"].map(withoutUnknownIcons)
+        object["layers"] = object["layers"].map(withoutUnknownIcons).map(withKnownShapeKinds)
         object["schemaVersion"] = 1
         object["id"] = .string(id)
         if let family = options.size.family { object["family"] = .string(family.rawValue) }
@@ -522,6 +522,27 @@ public enum AIWidgetParser {
                     return .object(cells)
                 })
             }
+            return .object(fields)
+        })
+    }
+
+    /// Shape kinds models invent, mapped to ours (eval 2026-11-02: a divider as `"kind": "line"`
+    /// failed both answers). Anything else unknown is left for the validator to report.
+    static let shapeKindAliases: [String: String] = [
+        "line": "rect", "divider": "rect", "rectangle": "rect", "square": "rect", "bar": "rect",
+        "rounded": "roundedRect", "roundedRectangle": "roundedRect", "roundRect": "roundedRect", "card": "roundedRect",
+        "pill": "capsule", "stadium": "capsule", "oval": "circle", "ellipse": "circle", "dot": "circle",
+    ]
+
+    static func withKnownShapeKinds(_ layers: JSONValue) -> JSONValue {
+        guard case .array(let items) = layers else { return layers }
+        return .array(items.map { layer in
+            guard case .object(var fields) = layer else { return layer }
+            if fields["type"] == "shape", let kind = fields["kind"]?.stringValue, ShapeLayer.Kind(rawValue: kind) == nil,
+               let known = shapeKindAliases[kind] {
+                fields["kind"] = .string(known)
+            }
+            if let children = fields["children"] { fields["children"] = withKnownShapeKinds(children) }
             return .object(fields)
         })
     }
