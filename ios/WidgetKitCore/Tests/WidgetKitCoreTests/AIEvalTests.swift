@@ -86,7 +86,8 @@ struct AIEvalTests {
                         details += ["- could not read the image", ""]
                         continue
                     }
-                    let base = GenerationOptions(mode: GenerationMode(rawValue: item.mode) ?? .recreate, size: SizeChoice(rawValue: item.size) ?? .auto)
+                    var base = GenerationOptions(mode: GenerationMode(rawValue: item.mode) ?? .recreate, size: SizeChoice(rawValue: item.size) ?? .auto)
+                    base.wallpaperColor = WidgetDetector.wallpaperColor(original, around: .null)   // like the app
                     var targets = [EvalTarget(image: original, prepared: whole, options: base, suffix: "")]
                     if mode == "on", base.mode == .recreate {
                         let found = Array(WidgetDetector.detect(original).prefix(4))

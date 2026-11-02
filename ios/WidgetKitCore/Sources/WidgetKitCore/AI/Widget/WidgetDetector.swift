@@ -50,10 +50,13 @@ public enum WidgetDetector {
     public static func detect(_ image: CGImage) -> [DetectedWidget] {
         #if canImport(Vision)
         let size = CGSize(width: image.width, height: image.height)
+        let pixels = RGBA(image)
         var candidates = contourCandidates(image, size: size) + rectangleCandidates(image, size: size)
         candidates = candidates.filter { candidate in
             let share = candidate.rect.width * candidate.rect.height / (size.width * size.height)
-            return share >= minimumArea && !touchesEdge(candidate.rect, size: size)
+            guard share >= minimumArea, !touchesEdge(candidate.rect, size: size) else { return false }
+            // A soft gradient can look like a rectangle (eval 2026-11-02: a square around a round card).
+            return pixels.map { hasEdge(candidate.rect, in: $0) } ?? true
         }
         var kept: [DetectedWidget] = []
         for candidate in candidates.sorted(by: { area($0.rect) > area($1.rect) }) {
@@ -236,6 +239,25 @@ public enum WidgetDetector {
             let index = (cy * width + cx) * 4
             return (Double(bytes[index]) / 255, Double(bytes[index + 1]) / 255, Double(bytes[index + 2]) / 255)
         }
+    }
+
+    /// A real card edge: just inside the middle of at least three sides the color differs from
+    /// just outside (a card, a pill or a circle all touch the middle of their box's sides).
+    static func hasEdge(_ rect: CGRect, in pixels: RGBA) -> Bool {
+        let inset = max(3, 0.04 * min(rect.width, rect.height))
+        let out = max(3, 0.03 * min(rect.width, rect.height))
+        let pairs: [(CGPoint, CGPoint)] = [
+            (CGPoint(x: rect.midX, y: rect.minY + inset), CGPoint(x: rect.midX, y: rect.minY - out)),
+            (CGPoint(x: rect.midX, y: rect.maxY - inset), CGPoint(x: rect.midX, y: rect.maxY + out)),
+            (CGPoint(x: rect.minX + inset, y: rect.midY), CGPoint(x: rect.minX - out, y: rect.midY)),
+            (CGPoint(x: rect.maxX - inset, y: rect.midY), CGPoint(x: rect.maxX + out, y: rect.midY)),
+        ]
+        let differing = pairs.filter { inner, outer in
+            let a = pixels.color(Int(inner.x), Int(inner.y))
+            let b = pixels.color(Int(outer.x), Int(outer.y))
+            return abs(a.0 - b.0) + abs(a.1 - b.1) + abs(a.2 - b.2) > 0.15
+        }
+        return differing.count >= 3
     }
 
     /// The corner radius of the card in `rect`, from how far each corner's diagonal runs before

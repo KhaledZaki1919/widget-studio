@@ -495,7 +495,8 @@ struct CreateFromImageView: View {
         var options = options
         options.detectedCard = cardShape
         options.cropped = crop != nil
-        options.wallpaperColor = crop.flatMap { WidgetDetector.wallpaperColor(picked, around: $0) }
+        // Without a crop, the image's edges give the wallpaper color.
+        options.wallpaperColor = WidgetDetector.wallpaperColor(picked, around: crop ?? .null)
         let language = language
         step = .generating
         // "High quality (2 requests)": render the result and let the model correct it once (ADR-019).
