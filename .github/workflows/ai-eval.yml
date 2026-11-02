@@ -31,7 +31,7 @@ on:
       crop:
         description: "Crop to the detected widget(s) first: off, on, or both to compare (ADR-024)"
         type: choice
-        options: [off, on, both]
+        options: ["off", "on", "both"]
         default: "off"
       pause:
         description: "Seconds between requests (free tiers have per-minute limits)"
