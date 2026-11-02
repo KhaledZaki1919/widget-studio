@@ -85,14 +85,14 @@ struct RenderSnapshotTests {
             """
         }
         let layers = [
-            #"{"type": "shape", "kind": "rect", "fill": "#FFFFFF2E", "glass": true, "frame": {"x": 0, "y": 0, "w": 364, "h": 170}}"#,
-            #"{"type": "shape", "kind": "rect", "fill": "#FFFFFFB3", "frame": {"x": 181, "y": 10, "w": 2, "h": 150}}"#,
+            ##"{"type": "shape", "kind": "rect", "fill": "#FFFFFF2E", "glass": true, "frame": {"x": 0, "y": 0, "w": 364, "h": 170}}"##,
+            ##"{"type": "shape", "kind": "rect", "fill": "#FFFFFFB3", "frame": {"x": 181, "y": 10, "w": 2, "h": 150}}"##,
             text("hello", [20, 16, 200, 50], size: 30, family: "hand"),
             text("{{date.d}} {{date.EEEE}}", [150, 16, 194, 50], size: 16, align: "trailing"),
             text("{{weather.temp}}° {{weather.cond}}", [20, 110, 200, 44], size: 16),
             text("{{date.MMM}}", [150, 110, 194, 44], size: 16, align: "trailing"),
             text("{{time.hh}}\\n{{time.mm}}", [166, 52, 32, 66], size: 15, family: "system-mono", align: "center"),
-            #"{"type": "shape", "kind": "capsule", "fill": "#FF5A1F", "frame": {"x": 164, "y": 50, "w": 36, "h": 70}}"#,
+            ##"{"type": "shape", "kind": "capsule", "fill": "#FF5A1F", "frame": {"x": 164, "y": 50, "w": 36, "h": 70}}"##,
         ]
         let json = """
         {"schemaVersion": 1, "id": "test.frosted", "name": {"en": "Hello", "ar": "مرحبا"}, "family": "medium", "theme": "dark",
