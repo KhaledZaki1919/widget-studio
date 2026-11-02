@@ -176,9 +176,17 @@ private struct Check {
         if mode == .ai && checksTextOverlaps { checkTextOverlaps() }
     }
 
-    /// AI output (M6.1): layers that show text must not cover each other (`SpecLayout`).
+    /// AI output (M6.1): layers that show text must not cover each other (`SpecLayout`), checked on
+    /// the frames as drawn, clamped to the canvas: a list taller than the widget slides up under
+    /// the header (eval 2026-11-01).
     mutating func checkTextOverlaps() {
-        for (first, second) in SpecLayout.textOverlaps(in: spec.layers) {
+        let canvas = spec.family.canvas
+        let drawn = spec.layers.map { layer -> Layer in
+            var clamped = layer
+            clamped.frame = layer.frame.clamped(to: canvas)
+            return clamped
+        }
+        for (first, second) in SpecLayout.textOverlaps(in: drawn) {
             fail("layers[\(second)]", "its text overlaps layers[\(first)]; put texts that belong together in one stack, or move the frames apart")
         }
     }

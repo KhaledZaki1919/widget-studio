@@ -69,6 +69,24 @@ struct LayoutFixTests {
         #expect(fixed.layers[0].frame.y + fixed.layers[0].frame.h <= fixed.layers[1].frame.y)
     }
 
+    /// Eval 2026-11-01: a list taller than the widget is clamped up under the header; the overlap
+    /// check sees the clamped frames, so the retry (and then the local fix) handles it.
+    @Test func overlapsAreCheckedOnClampedFrames() throws {
+        let list = Layer(frame: Frame(x: 10, y: 60, w: 150, h: 170), content: .list(ListLayer(
+            items: [ListLayer.Item(title: .localized(en: "Gym", ar: "النادي"))], font: FontSpec(family: "system", size: 13), color: "@fg")))
+        let original = try spec([text("Today", Frame(x: 10, y: 10, w: 150, h: 30)), list])
+        guard case .failure(let failure) = SpecValidator(mode: .ai).validate(original) else {
+            Issue.record("the clamped list covers the header")
+            return
+        }
+        #expect(failure.issues.contains { $0.message.contains("overlaps") })
+        guard case .success(let clamped) = SpecValidator(mode: .ai, checksTextOverlaps: false).validate(original) else {
+            Issue.record("valid apart from the overlap")
+            return
+        }
+        #expect(SpecLayout.textOverlaps(in: AILayoutFix.fix(clamped).layers).isEmpty)
+    }
+
     @Test func layoutRepairIsReported() throws {
         let empty = try spec([])
         #expect(GeneratedWidget(spec: empty, colors: [:], model: "m", attempts: 2,

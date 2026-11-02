@@ -28,6 +28,10 @@ on:
         description: "Comma-separated image file names (empty = all)"
         type: string
         default: ""
+      pause:
+        description: "Seconds between requests (free tiers have per-minute limits)"
+        type: string
+        default: "8"
 
 concurrency:
   group: ai-eval-${{ inputs.provider }}
@@ -68,6 +72,7 @@ jobs:
           AI_EVAL_REVIEW: ${{ inputs.review && '1' || '0' }}
           AI_EVAL_CASES: ${{ inputs.cases }}
           AI_EVAL_STRUCTURED: ${{ inputs.structured && '1' || '0' }}
+          AI_EVAL_PAUSE: ${{ inputs.pause }}
         run: swift test --package-path ios/WidgetKitCore --filter AIEvalTests
 
       - name: Summary
