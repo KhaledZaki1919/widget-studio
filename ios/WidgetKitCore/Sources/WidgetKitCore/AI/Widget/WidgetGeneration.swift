@@ -166,7 +166,7 @@ public enum WidgetPrompt {
             if let card = options.detectedCard {
                 let names: [WidgetCardShape: String] = [.roundedRect: "a rounded rectangle", .circle: "a circle",
                                                          .capsule: "a capsule (pill)", .none: "no card: the content floats on the wallpaper"]
-                lines.append("The app's detection says the widget card is (names[card] ?? "a rounded rectangle"); check it in the image and report it in card.shape.")
+                lines.append("The app's detection says the widget card is \(names[card] ?? "a rounded rectangle"); check it in the image and report it in card.shape.")
             }
         }
         let suggested = suggestedFamily(width: imageWidth, height: imageHeight)
