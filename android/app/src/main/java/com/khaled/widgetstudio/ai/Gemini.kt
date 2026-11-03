@@ -120,7 +120,7 @@ class GeminiClient(private val key: String) {
         val parts = JSONArray()
         request.images.forEach { parts.put(JSONObject().put("inlineData", JSONObject().put("mimeType", "image/jpeg").put("data", Base64.encodeToString(it, Base64.NO_WRAP)))) }
         parts.put(JSONObject().put("text", request.userText))
-        val id = model.lowercased()
+        val id = model.lowercase()
         val legacy = listOf("gemini-1.", "gemini-2.0").any { id.contains(it) }
         val config = JSONObject().put("responseMimeType", "application/json").put("maxOutputTokens", if (legacy) minOf(request.maxOutputTokens, 8192) else request.maxOutputTokens + 24_576)
         when {
