@@ -7,9 +7,12 @@ import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
 import android.net.Uri
-import android.os.BatteryManager
 import android.os.Build
+import android.provider.MediaStore
+import android.provider.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
@@ -18,12 +21,15 @@ import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
 import androidx.glance.action.Action
-import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.action.ActionParameters
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
+import androidx.glance.appwidget.action.ActionCallback
+import androidx.glance.appwidget.action.actionRunCallback
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.appWidgetBackground
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
@@ -40,10 +46,14 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.khaled.widgetstudio.R
+import com.khaled.widgetstudio.data.DataGap
+import com.khaled.widgetstudio.data.DataRequirements
+import com.khaled.widgetstudio.data.LiveRepository
+import com.khaled.widgetstudio.design.DesignStore
 import com.khaled.widgetstudio.render.SpecRenderer
-import com.khaled.widgetstudio.spec.DataSnapshot
 import com.khaled.widgetstudio.spec.RenderContext
 import com.khaled.widgetstudio.spec.TemplateLibrary
+import com.khaled.widgetstudio.spec.Theme
 import com.khaled.widgetstudio.ui.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -51,98 +61,225 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 
-/** The app-wide renderer and template library (created once per process). */
+/** The app-wide renderer, template library and live data (created once per process). */
 object WidgetEnvironment {
     @Volatile private var renderer: SpecRenderer? = null
     @Volatile private var library: TemplateLibrary? = null
+    @Volatile private var live: LiveRepository? = null
 
     fun renderer(context: Context) = renderer ?: SpecRenderer(context.applicationContext).also { renderer = it }
     fun library(context: Context) = library ?: TemplateLibrary(context.applicationContext.assets).also { library = it }
+    fun live(context: Context) = live ?: LiveRepository(context.applicationContext).also { live = it }
 
     /** "en" when the app runs in English, else Arabic (the default). */
     fun language(context: Context): String =
         if (context.resources.configuration.locales[0].language == "en") "en" else "ar"
 }
 
-/** Which template each placed widget shows (A2 adds saved designs). */
+/** What each placed widget shows: `design:<id>` or `template:<id>`, plus a theme for templates. */
 class WidgetStore(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences("widgets", Context.MODE_PRIVATE)
 
-    fun templateId(appWidgetId: Int): String? = prefs.getString("template.$appWidgetId", null)
-    fun setTemplate(appWidgetId: Int, id: String) = prefs.edit().putString("template.$appWidgetId", id).apply()
-    fun remove(appWidgetId: Int) = prefs.edit().remove("template.$appWidgetId").apply()
+    fun choice(appWidgetId: Int): String? = prefs.getString("choice.$appWidgetId", null)
+        ?: prefs.getString("template.$appWidgetId", null)?.let { "template:$it" }   // A1 widgets
+    fun theme(appWidgetId: Int): Theme? = prefs.getString("theme.$appWidgetId", null)?.let { if (it == "light") Theme.LIGHT else Theme.DARK }
+
+    fun set(appWidgetId: Int, choice: String, theme: Theme?) = prefs.edit()
+        .putString("choice.$appWidgetId", choice).remove("template.$appWidgetId")
+        .putString("theme.$appWidgetId", theme?.name?.lowercase()).apply()
+
+    fun remove(appWidgetId: Int) = prefs.edit().remove("choice.$appWidgetId").remove("theme.$appWidgetId").remove("template.$appWidgetId").apply()
+}
+
+object Widgets {
+    /** Redraws every placed widget (after saving a design, a counter tap, a data refresh). */
+    suspend fun updateAll(context: Context) = SpecGlanceWidget().updateAll(context)
+
+    fun updateAllAsync(context: Context) {
+        CoroutineScope(Dispatchers.Default).launch { updateAll(context.applicationContext) }
+    }
 }
 
 /**
- * The home-screen widget (ADR-025): the chosen spec drawn into a bitmap at the widget's exact
- * size (re-rendered whenever the size changes), shown with Glance, with a transparent tap area
- * over each button layer. Real data arrives in A3; until then missing values show "--", never
- * sample numbers.
+ * The home-screen widget (ADR-025): the chosen design or template drawn into a bitmap at the
+ * widget's exact size (re-rendered on resize) with live data, shown with Glance, with a tap area
+ * over each button. Missing data shows a message (DataGap), never sample numbers.
  */
 class SpecGlanceWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
-        val templateId = WidgetStore(context).templateId(appWidgetId)
-        provideContent { Content(context, templateId, appWidgetId) }
+        provideContent { Content(context, appWidgetId) }
     }
 
     @Composable
-    private fun Content(context: Context, templateId: String?, appWidgetId: Int) {
-        val spec = templateId?.let { WidgetEnvironment.library(context).template(it) }
-        val size = LocalSize.current
+    private fun Content(context: Context, appWidgetId: Int) {
+        val store = WidgetStore(context)
+        val choice = store.choice(appWidgetId)
+        val live = WidgetEnvironment.live(context)
+        val language = WidgetEnvironment.language(context)
+        val now = Instant.now()
+        val data = live.snapshot(now)
+        val design = choice?.takeIf { it.startsWith("design:") }?.let { DesignStore.get(context).design(it.removePrefix("design:")) }
+        val template = choice?.takeIf { it.startsWith("template:") }?.let { WidgetEnvironment.library(context).template(it.removePrefix("template:")) }
+        val spec = design?.spec ?: template
         if (spec == null) {
-            Box(
-                modifier = GlanceModifier.fillMaxSize().appWidgetBackground().background(ColorProvider(R.color.widget_empty))
-                    .clickable(actionStartActivity(configureIntent(context, appWidgetId))),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(context.getString(R.string.widget_choose), style = TextStyle(color = ColorProvider(R.color.widget_empty_text), textAlign = TextAlign.Center))
-            }
+            Message(context, appWidgetId, context.getString(if (choice == null) R.string.widget_choose else R.string.widget_missing))
             return
         }
+        val gap = DataRequirements.gap(spec, live, data)
+        if (gap != null) {
+            Message(context, appWidgetId, gapText(language, gap), MainActivity.intent(context, MainActivity.OPEN_SETTINGS))
+            return
+        }
+        val renderContext = design?.renderContext(context, now, language, data, DesignStore.get(context).image(design), live.settings.clockFormat)
+            ?: RenderContext(now = now, language = language, zone = ZoneId.systemDefault(), data = data, uses24Hour = live.settings.clockFormat.uses24Hour(context), theme = store.theme(appWidgetId))
+        val size = LocalSize.current
         val density = context.resources.displayMetrics.density
-        val width = (size.width.value * density).toInt()
-        val height = (size.height.value * density).toInt()
-        val renderContext = RenderContext(
-            now = Instant.now(), language = WidgetEnvironment.language(context), zone = ZoneId.systemDefault(),
-            data = DataSnapshot(batteryLevel = batteryLevel(context)), freezesLiveText = true,
-        )
-        // Before Android 12 the launcher doesn't round widgets: clip the bitmap ourselves.
         val radius = if (Build.VERSION.SDK_INT < 31) 16 * density else 0f
-        val result = WidgetEnvironment.renderer(context).render(spec, renderContext, width, height, cornerRadius = radius)
+        val result = WidgetEnvironment.renderer(context).render(spec, renderContext, (size.width.value * density).toInt(), (size.height.value * density).toInt(), cornerRadius = radius)
         var modifier = GlanceModifier.fillMaxSize().appWidgetBackground()
         if (Build.VERSION.SDK_INT >= 31) modifier = modifier.cornerRadius(android.R.dimen.system_app_widget_background_radius)
         Box(modifier = modifier) {
-            Image(
-                provider = ImageProvider(result.bitmap), contentDescription = spec.name.resolved(renderContext.language),
-                modifier = GlanceModifier.fillMaxSize(), contentScale = ContentScale.FillBounds,
-            )
+            Image(ImageProvider(result.bitmap), contentDescription = spec.name.resolved(language), modifier = GlanceModifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
             for (button in result.buttons) {
                 Box(modifier = GlanceModifier.padding(start = (button.rect.left / density).dp, top = (button.rect.top / density).dp)) {
-                    Box(modifier = GlanceModifier.size((button.rect.width() / density).dp, (button.rect.height() / density).dp).clickable(action(context, button.action, button.arg))) {}
+                    Box(modifier = GlanceModifier.size((button.rect.width() / density).dp, (button.rect.height() / density).dp).clickable(WidgetActions.action(context, button.action, button.arg))) {}
                 }
             }
         }
     }
 
-    /** Links open http(s) pages; everything else opens the app (counters, stopwatch and tiles come in A3). */
-    private fun action(context: Context, action: String, arg: String?): Action {
-        if (action == "open.url" && arg != null && (arg.startsWith("https://") || arg.startsWith("http://"))) {
-            return actionStartActivity(Intent(Intent.ACTION_VIEW, Uri.parse(arg)))
+    @Composable
+    private fun Message(context: Context, appWidgetId: Int, text: String, intent: Intent? = null) {
+        Box(
+            modifier = GlanceModifier.fillMaxSize().appWidgetBackground().background(ColorProvider(R.color.widget_empty))
+                .clickable(actionStartActivity(intent ?: ConfigureActivity.intent(context, appWidgetId))),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(text, modifier = GlanceModifier.padding(12.dp), style = TextStyle(color = ColorProvider(R.color.widget_empty_text), textAlign = TextAlign.Center))
         }
-        return actionStartActivity(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
-    private fun configureIntent(context: Context, appWidgetId: Int) = Intent(context, ConfigureActivity::class.java)
-        .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    private fun gapText(language: String, gap: DataGap): String {
+        val ar = language == "ar"
+        return when (gap) {
+            DataGap.NO_LOCATION -> if (ar) "اسمح بالموقع في ستوديو الويدجت لعرض الطقس والصلاة" else "Allow location in Widget Studio for weather and prayer times"
+            DataGap.NO_WEATHER -> if (ar) "لا توجد بيانات طقس بعد. افتح التطبيق مع الاتصال بالإنترنت" else "No weather yet. Open the app while online"
+            DataGap.NO_HEALTH -> if (ar) "اسمح بالوصول إلى Health Connect لعرض الخطوات والنوم" else "Allow Health Connect to show steps and sleep"
+            DataGap.NO_BATTERY -> if (ar) "تعذّرت قراءة البطارية" else "Battery level unavailable"
+        }
+    }
+}
 
-    private fun batteryLevel(context: Context): Double? {
-        val manager = context.getSystemService(BatteryManager::class.java) ?: return null
-        val percent = manager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-        return if (percent in 0..100) percent / 100.0 else null
+/** Button layers in the widget (ADR-016 on iOS): counter and stopwatch act in place; tiles toggle the torch or open a system panel. */
+object WidgetActions {
+    fun action(context: Context, action: String, arg: String?): Action = when (action) {
+        "counter.increment" -> actionRunCallback<CounterIncrement>()
+        "counter.reset" -> actionRunCallback<CounterReset>()
+        "counter.next" -> actionRunCallback<CounterNext>()
+        "stopwatch.toggle" -> actionRunCallback<StopwatchToggle>()
+        "open.url" -> if (arg != null && (arg.startsWith("https://") || arg.startsWith("http://"))) actionStartActivity(Intent(Intent.ACTION_VIEW, Uri.parse(arg)))
+            else actionStartActivity(MainActivity.intent(context, null))
+        "shortcut.run" -> tile(context, arg ?: "")
+        else -> actionStartActivity(MainActivity.intent(context, null))
+    }
+
+    /** What a tile named like the iOS Shortcut does on Android (TileSetup.forName). */
+    enum class Tile { WIFI, TORCH, APPEARANCE, BLUETOOTH, AIRPLANE, LOW_POWER, CELLULAR, ORIENTATION, SILENT, QR, CAMERA, CUSTOM }
+
+    fun tileKind(name: String): Tile {
+        val key = name.lowercase().filter { it.isLetterOrDigit() }
+        fun has(vararg words: String) = words.any { key.contains(it) }
+        return when {
+            has("wifi", "wlan", "واي") -> Tile.WIFI
+            has("torch", "flash", "كشاف", "فلاش") -> Tile.TORCH
+            has("dark", "appearance", "داكن", "ليلي", "مظهر") -> Tile.APPEARANCE
+            has("bluetooth", "بلوتوث") -> Tile.BLUETOOTH
+            has("airplane", "aeroplane", "flight", "طيران") -> Tile.AIRPLANE
+            has("lowpower", "battery", "توفير", "طاقة") -> Tile.LOW_POWER
+            has("cellular", "mobiledata", "data", "بيانات") -> Tile.CELLULAR
+            has("rotation", "orientation", "rotate", "تدوير") -> Tile.ORIENTATION
+            has("mute", "silent", "silence", "صامت", "كتم") -> Tile.SILENT
+            has("qr", "barcode", "باركود") -> Tile.QR
+            has("camera", "كاميرا") -> Tile.CAMERA
+            else -> Tile.CUSTOM
+        }
+    }
+
+    /** Android doesn't let apps toggle Wi-Fi, Bluetooth, dark mode and the like: they open the matching panel or settings page. */
+    fun tileIntent(context: Context, kind: Tile): Intent {
+        val panel = Build.VERSION.SDK_INT >= 29
+        val intent = when (kind) {
+            Tile.WIFI -> Intent(if (panel) Settings.Panel.ACTION_WIFI else Settings.ACTION_WIFI_SETTINGS)
+            Tile.BLUETOOTH -> Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
+            Tile.APPEARANCE, Tile.ORIENTATION -> Intent(Settings.ACTION_DISPLAY_SETTINGS)
+            Tile.AIRPLANE -> Intent(Settings.ACTION_AIRPLANE_MODE_SETTINGS)
+            Tile.LOW_POWER -> Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS)
+            Tile.CELLULAR -> Intent(if (panel) Settings.Panel.ACTION_INTERNET_CONNECTIVITY else Settings.ACTION_DATA_ROAMING_SETTINGS)
+            Tile.SILENT -> Intent(if (panel) Settings.Panel.ACTION_VOLUME else Settings.ACTION_SOUND_SETTINGS)
+            Tile.QR, Tile.CAMERA -> Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)
+            Tile.TORCH, Tile.CUSTOM -> MainActivity.intent(context, null)
+        }
+        return intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+
+    private fun tile(context: Context, name: String): Action {
+        val kind = tileKind(name)
+        return if (kind == Tile.TORCH) actionRunCallback<TorchToggle>() else actionStartActivity(tileIntent(context, kind))
+    }
+}
+
+class CounterIncrement : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        val live = WidgetEnvironment.live(context)
+        live.counter = live.counter.increment(live.settings.dhikrs)
+        Widgets.updateAll(context)
+    }
+}
+
+class CounterReset : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        val live = WidgetEnvironment.live(context)
+        live.counter = live.counter.reset(live.settings.dhikrs)
+        Widgets.updateAll(context)
+    }
+}
+
+class CounterNext : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        val live = WidgetEnvironment.live(context)
+        live.counter = live.counter.next(live.settings.dhikrs)
+        Widgets.updateAll(context)
+    }
+}
+
+class StopwatchToggle : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        val live = WidgetEnvironment.live(context)
+        live.stopwatchStart = if (live.stopwatchStart == null) System.currentTimeMillis() else null
+        Widgets.updateAll(context)
+        MinuteTicker.schedule(context)
+    }
+}
+
+/** The torch toggles directly (CameraManager); its state is remembered between taps. */
+class TorchToggle : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        Torch.toggle(context)
+    }
+}
+
+object Torch {
+    fun toggle(context: Context): Boolean {
+        val manager = context.getSystemService(CameraManager::class.java) ?: return false
+        val camera = manager.cameraIdList.firstOrNull { id ->
+            manager.getCameraCharacteristics(id).get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+        } ?: return false
+        val prefs = context.getSharedPreferences("live", Context.MODE_PRIVATE)
+        val on = !prefs.getBoolean("torch", false)
+        return runCatching { manager.setTorchMode(camera, on) }.isSuccess.also { if (it) prefs.edit().putBoolean("torch", on).apply() }
     }
 }
 
@@ -152,6 +289,7 @@ class SpecWidgetReceiver : GlanceAppWidgetReceiver() {
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
         MinuteTicker.schedule(context)
+        com.khaled.widgetstudio.data.RefreshWorker.schedule(context)
     }
 
     override fun onDisabled(context: Context) {
@@ -159,7 +297,6 @@ class SpecWidgetReceiver : GlanceAppWidgetReceiver() {
         MinuteTicker.cancel(context)
     }
 
-    // Also after a reboot, when the launcher asks for updates again.
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         super.onUpdate(context, appWidgetManager, appWidgetIds)
         MinuteTicker.schedule(context)
@@ -173,9 +310,9 @@ class SpecWidgetReceiver : GlanceAppWidgetReceiver() {
 }
 
 /**
- * Clocks and dates re-render once a minute (ADR-025): a windowed alarm at the start of each
- * minute updates every placed widget. TextClock/Chronometer format digits with the phone's locale
- * (Arabic-Indic on ar-EG), which the dot font can't draw, so A1 keeps time in the bitmap.
+ * Clocks, dates, countdowns and the stopwatch re-render once a minute (ADR-025): a windowed alarm
+ * at the start of each minute. TextClock/Chronometer would format digits with the phone's locale
+ * (Arabic-Indic on ar-EG), which the dot font can't draw.
  */
 object MinuteTicker {
     private const val ACTION = "com.khaled.widgetstudio.TICK"
@@ -204,7 +341,7 @@ class TickReceiver : BroadcastReceiver() {
         val pending = goAsync()
         CoroutineScope(Dispatchers.Default).launch {
             try {
-                SpecGlanceWidget().updateAll(context)
+                Widgets.updateAll(context)
             } finally {
                 MinuteTicker.schedule(context)
                 pending.finish()

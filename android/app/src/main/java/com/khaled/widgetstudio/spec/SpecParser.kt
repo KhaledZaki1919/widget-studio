@@ -69,7 +69,7 @@ object SpecParser {
                 o.str("align"), o.int("maxLines"), o.num("tracking"), live?.str("kind"), live?.str("target"),
             )
         }
-        "image" -> LayerContent.Image(o.str("source") ?: "user_image", o.str("fit"), o.str("mask"), o.num("cornerRadius"))
+        "image" -> LayerContent.Image(o.str("source") ?: "user_image", o.str("fit"), o.str("mask"), o.num("cornerRadius"), o.str("filter"))
         "shape" -> LayerContent.Shape(
             o.str("kind") ?: "rect", o.str("fill"),
             o.obj("stroke")?.let { Stroke(it.str("color") ?: "#FFFFFF", it.num("width") ?: 1.0, it.arr("dash")?.mapNotNull { d -> d.jsonPrimitive.doubleOrNull }) },

@@ -8,4 +8,5 @@
     <string name="library_title">المكتبة</string>
     <string name="library_add_hint">لإضافة ويدجت: اضغط مطولًا على الشاشة الرئيسية ← الأدوات ← ستوديو الويدجت، ثم اختر قالبًا. غيّر حجمه كما تريد.</string>
     <string name="configure_title">اختر تصميمًا للويدجت</string>
+    <string name="widget_missing">اختفى هذا التصميم. اضغط لاختيار غيره.</string>
 </resources>

@@ -1,0 +1,457 @@
+package com.khaled.widgetstudio.design
+
+import com.khaled.widgetstudio.render.Drawing
+import com.khaled.widgetstudio.spec.Bindings
+import com.khaled.widgetstudio.spec.Family
+import com.khaled.widgetstudio.spec.Frame
+import com.khaled.widgetstudio.spec.Layer
+import com.khaled.widgetstudio.spec.LayerContent
+import com.khaled.widgetstudio.spec.LText
+import com.khaled.widgetstudio.spec.SpecCondition
+import com.khaled.widgetstudio.spec.SpecTokens
+import com.khaled.widgetstudio.spec.WidgetSpec
+import java.time.ZoneId
+
+/** The icon whitelist from Icons.swift (assets/spec/icons.json), loaded once at startup. */
+object IconWhitelist {
+    @Volatile var names: Map<String, String> = emptyMap()
+    fun isAllowed(symbol: String) = names.containsKey(symbol)
+}
+
+/** Binding names and what they yield (Bindings.swift catalog). */
+object BindingCatalog {
+    enum class Kind { TEXT, NUMBER, LEVELS, DATE, SYMBOL }
+
+    val catalog: Map<String, Pair<Kind, String>> = mapOf(
+        "time.h" to (Kind.TEXT to "time"), "time.hh" to (Kind.TEXT to "time"), "time.mm" to (Kind.TEXT to "time"),
+        "time.ampm" to (Kind.TEXT to "time"), "date.d" to (Kind.TEXT to "time"), "date.EEEE" to (Kind.TEXT to "time"),
+        "date.MMM" to (Kind.TEXT to "time"), "tz.offset" to (Kind.TEXT to "time"),
+        "weather.temp" to (Kind.NUMBER to "weather"), "weather.hi" to (Kind.NUMBER to "weather"), "weather.lo" to (Kind.NUMBER to "weather"),
+        "weather.cond" to (Kind.TEXT to "weather"), "weather.symbol" to (Kind.SYMBOL to "weather"), "weather.city" to (Kind.TEXT to "weather"),
+        "steps.today" to (Kind.NUMBER to "health"), "steps.streak" to (Kind.NUMBER to "health"), "steps.monthGrid" to (Kind.LEVELS to "health"),
+        "steps.month" to (Kind.NUMBER to "health"), "sleep.lastNight" to (Kind.TEXT to "health"), "sleep.week" to (Kind.LEVELS to "health"),
+        "counter.value" to (Kind.NUMBER to "app"), "stopwatch.running" to (Kind.TEXT to "app"), "stopwatch.start" to (Kind.DATE to "app"),
+        "counter.progress" to (Kind.NUMBER to "app"), "counter.dhikr" to (Kind.TEXT to "app"),
+        "focus.today" to (Kind.TEXT to "app"), "focus.week" to (Kind.LEVELS to "app"),
+        "prayer.next.name" to (Kind.TEXT to "prayer"), "prayer.next.time" to (Kind.DATE to "prayer"), "prayer.next.key" to (Kind.TEXT to "prayer"),
+        "prayer.fajr" to (Kind.DATE to "prayer"), "prayer.dhuhr" to (Kind.DATE to "prayer"), "prayer.asr" to (Kind.DATE to "prayer"),
+        "prayer.maghrib" to (Kind.DATE to "prayer"), "prayer.isha" to (Kind.DATE to "prayer"), "qibla.bearing" to (Kind.NUMBER to "prayer"),
+        "location.lat" to (Kind.NUMBER to "location"), "location.lon" to (Kind.NUMBER to "location"), "location.alt" to (Kind.NUMBER to "location"),
+        "battery.level" to (Kind.NUMBER to "device"),
+    )
+
+    fun isValidKey(key: String) = key.isNotEmpty() && key[0].isLetter() && key.all { it.code < 128 && (it.isLetterOrDigit() || it == '_') }
+
+    sealed class Name {
+        data class Builtin(val name: String) : Name()
+        data class Field(val key: String) : Name()
+        data class TimezoneTime(val key: String) : Name()
+        data class DaysUntil(val key: String) : Name()
+    }
+
+    fun parse(raw: String): Name? {
+        val name = raw.trim()
+        return when {
+            name.startsWith("field.") -> name.removePrefix("field.").takeIf(::isValidKey)?.let { Name.Field(it) }
+            name.startsWith("days.") -> name.removePrefix("days.").takeIf(::isValidKey)?.let { Name.DaysUntil(it) }
+            name.startsWith("tz.") && name.endsWith(".time") && name.length > "tz..time".length ->
+                name.drop(3).dropLast(5).takeIf(::isValidKey)?.let { Name.TimezoneTime(it) }
+            catalog.containsKey(name) -> Name.Builtin(name)
+            else -> null
+        }
+    }
+
+    /** Bindings AI output may use: time, weather, battery, prayer (not next.key), steps, fields, days. */
+    fun allowedInAI(name: Name): Boolean = when (name) {
+        is Name.Builtin -> when (catalog[name.name]?.second) {
+            "time", "weather", "device" -> true
+            "prayer" -> name.name != "prayer.next.key"
+            "health" -> name.name.startsWith("steps.")
+            else -> false
+        }
+        is Name.Field, is Name.DaysUntil -> true
+        is Name.TimezoneTime -> false
+    }
+}
+
+/** The overlap rules shared by the AI validator, the layout fix and the layer editor (SpecLayout.swift). */
+object SpecLayout {
+    private const val OVERLAP_SHARE = 0.2
+
+    fun collide(a: Frame, b: Frame): Boolean {
+        val width = minOf(a.x + a.w, b.x + b.w) - maxOf(a.x, b.x)
+        val height = minOf(a.y + a.h, b.y + b.h) - maxOf(a.y, b.y)
+        if (width <= 0 || height <= 0) return false
+        return width * height > OVERLAP_SHARE * minOf(a.w * a.h, b.w * b.h)
+    }
+
+    fun showsText(layer: Layer): Boolean = layer.flattened.any {
+        it.content is LayerContent.Text || it.content is LayerContent.ListL || it.content is LayerContent.CalendarMonth || it.content is LayerContent.ForecastRow
+    }
+
+    private fun texts(layers: List<Layer>) = layers.indices.filter { showsText(layers[it]) && layers[it].condition == null }
+
+    fun textOverlaps(layers: List<Layer>): List<Pair<Int, Int>> {
+        val texts = texts(layers)
+        return texts.flatMapIndexed { position, first -> texts.drop(position + 1).filter { collide(layers[first].frame, layers[it].frame) }.map { first to it } }
+    }
+
+    fun iconOverlaps(layers: List<Layer>): List<Pair<Int, Int>> {
+        val icons = layers.indices.filter { layers[it].content is LayerContent.Icon && layers[it].condition == null }
+        val texts = texts(layers)
+        return icons.flatMap { icon -> texts.filter { collide(layers[icon].frame, layers[it].frame) }.map { icon to it } }
+    }
+
+    fun hidesWhatIsUnder(layer: Layer): Boolean = when (val c = layer.content) {
+        is LayerContent.Shape -> c.fill?.let { fill -> Drawing.parseHex(fill)?.let { (it ushr 24) >= 128 } ?: true } ?: false
+        is LayerContent.Image, is LayerContent.AnalogClock, is LayerContent.ProgressBar -> true
+        else -> false
+    }
+
+    fun share(inner: Frame, outer: Frame): Double {
+        val width = minOf(inner.x + inner.w, outer.x + outer.w) - maxOf(inner.x, outer.x)
+        val height = minOf(inner.y + inner.h, outer.y + outer.h) - maxOf(inner.y, outer.y)
+        if (width <= 0 || height <= 0 || inner.w <= 0 || inner.h <= 0) return 0.0
+        return width * height / (inner.w * inner.h)
+    }
+
+    /** (cover, text): a filled shape drawn after a text hides more than half of it. */
+    fun coveredTexts(layers: List<Layer>): List<Pair<Int, Int>> = texts(layers).flatMap { text ->
+        layers.indices.filter { cover ->
+            cover > text && layers[cover].condition == null && hidesWhatIsUnder(layers[cover]) && share(layers[text].frame, layers[cover].frame) > 0.5
+        }.map { it to text }
+    }
+
+    fun overlapping(layers: List<Layer>): Set<Int> = (textOverlaps(layers) + iconOverlaps(layers) + coveredTexts(layers)).flatMap { listOf(it.first, it.second) }.toSet()
+
+    /** The smallest shape or ring under the layer holding ≥ 80 % of it, smaller than half the widget. */
+    fun container(index: Int, layers: List<Layer>, family: Family): Int? {
+        if (index !in layers.indices) return null
+        val frame = layers[index].frame
+        val limit = 0.5 * family.width * family.height
+        return layers.indices.filter { candidate ->
+            candidate < index && layers[candidate].condition == null &&
+                (layers[candidate].content is LayerContent.Shape || layers[candidate].content is LayerContent.Ring) &&
+                layers[candidate].frame.w * layers[candidate].frame.h < limit && share(frame, layers[candidate].frame) >= 0.8
+        }.minByOrNull { layers[it].frame.w * layers[it].frame.h }
+    }
+}
+
+/**
+ * Validation rules of brief §4.6 (SpecValidator.swift), with the same messages, since the AI retry
+ * sends them back to the model. [ai] adds the AI-mode rules; [checksTextOverlaps] the overlap rule.
+ */
+class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boolean = true) {
+    companion object {
+        const val MAX_LAYERS = 30
+        const val MAX_TOTAL_LAYERS = 60
+        const val MAX_STACK_DEPTH = 3
+        const val MAX_CHILDREN = 12
+        const val MAX_TEXT_LENGTH = 200
+        val FONT_SIZES = 6.0..200.0
+        const val MIN_AI_FONT_SIZE = 11.0
+        val families = listOf("system", "system-rounded", "system-serif", "system-mono", "dot", "arabic", "hand", "serif-display", "condensed")
+        val aiFieldTypes = setOf("text", "date", "image")
+        val weekdayKeys = listOf("sun", "mon", "tue", "wed", "thu", "fri", "sat")
+
+        fun isValidId(id: String) = id.isNotEmpty() && id.length <= 64 && id.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' || it == '.' || it == '-' || it == '_' }
+    }
+
+    private lateinit var spec: WidgetSpec
+    private val issues = mutableListOf<String>()
+
+    /** Every issue as "path: message"; empty when the spec is valid. */
+    fun validate(spec: WidgetSpec): List<String> {
+        this.spec = spec
+        issues.clear()
+        if (spec.schemaVersion != 1) fail("schemaVersion", "must be 1")
+        if (!isValidId(spec.id)) fail("id", "use letters, digits, dots, dashes or underscores (max 64)")
+        if (spec.name is LText.Plain) fail("name", "needs both \"en\" and \"ar\"")
+        spec.name.allValues.forEach { text("name", it, allowBindings = false) }
+        checkBackground()
+        checkFields()
+        if (spec.layers.isEmpty()) fail("layers", "needs at least one layer")
+        if (spec.layers.size > MAX_LAYERS) fail("layers", "at most $MAX_LAYERS layers")
+        if (spec.layers.sumOf { it.flattened.size } > MAX_TOTAL_LAYERS) fail("layers", "at most $MAX_TOTAL_LAYERS layers counting the children of stacks")
+        spec.layers.forEachIndexed { index, layer -> checkLayer(layer, "layers[$index]", 0) }
+        if (ai && checksTextOverlaps) {
+            val drawn = spec.layers.map { it.copy(frame = clamped(it.frame, spec.family)) }
+            for ((first, second) in SpecLayout.textOverlaps(drawn)) {
+                fail("layers[$second]", "its text overlaps layers[$first]; put texts that belong together in one stack, or move the frames apart")
+            }
+        }
+        return issues.toList()
+    }
+
+    fun clamped(frame: Frame, family: Family): Frame {
+        val w = frame.w.coerceIn(0.0, family.width)
+        val h = frame.h.coerceIn(0.0, family.height)
+        return Frame(frame.x.coerceIn(0.0, family.width - w), frame.y.coerceIn(0.0, family.height - h), w, h)
+    }
+
+    private fun fail(path: String, message: String) {
+        issues += if (path.isEmpty()) message else "$path: $message"
+    }
+
+    private fun color(path: String, value: String?) {
+        if (value == null) return
+        val token = value.startsWith("@") && SpecTokens.names.contains(value.drop(1))
+        if (Drawing.parseHex(value) == null && !token) fail(path, "color must be #RRGGBB, #RRGGBBAA or a token (@${SpecTokens.names.joinToString(", @")})")
+    }
+
+    private fun format(value: Double) = if (value == Math.rint(value)) value.toLong().toString() else value.toString()
+
+    private fun number(path: String, value: Double?, range: ClosedFloatingPointRange<Double>) {
+        if (value == null) return
+        if (!value.isFinite() || value !in range) fail(path, "must be between ${format(range.start)} and ${format(range.endInclusive)}")
+    }
+
+    private fun count(path: String, value: Int, range: IntRange) {
+        if (value !in range) fail(path, "must be between ${range.first} and ${range.last}")
+    }
+
+    private fun text(path: String, value: String, allowBindings: Boolean = true, kinds: Set<BindingCatalog.Kind>? = null) {
+        if (value.length > MAX_TEXT_LENGTH) fail(path, "at most $MAX_TEXT_LENGTH characters")
+        if (DesignEditing.containsUrl(value)) fail(path, "remote URLs are not allowed in specs")
+        val names = Bindings.tokenize(value).filterIsInstance<Bindings.Token.Binding>().map { it.name }
+        if (!allowBindings && names.isNotEmpty()) {
+            fail(path, "bindings are not allowed here")
+            return
+        }
+        names.forEach { binding(path, it, kinds) }
+    }
+
+    private fun binding(path: String, raw: String, kinds: Set<BindingCatalog.Kind>?) {
+        val name = BindingCatalog.parse(raw) ?: return fail(path, "unknown binding {{$raw}}")
+        if (ai && !BindingCatalog.allowedInAI(name)) return fail(path, "binding {{$raw}} is not allowed in AI output")
+        val kind: BindingCatalog.Kind = when (name) {
+            is BindingCatalog.Name.Builtin -> {
+                if (raw.trim() == "counter.progress" && spec.field("target")?.type != "number") fail(path, "{{counter.progress}} needs a number field with key \"target\"")
+                BindingCatalog.catalog[name.name]?.first ?: BindingCatalog.Kind.TEXT
+            }
+            is BindingCatalog.Name.TimezoneTime -> {
+                val field = spec.field(name.key) ?: return fail(path, "{{$raw}} refers to a missing field")
+                if (field.type != "timezone") fail(path, "{{$raw}} needs a timezone field")
+                BindingCatalog.Kind.TEXT
+            }
+            is BindingCatalog.Name.DaysUntil -> {
+                val field = spec.field(name.key) ?: return fail(path, "{{$raw}} refers to a missing field")
+                if (field.type != "date") fail(path, "{{$raw}} needs a date field")
+                BindingCatalog.Kind.NUMBER
+            }
+            is BindingCatalog.Name.Field -> {
+                val field = spec.field(name.key) ?: return fail(path, "{{$raw}} refers to a missing field")
+                if (ai && field.type != "text" && field.type != "date") fail(path, "AI output may only bind text and date fields")
+                when (field.type) {
+                    "date" -> BindingCatalog.Kind.DATE
+                    "number" -> BindingCatalog.Kind.NUMBER
+                    "icon" -> BindingCatalog.Kind.SYMBOL
+                    else -> BindingCatalog.Kind.TEXT
+                }
+            }
+        }
+        if (kinds != null && kind !in kinds) fail(path, "{{$raw}} doesn't give the right kind of value here")
+    }
+
+    private fun bindingOrLiteral(path: String, value: String, kinds: Set<BindingCatalog.Kind>, literal: (String) -> Boolean) {
+        val raw = Bindings.soleBinding(value)
+        if (raw != null) binding(path, raw, kinds) else if (!literal(value)) fail(path, "must be a binding like {{…}} or a valid literal")
+    }
+
+    private fun checkBackground() {
+        val b = spec.background
+        when (b.type) {
+            "solid" -> {
+                if (b.color == null) fail("background.color", "required for a solid background")
+                color("background.color", b.color)
+            }
+            "gradient" -> {
+                val colors = b.colors ?: emptyList()
+                if (colors.size !in 2..4) fail("background.colors", "a gradient needs 2 to 4 colors")
+                colors.forEachIndexed { index, value -> color("background.colors[$index]", value) }
+                number("background.angle", b.angle, -360.0..360.0)
+            }
+            "glass" -> color("background.color", b.color)
+            else -> fail("background.type", "unknown value")
+        }
+        color("background.outerColor", b.outerColor)
+    }
+
+    private fun checkFields() {
+        val keys = mutableSetOf<String>()
+        spec.fields.forEachIndexed { index, field ->
+            val path = "fields[$index]"
+            if (!BindingCatalog.isValidKey(field.key)) fail("$path.key", "letters, digits and underscores, starting with a letter")
+            if (!keys.add(field.key)) fail("$path.key", "duplicate key \"${field.key}\"")
+            if (ai && field.type !in aiFieldTypes) fail("$path.type", "AI output may only use text and image fields")
+            field.label.allValues.forEach { text("$path.label", it, allowBindings = false) }
+            field.default?.allValues?.forEach { value ->
+                val p = "$path.default"
+                if (value.length > MAX_TEXT_LENGTH) fail(p, "at most $MAX_TEXT_LENGTH characters")
+                when (field.type) {
+                    "date" -> if (parseDate(value) == null) fail(p, "must be an ISO 8601 date")
+                    "number" -> if (value.toDoubleOrNull() == null) fail(p, "must be a number")
+                    "color" -> color(p, value)
+                    "timezone" -> if (value.isNotEmpty() && runCatching { ZoneId.of(value) }.isFailure) fail(p, "unknown time zone")
+                    "url" -> if (value.isNotEmpty()) fail(p, "URL fields can't have a default")
+                    "icon" -> if (!IconWhitelist.isAllowed(value)) fail(p, "\"$value\" is not in the icon whitelist")
+                    else -> if (DesignEditing.containsUrl(value)) fail(p, "remote URLs are not allowed in specs")
+                }
+            }
+        }
+    }
+
+    private fun parseDate(value: String): Any? = runCatching { java.time.Instant.parse(value) }.getOrNull()
+        ?: runCatching { java.time.LocalDateTime.parse(value) }.getOrNull()
+        ?: runCatching { java.time.LocalDate.parse(value) }.getOrNull()
+        ?: runCatching { java.time.OffsetDateTime.parse(value) }.getOrNull()
+
+    private fun font(font: com.khaled.widgetstudio.spec.FontSpec, path: String) {
+        if (font.family !in families) fail("$path.family", "unknown font \"${font.family}\"; use ${families.joinToString(", ")}")
+        number("$path.size", font.size, FONT_SIZES)
+        if (ai && font.size < MIN_AI_FONT_SIZE) fail("$path.size", "at least ${MIN_AI_FONT_SIZE.toInt()}")
+    }
+
+    private fun checkLayer(layer: Layer, path: String, depth: Int) {
+        val f = layer.frame
+        if (depth == 0 && (listOf(f.x, f.y, f.w, f.h).any { !it.isFinite() } || f.w <= 0 || f.h <= 0)) fail("$path.frame", "w and h must be positive numbers")
+        number("$path.opacity", layer.opacity, 0.0..1.0)
+        layer.condition?.let { condition ->
+            val parsed = SpecCondition.parse(condition)
+            if (parsed == null) fail("$path.when", "use \"{{binding}}\", \"!{{binding}}\" or \"{{binding}} == value\"") else binding("$path.when", parsed.binding, null)
+        }
+        layer.rotation?.let { rotation -> bindingOrLiteral("$path.rotation", rotation, setOf(BindingCatalog.Kind.NUMBER)) { v -> v.toDoubleOrNull()?.let { it in -360.0..360.0 } ?: false } }
+        val number1 = setOf(BindingCatalog.Kind.NUMBER)
+        val fraction: (String) -> Boolean = { v -> v.toDoubleOrNull()?.let { it in 0.0..1.0 } ?: false }
+        when (val c = layer.content) {
+            is LayerContent.Unknown -> fail("$path.type", "unknown layer type \"${c.type}\"")
+            is LayerContent.Text -> {
+                c.value.allValues.forEach { text("$path.value", it) }
+                font(c.font, "$path.font")
+                color("$path.color", c.color)
+                c.maxLines?.let { count("$path.maxLines", it, 1..10) }
+                number("$path.tracking", c.tracking, -10.0..40.0)
+                if (c.liveKind == "timer" || c.liveKind == "relative") {
+                    val raw = c.liveTarget?.let(Bindings::soleBinding)
+                    if (raw == null) fail("$path.live.target", "needs a date binding like {{field.date}}") else binding("$path.live.target", raw, setOf(BindingCatalog.Kind.DATE))
+                }
+            }
+            is LayerContent.Image -> {
+                val asset = c.source.startsWith("asset:") && isValidId(c.source.removePrefix("asset:"))
+                if (c.source != "user_image" && !asset) fail("$path.source", "must be \"user_image\" or \"asset:<id>\"")
+                else if (ai && c.source != "user_image") fail("$path.source", "AI output may only use \"user_image\"")
+                number("$path.cornerRadius", c.cornerRadius, 0.0..200.0)
+            }
+            is LayerContent.Shape -> {
+                if (c.fill == null && c.stroke == null) fail(path, "a shape needs a fill or a stroke")
+                color("$path.fill", c.fill)
+                c.stroke?.let { s ->
+                    color("$path.stroke.color", s.color)
+                    number("$path.stroke.width", s.width, 0.0..40.0)
+                    if (s.dash != null && (s.dash.size > 8 || s.dash.any { it !in 0.0..100.0 })) fail("$path.stroke.dash", "up to 8 lengths between 0 and 100")
+                }
+                number("$path.cornerRadius", c.cornerRadius, 0.0..200.0)
+            }
+            is LayerContent.Icon -> {
+                val raw = Bindings.soleBinding(c.symbol)
+                if (raw != null) binding("$path.symbol", raw, setOf(BindingCatalog.Kind.SYMBOL))
+                else if (!IconWhitelist.isAllowed(c.symbol)) fail("$path.symbol", "\"${c.symbol}\" is not in the icon whitelist")
+                number("$path.size", c.size, 4.0..200.0)
+                color("$path.color", c.color)
+            }
+            is LayerContent.AnalogClock -> {
+                listOf("faceColor" to c.faceColor, "tickColor" to c.tickColor, "hourColor" to c.hourColor, "minuteColor" to c.minuteColor, "accentColor" to c.accentColor)
+                    .forEach { (key, value) -> color("$path.$key", value) }
+                c.timezone?.let { zone -> bindingOrLiteral("$path.timezone", zone, setOf(BindingCatalog.Kind.TEXT)) { runCatching { ZoneId.of(it) }.isSuccess } }
+            }
+            is LayerContent.DotGrid -> {
+                count("$path.rows", c.rows, 1..40)
+                count("$path.cols", c.cols, 1..40)
+                if (c.rows * c.cols > 600) fail(path, "at most 600 dots")
+                number("$path.dotSize", c.dotSize, 0.5..60.0)
+                number("$path.gap", c.gap, 0.0..60.0)
+                color("$path.onColor", c.onColor); color("$path.offColor", c.offColor); color("$path.highlightColor", c.highlightColor)
+                bindingOrLiteral("$path.values", c.values, setOf(BindingCatalog.Kind.LEVELS)) { v -> v.filter { it != ' ' }.let { d -> d.isNotEmpty() && d.length <= 600 && d.all { it == '0' || it == '1' } } }
+            }
+            is LayerContent.DotBars -> {
+                count("$path.bars", c.bars, 1..31)
+                count("$path.maxDots", c.maxDots, 1..24)
+                bindingOrLiteral("$path.values", c.values, setOf(BindingCatalog.Kind.LEVELS)) { v -> v.split(",").map { it.trim().toDoubleOrNull() }.let { p -> p.isNotEmpty() && p.size <= 31 && p.all { it != null && it in 0.0..1.0 } } }
+                color("$path.color", c.color); color("$path.offColor", c.offColor); color("$path.highlightColor", c.highlightColor)
+                c.labels?.allValues?.forEach { text("$path.labels", it, kinds = setOf(BindingCatalog.Kind.TEXT)) }
+            }
+            is LayerContent.Ring -> {
+                bindingOrLiteral("$path.progress", c.progress, number1, fraction)
+                color("$path.color", c.color); color("$path.trackColor", c.trackColor)
+                number("$path.lineWidth", c.lineWidth, 0.5..60.0)
+            }
+            is LayerContent.ForecastRow -> {
+                count("$path.days", c.days, 1..7)
+                color("$path.color", c.color)
+            }
+            is LayerContent.CalendarMonth -> {
+                font(c.font, "$path.font"); font(c.effectiveTitleFont, "$path.titleFont"); font(c.effectiveWeekdayFont, "$path.weekdayFont")
+                listOf("color" to c.color, "titleColor" to c.titleColor, "weekdayColor" to c.weekdayColor, "weekendColor" to c.weekendColor,
+                    "todayColor" to c.todayColor, "todayTextColor" to c.todayTextColor).forEach { (key, value) -> color("$path.$key", value) }
+                c.weekendDays?.forEachIndexed { index, day -> if (day.lowercase() !in weekdayKeys) fail("$path.weekendDays[$index]", "use ${weekdayKeys.joinToString(", ")}") }
+            }
+            is LayerContent.ListL -> {
+                count("$path.items", c.items.size, 1..8)
+                font(c.font, "$path.font")
+                listOf("color" to c.color, "detailColor" to c.detailColor, "markerColor" to c.markerColor, "dividerColor" to c.dividerColor).forEach { (key, value) -> color("$path.$key", value) }
+                c.items.forEachIndexed { index, item ->
+                    val p = "$path.items[$index]"
+                    item.title.allValues.forEach { text("$p.title", it) }
+                    item.detail?.allValues?.forEach { text("$p.detail", it) }
+                    if (item.icon != null && !IconWhitelist.isAllowed(item.icon)) fail("$p.icon", "\"${item.icon}\" is not in the icon whitelist")
+                    color("$p.color", item.color)
+                }
+            }
+            is LayerContent.ProgressBar -> {
+                bindingOrLiteral("$path.progress", c.progress, number1, fraction)
+                color("$path.color", c.color); color("$path.trackColor", c.trackColor)
+                c.segments?.let { count("$path.segments", it, 1..20) }
+                number("$path.cornerRadius", c.cornerRadius, 0.0..200.0)
+            }
+            is LayerContent.Button -> {
+                if (ai && c.action != "open.app") return fail("$path.action", "only open.app is allowed in AI output")
+                when (c.action) {
+                    "open.url", "shortcut.run" -> {
+                        val required = if (c.action == "open.url") "url" else "shortcut"
+                        val raw = c.arg?.let(Bindings::soleBinding)
+                        val key = (raw?.let(BindingCatalog::parse) as? BindingCatalog.Name.Field)?.key
+                        if (key == null || spec.field(key)?.type != required) fail("$path.arg", "must be {{field.<key>}} of a $required field")
+                    }
+                    "counter.increment", "counter.reset", "counter.next", "stopwatch.toggle", "open.app" -> c.arg?.takeIf { it.isNotEmpty() }?.let { text("$path.arg", it) }
+                    else -> fail("$path.action", "unknown value")
+                }
+            }
+            is LayerContent.Stack -> checkStack(c, path, depth + 1)
+            is LayerContent.Spacer -> {
+                if (depth == 0) fail("$path.type", "a spacer only goes inside a vertical or horizontal stack")
+                number("$path.minLength", c.minLength, 0.0..200.0)
+            }
+        }
+    }
+
+    private fun checkStack(stack: LayerContent.Stack, path: String, depth: Int) {
+        if (depth > MAX_STACK_DEPTH) fail(path, "stacks nest at most $MAX_STACK_DEPTH deep")
+        count("$path.children", stack.children.size, 1..MAX_CHILDREN)
+        number("$path.spacing", stack.spacing, 0.0..100.0)
+        number("$path.padding", stack.padding, 0.0..100.0)
+        if (stack.axis == "grid") count("$path.columns", stack.columns ?: 2, 1..8) else if (stack.columns != null) fail("$path.columns", "only grids have columns")
+        stack.children.forEachIndexed { index, child ->
+            val p = "$path.children[$index]"
+            val size = child.frame
+            if (!size.w.isFinite() || !size.h.isFinite() || size.w < 0 || size.h < 0) fail(p, "width and height must be positive numbers or absent")
+            when (child.content) {
+                is LayerContent.Text, is LayerContent.Icon, is LayerContent.Stack -> Unit
+                is LayerContent.Spacer -> if (stack.axis == "grid") fail(p, "grids can't hold spacers")
+                is LayerContent.Shape, is LayerContent.Ring, is LayerContent.ProgressBar, is LayerContent.AnalogClock ->
+                    if (if (stack.axis == "horizontal") size.w <= 0 else size.h <= 0) fail(p, if (stack.axis == "horizontal") "needs a width inside a horizontal stack" else "needs a height inside this stack")
+                else -> fail("$p.type", "\"${com.khaled.widgetstudio.spec.SpecWriter.typeName(child.content)}\" can't go in a stack; give it its own frame")
+            }
+            checkLayer(child, p, depth)
+        }
+    }
+}

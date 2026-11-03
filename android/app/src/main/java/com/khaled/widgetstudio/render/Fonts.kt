@@ -92,7 +92,7 @@ class Icons(assets: AssetManager) {
     private val map: Map<String, String> = runCatching {
         val json = JSONObject(assets.open("spec/icons.json").bufferedReader().readText())
         json.keys().asSequence().associateWith { json.getString(it) }
-    }.getOrDefault(emptyMap())
+    }.getOrDefault(emptyMap()).also { com.khaled.widgetstudio.design.IconWhitelist.names = it }
 
     fun isAllowed(symbol: String) = map.containsKey(symbol)
     fun material(symbol: String): String = map[symbol] ?: "help"

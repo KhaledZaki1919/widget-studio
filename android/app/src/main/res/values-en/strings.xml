@@ -7,4 +7,5 @@
     <string name="library_title">Library</string>
     <string name="library_add_hint">To add a widget: long-press the home screen → Widgets → Widget Studio, then pick a template. Resize it as you like.</string>
     <string name="configure_title">Choose a design for the widget</string>
+    <string name="widget_missing">This design is gone. Tap to choose another.</string>
 </resources>

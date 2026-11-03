@@ -91,7 +91,8 @@ sealed class LayerContent {
         val tracking: Double?, val liveKind: String?, val liveTarget: String?,
     ) : LayerContent()
 
-    data class Image(val source: String, val fit: String?, val mask: String?, val cornerRadius: Double?) : LayerContent()
+    /** `filter` (none, mono, halftone) is applied once when the photo is saved, never in the widget. */
+    data class Image(val source: String, val fit: String?, val mask: String?, val cornerRadius: Double?, val filter: String? = null) : LayerContent()
 
     data class Shape(val kind: String, val fill: String?, val stroke: Stroke?, val cornerRadius: Double?, val glass: Boolean?) : LayerContent()
 
