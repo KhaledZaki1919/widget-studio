@@ -563,3 +563,10 @@ Picked side-by-sides are in `docs/ai-eval/results/` (left: the drawn original, r
   - Widgets are always rounded rectangles, so a circle or capsule card is drawn inside the widget (`Background.cardShape`, with `outerColor: @outer`). The wallpaper color goes to the editable `outer` color (Editor → Outside the card).
   - A floating design gets `background: @bg` with the wallpaper color as `bg`.
 - **Prompt v4 (updated in place, as the owner asked):** the image may show the widget on a home screen; design only the card's content; the background is the card's fill or glass, never the wallpaper; never draw the outer corners, border or shadow; report `card.shape`; keep content inside circle and capsule cards; recreate the main widget when several are shown.
+- **AI eval** (3 runs; the six drawn cases):
+  - **Run 1** (`gemini-3.5-flash`, crop off and on): crop off 6/6; the model already designed only the weather card on the busy wallpaper and reported `circle` and `capsule` correctly. Crop on 7/9: the gallery split into four (one hit the daily quota); the capsule request got a busy error.
+  - **Run 2** (`gemini-3.8-flash`, crop on): 0/7, every request busy or rate-limited at Google.
+  - **Run 3** (OpenRouter `nvidia/nemotron-3.5-super-vl:free`, both modes): crop off 5/6, crop on 9/10, with circle and capsule cards and four gallery widgets.
+  - Run 3 also found three detection problems: a phantom square around the circle, half a pill, and an icon column taken as a card. Fixed afterwards: the edge check, box refinement (rectangle and saliency boxes only), saliency boxes needing solid corners, and the crop preselecting the biggest detection. They are verified by the package tests at full, 1024 and 700 px, not by a further eval run.
+  - The models still call the floating design `card` instead of `none`; its background still comes out as the wallpaper color.
+- **Results kept:** `docs/ai-eval/results/adr24-detect-*.png` (detection outlines on all six drawings); `adr24-wallpaper-crop-off/on.png`, `adr24-circle-crop-on.png`, `adr24-gallery-4-crop-on.png`, `adr24-floating-crop-on.png`.
