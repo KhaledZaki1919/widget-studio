@@ -53,9 +53,12 @@ public enum WidgetDetector {
         guard let pixels = RGBA(image) else { return [] }
         // Salient objects count only when every corner reaches solid card color (not a column of icons).
         let salient = salientCandidates(image, size: size).filter { cornerRadius(of: $0.rect, in: pixels) != nil }
-        var candidates = contourCandidates(image, size: size) + rectangleCandidates(image, size: size) + salient
         // Rectangle and saliency boxes can be off a little: grow or trim each to the card's edges.
-        candidates = candidates.map { DetectedWidget(rect: refined($0.rect, in: pixels, size: size), shape: $0.shape) }
+        // Contours are exact and stay as traced (a wallpaper blob must not grow into a card).
+        let boxes = (rectangleCandidates(image, size: size) + salient).map {
+            DetectedWidget(rect: refined($0.rect, in: pixels, size: size), shape: $0.shape)
+        }
+        var candidates = contourCandidates(image, size: size) + boxes
         candidates = candidates.filter { candidate in
             let share = candidate.rect.width * candidate.rect.height / (size.width * size.height)
             guard share >= minimumArea, !touchesEdge(candidate.rect, size: size) else { return false }
