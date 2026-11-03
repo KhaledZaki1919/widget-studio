@@ -111,7 +111,7 @@ internal class ChartDrawer(private val d: Drawing) {
         val best = if (bars.highlightColor == null) null else levels.indices.maxByOrNull { levels[it] }
         val highlight = d.color(bars.highlightColor ?: bars.color)
         val hasLabels = labels.any { it.isNotEmpty() }
-        val labelHeight = if (hasLabels) 8 * 1.25f * scale else 0f
+        val labelHeight = if (hasLabels) 8 * 1.7f * scale else 0f
         val chart = RectF(rect.left, rect.top, rect.right, rect.bottom - if (hasLabels) labelHeight + 4 * scale else 0f)
         val dot = min(chart.width() / (bars.bars * 1.6f), chart.height() / (bars.maxDots * 1.4f))
         val columnWidth = chart.width() / bars.bars
@@ -179,7 +179,8 @@ internal class ChartDrawer(private val d: Drawing) {
         }
         val column = rect.width() / days.size
         // Name 9, symbol 15, high 13, low 9 (points), 3 pt apart, centered vertically.
-        val heights = listOf(9 * 1.25f, 15 * 1.2f, 13 * 1.25f, 9 * 1.25f).map { it * scale }
+        // Arabic day names need taller lines than Latin ones.
+        val heights = listOf(9 * 1.7f, 15 * 1.2f, 13 * 1.3f, 9 * 1.4f).map { it * scale }
         val total = heights.sum() + 3 * scale * 3
         for ((index, day) in days.withIndex()) {
             val left = rect.left + index * column

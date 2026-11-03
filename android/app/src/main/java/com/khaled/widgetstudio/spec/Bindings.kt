@@ -41,8 +41,8 @@ data class DataSnapshot(
     data class Prayer(val times: Map<String, Instant>, val nextName: LText, val nextKey: String, val nextTime: Instant)
 
     companion object {
-        /** The same plausible values as DataSnapshot.sample on iOS (Cairo), for previews and tests. */
-        fun sample(now: Instant, zone: ZoneId): DataSnapshot {
+        /** The same plausible values as DataSnapshot.sample on iOS (Cairo; weeks start on Saturday, as in Egypt and the iOS snapshots). */
+        fun sample(now: Instant, zone: ZoneId, firstDay: DayOfWeek = DayOfWeek.SATURDAY): DataSnapshot {
             val today = now.atZone(zone).toLocalDate()
             val symbols = listOf("sun.max.fill", "cloud.sun.fill", "cloud.fill", "sun.max.fill", "cloud.rain.fill", "sun.max.fill", "cloud.sun.fill")
             val weather = Weather(
@@ -61,7 +61,7 @@ data class DataSnapshot(
             val nextTime = times.getValue(next.first).let { if (it > now) it else it.plus(1, ChronoUnit.DAYS) }
             return DataSnapshot(
                 weather = weather, stepsToday = 5543.0, stepsStreak = 3.0, stepsMonth = 128430.0,
-                stepsMonthGrid = MonthGrid.levels(perDay, today, DayOfWeek.SUNDAY),
+                stepsMonthGrid = MonthGrid.levels(perDay, today, firstDay),
                 sleepLastNight = LText.Localized("7h 20m", "7س 20د"), sleepWeek = listOf(0.7, 0.85, 0.6, 0.9, 0.75, 0.5, 0.8),
                 counter = 33.0, dhikr = "سبحان الله", stopwatchStart = now.minusSeconds(754),
                 focusToday = LText.Localized("6h 20m", "6س 20د"), focusWeek = listOf(0.4, 0.8, 0.6, 1.0, 0.3, 0.0, 0.5),

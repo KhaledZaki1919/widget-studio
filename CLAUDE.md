@@ -1,6 +1,6 @@
 # CLAUDE.md — Widget Studio
 
-Home-screen widget builder for iOS 17+ (native Swift / SwiftUI). Arabic default (RTL) + English. Every widget is a **spec JSON + optional user image**, drawn by one renderer shared by the app preview and the widget. Templates are bundled; an optional AI flow uses the user's own key (BYOK). No backend, no accounts, no analytics. App Store later.
+Home-screen widget builder for iOS 17+ (native Swift / SwiftUI) and Android (Kotlin, Compose, Glance; M7, ADR-025). Arabic default (RTL) + English. Every widget is a **spec JSON + optional user image**, drawn by one renderer shared by the app preview and the widget. Templates are bundled; an optional AI flow uses the user's own key (BYOK). No backend, no accounts, no analytics. App Store later.
 
 **Install method (owner, every build since M0):** every IPA is installed with **Fast Store**, a paid signing store that re-signs the app and the widget extension with its own certificate and profile. No Sideloadly. The store decides bundle IDs, team, profile and entitlements (the App Group was not granted in the M0 or M2 tests), so never assume the compiled values at runtime (ADR-004) and check Diagnostics → Signing when a capability fails.
 
@@ -28,12 +28,14 @@ The product brief is `widget-app-brief.md` (template catalog: `TEMPLATES.md`, vi
 | `scripts/secret-scan.sh` | Secret scan, run before push and in CI |
 | `docs/ai-eval/` | AI eval set: drawn widgets + `cases.json`; workflow **AI eval** (`.github/workflows/ai-eval.yml`, manual; secrets `GEMINI_API_KEY`, `NVIDIA_API_KEY`, `OPENROUTER_API_KEY`) runs several comma-separated models per run and uploads side-by-side renders, `<case>.fix.png` for local layout fixes and a comparison table (ADR-019, ADR-022); results in `docs/ai-eval/results/`. Never commit crops of the reference image |
 | `docs/` | `decisions.md` (ADRs), `reference/` (gitignored image), `app-store/` (listing, privacy label, review notes, screenshots, `when-account.md` — ADR-020) |
+| `android/` | Android app (M7, ADR-025): `app/src/main/java/com/khaled/widgetstudio/` with `spec/` (model, parser, bindings, sample data, template library), `render/` (Canvas renderer: `SpecRenderer`, `TextDrawer`, `ChartDrawer`, `StackLayout`, fonts, icons), `widget/` (Glance widget, configuration screen, minute ticker), `ui/` (library). Templates, test specs, schema, prompts, fonts, the icon whitelist and the catalog order are copied from the iOS tree by Gradle at build time, never duplicated. Tests in `app/src/test` (parsing; Robolectric renders beside the iOS snapshots) |
 | `site/` | Privacy policy and support pages (ar/en), deployed to GitHub Pages by `pages.yml` (ADR-020) |
 
 ## Environment
 - Development machine is **Windows**; there is no Mac. iOS builds and tests run **only in GitHub Actions** (`.github/workflows/ios.yml`, `macos-15`).
 - Node.js is at `C:\Program Files\nodejs` (no Python locally; CI has `python3`).
 - GitHub CLI is at `C:\Program Files\GitHub CLI\gh.exe`.
+- No JDK locally: Android builds and tests run only in GitHub Actions (`.github/workflows/android.yml`, Ubuntu, Gradle 8.14 via setup-gradle, no wrapper JAR). OpenSSL is available in Git Bash (set `MSYS_NO_PATHCONV=1` for `-subj` arguments).
 
 ## Commands
 iOS (CI only; locally you can only edit), from `ios/`:
@@ -49,6 +51,8 @@ swiftlint lint
 3. **only with `[ipa]`** (or a manual run), after everything above is green: unsigned IPA → artifact `WidgetStudio-ipa` (30 days). `build-ipa.sh` fails if the app or the widget lacks the App Group entitlement or a font declared in `UIAppFonts`.
 
 Docs-only commits (`**.md`, `docs/**`) skip CI. SwiftLint is a separate, non-blocking job. Superseded runs are cancelled.
+
+**Android CI (`android.yml`, ADR-025):** every push touching `android/**` or the shared spec files runs the unit tests (parsing; all templates rendered in ar/en beside the iOS snapshots, artifact `android-renders`) and a debug build. `[apk]` in the head commit message (or a manual run) also builds the signed release APK and `.aab` (artifact `WidgetStudio-android`). The keystore exists only in repository secrets and the owner's backup (`C:\Users\khale\Documents\WidgetStudio-signing\`); never commit or print it. One APK per Android phase (A1–A5).
 
 **Build modes (ADR-014):** one Swift condition, `WS_DEVELOPER`, set through the build setting `WS_EXTRA_CONDITIONS` (`project.yml`, empty by default).
 - **Store mode** (default, what CI ships): the 28 fixed template widgets + one "My widget" per size reading `SharedStore`. Works on the owner's Fast Store install without an App Group or AppIntents.
@@ -80,6 +84,7 @@ Docs-only commits (`**.md`, `docs/**`) skip CI. SwiftLint is a separate, non-blo
 - **Layout:** leading/trailing only; test RTL and LTR.
 - **RTL in specs (ADR-010):** never flip anything like an image and never set `layoutDirection` on a `List`/UIKit-backed view to preview Arabic. Inside `SpecView` only `mirror: true` layers change: position, alignment, item order. Glyphs, digits and clocks keep their shape.
 - **Fonts (ADR-010):** reference bundled fonts by PostScript name only (`FontRegistry`); every font file goes in `ios/Fonts` and both `UIAppFonts` lists. No runtime registration, no CoreText variation fonts.
+- **One spec, two renderers (ADR-025):** any spec change (layer type, field, binding, background) updates the Swift model and renderer *and* the Kotlin ones (`android/.../spec`, `render/`), and both test suites. Android reads the shared files; never copy them into `android/`.
 - **Templates (ADR-011):** one JSON per template in `Resources/Templates/<id>.json`, colors as tokens (`@bg`, `@fg`, `@accent`…), every visible text `{en, ar}`, and `catalogOrder` in `TemplateLibrary` updated. Spec extensions (`when`, `rotation`, `highlightColor`, `icon` fields, new bindings) are listed in ADR-011.
 - **Tinted/Clear home screens (ADR-023):** every layer view reads `specAccented` and draws its accented variant (no large solid fills, chromatic colors `widgetAccentable`, photos desaturated). A new layer type needs one too; `RenderSnapshotTests` (package, every push) fails on solid blocks and uploads `package-renders`.
 - **Snapshots:** an intended visual change means re-recording references from the `snapshots` artifact (`ios/WidgetStudioTests/Snapshots/README.md`); look at the renders before committing them.
