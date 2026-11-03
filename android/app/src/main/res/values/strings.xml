@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Arabic is the default language (values/); English is in values-en/. -->
+<resources>
+    <string name="app_name">ستوديو الويدجت</string>
+    <string name="widget_name">ستوديو الويدجت</string>
+    <string name="widget_description">اختر أي قالب من المكتبة</string>
+    <string name="widget_choose">اضغط لاختيار تصميم</string>
+    <string name="library_title">المكتبة</string>
+    <string name="library_add_hint">لإضافة ويدجت: اضغط مطولًا على الشاشة الرئيسية ← الأدوات ← ستوديو الويدجت، ثم اختر قالبًا. غيّر حجمه كما تريد.</string>
+    <string name="configure_title">اختر تصميمًا للويدجت</string>
+</resources>

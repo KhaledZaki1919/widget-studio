@@ -3,3 +3,12 @@ docs/reference/*.jpg
 .DS_Store
 # Crops of the third-party reference image: local only, never published (ADR-019).
 docs/ai-eval/ref-*
+
+# Android (M7)
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.p12
+*.jks
+*.keystore
