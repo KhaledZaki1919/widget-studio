@@ -2,10 +2,10 @@
 <resources>
     <string name="app_name">Widget Studio</string>
     <string name="widget_name">Widget Studio</string>
-    <string name="widget_description">Pick any template from the library</string>
+    <string name="widget_description">Show one of your designs or any template</string>
     <string name="widget_choose">Tap to choose a design</string>
     <string name="library_title">Library</string>
-    <string name="library_add_hint">To add a widget: long-press the home screen → Widgets → Widget Studio, then pick a template. Resize it as you like.</string>
+    <string name="library_add_hint">To add a widget: long-press the home screen → Widgets → Widget Studio, then choose a design. Resize it as you like.</string>
     <string name="configure_title">Choose a design for the widget</string>
     <string name="widget_missing">This design is gone. Tap to choose another.</string>
 </resources>

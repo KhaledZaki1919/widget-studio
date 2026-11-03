@@ -3,10 +3,10 @@
 <resources>
     <string name="app_name">ستوديو الويدجت</string>
     <string name="widget_name">ستوديو الويدجت</string>
-    <string name="widget_description">اختر أي قالب من المكتبة</string>
+    <string name="widget_description">اعرض أحد تصاميمك أو أي قالب من المكتبة</string>
     <string name="widget_choose">اضغط لاختيار تصميم</string>
     <string name="library_title">المكتبة</string>
-    <string name="library_add_hint">لإضافة ويدجت: اضغط مطولًا على الشاشة الرئيسية ← الأدوات ← ستوديو الويدجت، ثم اختر قالبًا. غيّر حجمه كما تريد.</string>
+    <string name="library_add_hint">لإضافة ويدجت: اضغط مطولًا على الشاشة الرئيسية ← الأدوات ← ستوديو الويدجت، ثم اختر تصميمًا. غيّر حجمه كما تريد.</string>
     <string name="configure_title">اختر تصميمًا للويدجت</string>
     <string name="widget_missing">اختفى هذا التصميم. اضغط لاختيار غيره.</string>
 </resources>

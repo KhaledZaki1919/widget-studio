@@ -585,3 +585,29 @@ Picked side-by-sides are in `docs/ai-eval/results/` (left: the drawn original, r
   - It is stored base64-encoded in the repository secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`, with the owner's backup in `C:\Users\khale\Documents\WidgetStudio-signing\`. It is never committed (`*.p12`, `*.jks`, `*.keystore` are ignored).
   - CI decodes it only in the release job and deletes it afterwards.
 - **CI (`android.yml`):** on pushes touching `android/**` or the shared files, it runs unit tests and builds a debug APK. With `[apk]` (or a manual run) it also builds the signed release APK and `.aab` (artifact `WidgetStudio-android`, 30 days). The Gradle cache is off, because the first run cached broken downloads.
+
+### ADR-026 — Android A2–A5: editor, real data, Gemini, polish
+**Status:** Accepted (2026-11-03). The owner asked for A2–A5 in one run, with one signed APK at the end (this overrides the one-milestone-per-conversation rule for that run). Progress note: `docs/android-progress.md`.
+
+- **Designs:** each design is saved as one JSON file in `filesDir/designs`, with its photo as a PNG in `filesDir/images`. The JSON keys are the same as in `SavedDesign.swift`. Android has no App Group: the app and the widget share one process and one data folder.
+  - A widget stores `design:<id>` or `template:<id>` per widget ID.
+  - Saving, renaming or deleting a design re-renders every placed widget at once.
+  - A deleted design shows "Tap to choose another"; nothing is ever picked automatically.
+- **Editor:** ports `DesignEditing` and `LayerEditing`, using the same `SpecValidator` (same messages) and the same `AILayoutFix`. `SpecWriter` is the inverse of the parser; a test round-trips every template.
+- **Real data:**
+  - Weather from Open-Meteo, with the coordinates rounded to 2 decimals.
+  - adhan-java (Egyptian method, Shafi): prayer times and the Qibla.
+  - Health Connect steps and sleep, read only.
+  - Battery.
+  - Refresh through WorkManager every 30 min and at app start.
+  - The tasbeeh and stopwatch update through Glance action callbacks.
+  - The torch toggles with `CameraManager.setTorchMode` (no permission). The other tiles open the matching settings panel, because apps can't toggle Wi-Fi, Bluetooth or dark mode.
+- **AI: Gemini only.**
+  - The key is AES-GCM encrypted with a key held in the Android Keystore.
+  - The default model is `gemini-3.5-flash-lite`, with a model field and suggestions.
+  - The system prompt, schemas and import example come from the Swift export (`Resources/Spec/ai/`). `AIExportTests` fails when they're stale. Only the task text is rebuilt in Kotlin, the same way as in Swift.
+  - The parser is ported: palette and contrast, card shapes, unknown icons and shape kinds, field labels, color tokens, mode and overlap rules. One retry, then the local layout fix, as in ADR-022.
+- **Detector:** Vision doesn't exist on Android, so `WidgetDetector` segments a 256 px copy into regions of near-equal color. Candidates must stay off the edge, cover at least 1.5 % of the image and have four matching corner radii, and must fill their box as their shape should. That gives the shape: circle, capsule or rounded rectangle. With no card, the floating content is boxed. The wallpaper color is taken from a ring around the box. It is tested on a synthetic image, not yet on the eval drawings.
+- **Use another AI:** copy the instructions; share or save the crop through FileProvider; import by pasting, opening a file, or sharing text or a `.json` to the app.
+- **Polish:** onboarding (three pages and the permissions page); settings; empty and error states; launcher icon and logo from the `LogoMark.swift` geometry (adaptive icon, with a monochrome layer for themed icons).
+- **Differences from iOS:** see the table in `docs/android-progress.md`.

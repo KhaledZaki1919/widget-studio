@@ -436,15 +436,15 @@ private fun ExternalAIView(
         OutlinedButton(onClick = { openFile.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }) { Text(tr("Open a .json file", "افتح ملف ‎.json‎")) }
         OutlinedTextField(pasted, { pasted = it }, label = { Text(tr("Or paste the reply here", "أو الصق الرد هنا")) }, modifier = Modifier.fillMaxWidth(), minLines = 3, maxLines = 8)
         if (pasted.isNotEmpty()) TextButton(onClick = { importText(pasted) }) { Text(tr("Import", "استيراد")) }
-        Footnote(tr("Extra text and code fences are removed; only a widget design is accepted, never code. You can also share the reply or a .json file to Widget Studio.", "يُحذف النص الزائد وعلامات الكود، ولا يُقبل إلا تصميم ودجت، وليس كودًا أبدًا. ويمكنك أيضًا مشاركة الرد أو ملف ‎.json‎ مع ستوديو الويدجت."))
+        Footnote(tr("Extra text and code fences are removed; only a widget design is accepted, never code. You can also share the reply or a .json file to Widget Studio.", "يُحذف النص الزائد وعلامات الكود، ولا يُقبل إلا تصميم ويدجت، وليس كودًا أبدًا. ويمكنك أيضًا مشاركة الرد أو ملف ‎.json‎ مع ستوديو الويدجت."))
     }
     error?.let { e ->
         SectionTitle(tr("Couldn't import", "تعذّر الاستيراد"))
         SectionCard {
             Text(when (e) {
                 ExternalAI.ImportError.Empty -> tr("There's nothing to import. Copy the AI's whole reply first.", "لا يوجد ما يُستورد. انسخ رد الذكاء الاصطناعي كاملًا أولًا.")
-                ExternalAI.ImportError.NoJSON -> tr("No widget design found in this text. Ask the AI to reply with only the JSON object.", "لم يُعثر على تصميم ودجت في هذا النص. اطلب من الذكاء الاصطناعي أن يرد بكائن JSON فقط.")
-                ExternalAI.ImportError.TooLarge -> tr("This reply is too long for a widget. Ask the AI for a simpler design.", "هذا الرد أطول من أن يكون ودجت. اطلب من الذكاء الاصطناعي تصميمًا أبسط.")
+                ExternalAI.ImportError.NoJSON -> tr("No widget design found in this text. Ask the AI to reply with only the JSON object.", "لم يُعثر على تصميم ويدجت في هذا النص. اطلب من الذكاء الاصطناعي أن يرد بكائن JSON فقط.")
+                ExternalAI.ImportError.TooLarge -> tr("This reply is too long for a widget. Ask the AI for a simpler design.", "هذا الرد أطول من أن يكون ويدجت. اطلب من الذكاء الاصطناعي تصميمًا أبسط.")
                 is ExternalAI.ImportError.Invalid -> tr("The design doesn't pass Widget Studio's checks (details below). Copy the fix request and send it to the AI.", "التصميم لا يجتاز فحوص ستوديو الويدجت (التفاصيل بالأسفل). انسخ طلب الإصلاح وأرسله إلى الذكاء الاصطناعي.")
             }, color = MaterialTheme.colorScheme.error)
             if (e is ExternalAI.ImportError.Invalid) Text(e.problems, style = MaterialTheme.typography.bodySmall)

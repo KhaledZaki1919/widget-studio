@@ -135,7 +135,7 @@ fun SettingsScreen(onQibla: () -> Unit, onIntroduction: () -> Unit) {
             SectionTitle(tr("Tasbeeh", "التسبيح"))
             SectionCard {
                 OutlinedTextField(dhikrs, { dhikrs = it; settings.dhikrs = it.split("\n"); Widgets.updateAllAsync(context) }, label = { Text(tr("Adhkar, one per line", "الأذكار، ذكر في كل سطر")) }, modifier = Modifier.fillMaxWidth(), minLines = 4)
-                Footnote(tr("The tasbeeh widget counts each dhikr separately and moves to the next after 33.", "يعدّ ودجت التسبيح كل ذكر على حدة وينتقل إلى التالي بعد 33."))
+                Footnote(tr("The tasbeeh widget counts each dhikr separately and moves to the next after 33.", "يعدّ ويدجت التسبيح كل ذكر على حدة وينتقل إلى التالي بعد 33."))
             }
 
             SectionTitle(tr("AI (Gemini)", "الذكاء الاصطناعي (Gemini)"))

@@ -33,3 +33,15 @@ Handoff note for this run: the owner asked for A2, A3, A4 and A5 in one go, with
 ## Left
 - Arabic copy review on the device.
 - Final `[apk]` commit, then the report to the owner.
+
+## Differences from iOS
+| Area | Android |
+|---|---|
+| Clocks | re-rendered each minute (no TextClock: it formats with locale digits) |
+| Stopwatch in the widget | shows minutes; seconds only in the app |
+| Icons | Material Symbols instead of SF Symbols |
+| Focus data | none (no API) |
+| Tiles | torch toggles; Wi-Fi, Bluetooth, dark mode etc. open the system panel |
+| AI | Gemini only; the iOS review round is not ported |
+| Detector | pixel regions instead of Vision |
+| Tinted/Clear | not applicable (Android themes the icon only) |
