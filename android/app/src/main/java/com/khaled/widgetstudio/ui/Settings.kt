@@ -45,7 +45,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -202,20 +204,28 @@ fun OnboardingScreen(onFinish: () -> Unit) {
     }
 }
 
-/** The app's logo: a 2×2 grid of widget shapes (iOS LogoMark). */
+/** The app's logo: a 2×2 grid of widget shapes (LogoMark.swift, onDark). */
 @Composable
 fun LogoMark(size: Int = 72) {
     Canvas(Modifier.height(size.dp).aspectRatio(1f)) {
-        val s = this.size.minDimension
-        val cell = s * 0.42f
-        val gap = s * 0.16f
-        drawRoundRect(Color(0xFF0E0E0E), cornerRadius = androidx.compose.ui.geometry.CornerRadius(s * 0.22f))
-        val left = (s - cell * 2 - gap * 0.4f) / 2
-        drawRoundRect(Color.White, topLeft = Offset(left, left), size = androidx.compose.ui.geometry.Size(cell * 0.82f, cell * 0.82f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(cell * 0.18f))
-        drawCircle(Color.White, radius = cell * 0.41f, center = Offset(s - left - cell * 0.41f, left + cell * 0.41f))
-        drawCircle(Color.White, radius = cell * 0.33f, center = Offset(left + cell * 0.41f, s - left - cell * 0.41f), style = Stroke(width = s * 0.05f))
-        drawCircle(Color(0xFFE2231A), radius = cell * 0.41f, center = Offset(s - left - cell * 0.41f, s - left - cell * 0.41f))
-        @Suppress("UNUSED_VARIABLE") val unused = gap
+        val side = this.size.minDimension
+        val tile = side * 0.28f
+        val gap = side * 0.0625f
+        val margin = side * 0.19f
+        fun origin(column: Int, row: Int) = Offset(margin + column * (tile + gap), margin + row * (tile + gap))
+        val ink = Color.White
+        val background = Color(0xFF0E0E0E)
+        drawRoundRect(background, cornerRadius = CornerRadius(side * 0.22f))
+        val card = origin(0, 0)
+        drawRoundRect(ink, card, Size(tile, tile), CornerRadius(tile * 0.26f))
+        val step = tile * 0.25f
+        for (column in -1..1) for (row in -1..1) {
+            drawCircle(background, tile * 0.06f, Offset(card.x + tile / 2 + column * step, card.y + tile / 2 + row * step))
+        }
+        drawCircle(ink, tile / 2, origin(1, 0) + Offset(tile / 2, tile / 2))
+        val width = tile * 0.16f
+        drawCircle(ink, tile / 2 - width / 2, origin(0, 1) + Offset(tile / 2, tile / 2), style = Stroke(width))
+        drawCircle(Color(0xFFE2231A), tile / 2, origin(1, 1) + Offset(tile / 2, tile / 2))
     }
 }
 

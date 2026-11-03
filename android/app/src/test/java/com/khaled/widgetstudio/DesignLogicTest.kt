@@ -96,10 +96,13 @@ class DesignLogicTest {
     fun tasbeehAdvancesAfter33() {
         val list = listOf("سبحان الله", "الحمد لله", "الله أكبر", "لا إله إلا الله")
         var state = CounterState()
-        repeat(32) { state = state.increment(list) }
+        repeat(33) { state = state.increment(list) }
         assertEquals(0, state.index)
+        assertEquals(33, state.count(list))
+        // The tap after 33 moves to the next dhikr, counting from 1 (33 stays visible until then).
         state = state.increment(list)
         assertEquals(1, state.index)
+        assertEquals(1, state.count(list))
         state = state.next(list).next(list).next(list)
         assertEquals(0, state.index)
     }
