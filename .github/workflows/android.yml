@@ -37,11 +37,13 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.14.3"
+          # The first run cached broken downloads from a Maven Central hiccup; builds stay uncached.
+          cache-disabled: true
 
       - name: Unit tests and debug APK
         env:
           RENDER_OUT: ${{ github.workspace }}/android-renders
-        run: gradle -p android testDebugUnitTest assembleDebug --stacktrace
+        run: gradle -p android testDebugUnitTest assembleDebug --stacktrace --refresh-dependencies
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -76,6 +78,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.14.3"
+          # The first run cached broken downloads from a Maven Central hiccup; builds stay uncached.
+          cache-disabled: true
 
       # The release keystore lives only in repository secrets (base64) and the owner's backup.
       - name: Restore the release keystore
