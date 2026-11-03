@@ -31,14 +31,14 @@ Handoff note for this run: the owner asked for A2, A3, A4 and A5 in one go, with
 - **Tests:** `DesignLogicTest` (validator on every template, spec writer round trip, design JSON, layer editing, tasbeeh, AI parsing and import, prompt, Gemini errors, synthetic detector image).
 
 ## Left
-- Arabic copy review on the device.
+- Arabic copy reviewed in code (one spelling of ويدجت, as on iOS); check it on the device.
 - Final `[apk]` commit, then the report to the owner.
 
 ## Differences from iOS
 | Area | Android |
 |---|---|
 | Clocks | re-rendered each minute (no TextClock: it formats with locale digits) |
-| Stopwatch in the widget | shows minutes; seconds only in the app |
+| Stopwatch in the widget | shows whole minutes (the widget redraws once a minute) |
 | Icons | Material Symbols instead of SF Symbols |
 | Focus data | none (no API) |
 | Tiles | torch toggles; Wi-Fi, Bluetooth, dark mode etc. open the system panel |

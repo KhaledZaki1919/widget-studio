@@ -73,7 +73,8 @@ class GeminiSettings(context: Context) {
         get() = prefs.getBoolean("consent", false)
         set(value) = prefs.edit().putBoolean("consent", value).apply()
 
-    fun hasKey() = prefs.contains("key")
+    /** False when the stored key can't be decrypted (a backup restored on another phone, whose Keystore lacks the AES key). */
+    fun hasKey() = key() != null
 
     fun saveKey(key: String) {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, secretKey()) }
