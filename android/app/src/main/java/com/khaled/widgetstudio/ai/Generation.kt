@@ -479,7 +479,7 @@ object ExternalAI {
             }
         }
         return listOf(
-            "You are designing an iOS home-screen widget for the app Widget Studio. The user attached an image of the widget they want. Follow every rule below and answer with one JSON object that the app imports.",
+            "You are designing a home-screen widget for the app Widget Studio. The user attached an image of the widget they want. Follow every rule below and answer with one JSON object that the app imports.",
             prompt.system,
             "# Task\n\n$task",
             "# Answer format\n\nReply with only the JSON object: no explanation before or after it, no code fences, no code of any kind. It must match this JSON Schema:\n\n" + prompt.schema(GenerationMode.RECREATE),
