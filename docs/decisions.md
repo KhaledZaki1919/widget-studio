@@ -611,3 +611,25 @@ Picked side-by-sides are in `docs/ai-eval/results/` (left: the drawn original, r
 - **Use another AI:** copy the instructions; share or save the crop through FileProvider; import by pasting, opening a file, or sharing text or a `.json` to the app.
 - **Polish:** onboarding (three pages and the permissions page); settings; empty and error states; launcher icon and logo from the `LogoMark.swift` geometry (adaptive icon, with a monochrome layer for themed icons).
 - **Differences from iOS:** see the table in `docs/android-progress.md`.
+
+### ADR-027 — Every widget live and interactive: one capability catalog
+**Status:** Accepted (2026-11-04). The owner asked for all of it in one run, with one IPA and one signed APK at the end. Notes: `docs/progress.md`.
+
+**Context:** AI results looked right but were drawings: static song names, fixed progress values, `open.app` on every control. Bindings and actions were listed by hand in six places on two platforms, so what the AI could say, what the validator took and what the app could do drifted apart.
+
+**Decisions:**
+- **Catalog:** `Resources/Spec/capabilities.json`, in the shared folder Android already copies, instead of a new top-level `shared/` (SwiftPM can't reach resources outside the package, and a second copy could drift). Each entry has id, title, description, type, example, keywords, icons, layers, per-platform support (native, Shortcut, panel, unsupported) and permission. Validators, AI schema, prompt, instructions, editor pickers and auto-wire read it. Tests fail when a list drifts or a capability has no implementation.
+- **Actions are ids, not an enum:** `ButtonLayer.Action` is a string wrapper, so old designs decode and the validator rejects unknown ids.
+- **Live values are a map:** `DataSnapshot.live`, so a new capability needs a catalog entry and a provider, with no resolver case. Sample data comes from the catalog's examples. Media and timer stay typed, because they move along a timeline.
+- **Spec additions, both renderers:** `progressBar.vertical`, number bindings on `dotGrid` (lights that share of the dots), image source `{{media.artwork}}`, `decorative` notes on the spec. Buttons don't count toward the layer limits.
+- **Prompt v5:** function first. A `wiring` list after the inventory; anything that changes is a binding; every control gets an action; `decorative` with a reason when nothing fits; ids only from the catalog; ignore the platform.
+- **Auto-wire post-pass, after AI and import:** Swift and Kotlin ports of one behavior, pinned by shared vectors. A lone status icon on a plain card stays an icon; only tiles, or a row of three or more, become switches. Its result must still pass the AI validator, or the answer stands as written.
+- **iOS actions:** the extension runs counters, stopwatch, timer and Apple Music (AppIntents, which do run on the Fast Store install). Everything else is a link to the app, which follows the catalog: run the Shortcut, open the target, or show the hint.
+- **Android actions:** `ActionRouter`. In-place actions run a callback, panels and apps start an activity, a missing grant opens the screen that gives it, and what Android forbids shows a toast.
+- **Media on iOS is Apple Music only:** `MPMusicPlayerController`; iOS has no API for another app's now playing. Buttons with arg `shortcut` go through a Shortcut, which controls any player but shows no title.
+- **Three new fixed templates** (`mono.media.player`, `mono.control.center`, `mono.timer.focus`): without an App Group, saved designs can't reach the iPhone home screen (ADR-014), so these are the only way to test live controls on the owner's Fast Store install.
+- **Android sizes:** Small, Medium and Large receivers, each with a picker preview; the config screen lists that size only. The old receiver stays, hidden from the picker (`hide_from_picker`), so placed widgets keep working.
+- **Bulk import:** one pipeline for files, zips, folders and pasted arrays. The iOS zip reader uses Compression (no third-party code); it rejects path traversal and inflates into exactly the declared size, so a bomb can't grow. Identical designs are skipped; a taken name gets " (2)".
+- **Import bug:** see below.
+- **Eval:** 14 drawn interactive cases with expected ids; score = share of expected ids present. Replies of the best run are in `docs/ai-eval/recorded`; `WiringGateTests` and its Kotlin twin replay them on every push, so CI fails below `wiring-best.json` with no network.
+

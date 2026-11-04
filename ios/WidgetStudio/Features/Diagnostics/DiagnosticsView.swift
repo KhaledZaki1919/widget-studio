@@ -30,6 +30,14 @@ struct DiagnosticsView: View {
             Section("diag.section.battery") {
                 outcomeRow("diag.battery.app", model.battery)
             }
+            // Whether Apple Music is reachable here; the check widget's step log shows the widget's own taps (ADR-027).
+            Section("diag.section.media") {
+                LabeledContent {
+                    Text(verbatim: MediaControl.isAuthorized ? "authorized" : "not authorized")
+                } label: {
+                    Text("diag.media.access")
+                }
+            }
             Section {
                 Button("diag.refresh", action: model.refresh)
                     .accessibilityIdentifier("ax.diag.refresh")

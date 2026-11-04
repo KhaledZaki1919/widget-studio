@@ -84,6 +84,16 @@ Replace all quick-setting tiles in the image (Torch, Wi-Fi, Bluetooth, Hotspot, 
 
 Each tile has fields: `icon` (from the SF Symbol whitelist), `label` (`{en,ar}`), `shortcut` (Shortcut name). Tap → `shortcut.run`. The editor shows a short guide on creating the Shortcut in the Shortcuts app.
 
+## Live controls (ADR-027)
+
+Fixed widgets, so they reach the home screen without an App Group.
+
+| id | name | family | Layout |
+|---|---|---|---|
+| `mono.media.player` | Now Playing / يُشغَّل الآن | medium | Album art, song, artist, progress, times, previous, play/pause, next |
+| `mono.control.center` | Control Center / مركز التحكم | large | Now playing with transport, eight switches lit by their state, volume and brightness bars with up/down zones |
+| `mono.timer.focus` | Timer / مؤقت | small | Ring and time left; tap to start or pause, +5, reset |
+
 ## Skipped from the image (with reason)
 - Nothing / brand logos and dot emblems (R4 C9, R5 C3, R6 C9): third-party branding.
 - "Pair new device", Face ID / phone illustration, earbuds battery "CONNECT": system or other-device data iOS widgets can't read.
