@@ -630,6 +630,13 @@ Picked side-by-sides are in `docs/ai-eval/results/` (left: the drawn original, r
 - **Three new fixed templates** (`mono.media.player`, `mono.control.center`, `mono.timer.focus`): without an App Group, saved designs can't reach the iPhone home screen (ADR-014), so these are the only way to test live controls on the owner's Fast Store install.
 - **Android sizes:** Small, Medium and Large receivers, each with a picker preview; the config screen lists that size only. The old receiver stays, hidden from the picker (`hide_from_picker`), so placed widgets keep working.
 - **Bulk import:** one pipeline for files, zips, folders and pasted arrays. The iOS zip reader uses Compression (no third-party code); it rejects path traversal and inflates into exactly the declared size, so a bomb can't grow. Identical designs are skipped; a taken name gets " (2)".
-- **Import bug:** see below.
+- **Import bug (reproduced, then fixed):** tapping a file in Use another AI → Import did nothing, with no error. An A/B on the Simulator, same run and same test (`ImportPickerUITests`, workflow **Import UI tests**), with the old code on a throwaway branch:
+  - Old `.fileImporter`, `.json`: the cell is enabled, the tap lands, the picker stays open and nothing is imported. So this is not specific to Fast Store, and not a greyed-out file.
+  - Old `.fileImporter`, `.zip`: the cell is disabled, because the allowed types were `[.json, .plainText]`. A tap on it can't do anything.
+  - New `UIDocumentPickerViewController` (`DocumentPicker`): `.json` passes in all four combinations of single or multi selection, in the Create sheet or in My widgets; `.zip` passes too.
+  - Not isolated: why `fileImporter` drops the tap. It sat on the same Form as `.sheet(isPresented: $showCrop)`, the known suspect, but no test changed only that.
+  - The fix presents UIKit's picker over the top view controller with `.item` (every file can be tapped) and `asCopy` (a local copy needs no security scope). Errors no longer sit below the fold: a file that can't be read is a line in the import summary, with Copy a fix request.
+  - With multi-selection a tap only selects, then Open confirms it. Left unexplained that would feel like the same bug, so both import screens say so.
+  - Early test runs misled: the tests matched "Browse templates" behind the picker, and `#if DEBUG` hooks were compiled out because `project.yml` overrides the compilation conditions. Test hooks are gated at runtime on `-uiTesting`. Don't use `#if DEBUG` in this project.
 - **Eval:** 14 drawn interactive cases with expected ids; score = share of expected ids present. Replies of the best run are in `docs/ai-eval/recorded`; `WiringGateTests` and its Kotlin twin replay them on every push, so CI fails below `wiring-best.json` with no network.
 

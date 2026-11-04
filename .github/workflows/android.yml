@@ -14,6 +14,9 @@ on:
       - "ios/WidgetKitCore/Sources/WidgetKitCore/Spec/Icons.swift"
       - "ios/WidgetKitCore/Sources/WidgetKitCore/Spec/TemplateLibrary.swift"
       - "ios/WidgetStudioTests/Snapshots/**"
+      - "ios/WidgetKitCore/Tests/WidgetKitCoreTests/Fixtures/**"
+      - "docs/ai-eval/recorded/**"
+      - "docs/ai-eval/wiring-best.json"
       - ".github/workflows/android.yml"
   workflow_dispatch:
 
