@@ -156,7 +156,7 @@ public enum HealthReader {
                                                     intervalComponents: DateComponents(day: 1))
             query.initialResultsHandler = { _, collection, error in
                 if let error {
-                    if (error as? HKError)?.code == .errorNoData { continuation.resume(returning: ([:], [:])) } else {
+                    if (error as? HKError)?.code == .errorNoData { continuation.resume(returning: [:]) } else {
                         continuation.resume(throwing: error)
                     }
                     return

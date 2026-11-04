@@ -12,6 +12,7 @@ import android.graphics.RectF
 import android.graphics.Shader
 import com.khaled.widgetstudio.spec.Background
 import com.khaled.widgetstudio.spec.BindingResolver
+import com.khaled.widgetstudio.spec.Bindings
 import com.khaled.widgetstudio.spec.Layer
 import com.khaled.widgetstudio.spec.LayerContent
 import com.khaled.widgetstudio.spec.RenderContext

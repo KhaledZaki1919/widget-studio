@@ -632,8 +632,8 @@ object AutoWire {
         fun add(planned: List<Planned>) {
             if (planned.isEmpty()) return
             spec = spec.copy(layers = spec.layers.filter { layer ->
-                val button = layer.content as? LayerContent.Button
-                !(button?.action == "open.app" && planned.any { inside(it.frame, layer.frame) })
+                val replaced = (layer.content as? LayerContent.Button)?.action == "open.app" && planned.any { inside(it.frame, layer.frame) }
+                !replaced
             })
             for (item in planned) {
                 val arg = arg(item)
