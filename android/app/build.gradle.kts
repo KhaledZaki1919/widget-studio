@@ -47,11 +47,11 @@ val copySharedFonts by tasks.registering(Sync::class) {
     }
     // Picker previews for the three sizes (ADR-027): the iOS snapshots of one design each, never duplicated.
     from(File(repoRoot, "ios/WidgetStudioTests/Snapshots")) {
-        include("mono.clock.dotAnalog.ar.png", "mono.weather.forecast.ar.png", "mono.prayer.day.ar.png")
+        include("mono.clock.dotAnalog.ar.png", "mono.weather.forecast.ar.png", "mono.control.center.ar.png")
         into("drawable-nodpi")
         rename("mono.clock.dotAnalog.ar.png", "preview_small.png")
         rename("mono.weather.forecast.ar.png", "preview_medium.png")
-        rename("mono.prayer.day.ar.png", "preview_large.png")
+        rename("mono.control.center.ar.png", "preview_large.png")
     }
 }
 

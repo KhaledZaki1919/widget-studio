@@ -101,7 +101,11 @@ final class ImportPickerUITests: XCTestCase {
     private func pick(_ file: String, app: XCUIApplication) throws {
         sleep(2)
         let apps = picker(app)
-        if let browse = element(named: "Browse", in: apps, timeout: 6) { browse.tap() }
+        // Exact names: "Browse templates" sits behind the picker in an empty My widgets.
+        for app in apps where app.buttons["Browse"].exists {
+            app.buttons["Browse"].firstMatch.tap()
+            break
+        }
         if let local = element(named: "On My iPhone", in: apps, timeout: 6) { local.tap() }
         guard let cell = element(named: (file as NSString).deletingPathExtension, in: apps) else {
             attach(apps.map(\.debugDescription).joined(separator: "\n\n"), name: "picker tree, \(file) not found")
@@ -150,42 +154,46 @@ final class ImportPickerUITests: XCTestCase {
         let app = launch(environment: ["WS_UITEST_IMPORT": [json, zip].map(\.path).joined(separator: ",")])
         openFromMyWidgets(app)
         expectImported(app, "json and zip")
-        let added = app.descendants(matching: .any).matching(identifier: "ax.bulk.added").firstMatch
-        XCTAssertTrue(added.label.contains("2"), "expected 2 added, the summary says: \(added.label)")
+        XCTAssertTrue(app.staticTexts["2 added"].waitForExistence(timeout: 5), "the summary doesn't say 2 added")
         XCTAssertTrue(app.buttons["ax.bulk.open"].firstMatch.exists, "no Open button for the added designs")
     }
 
-    /// The real picker, multi-selection, from My widgets.
-    @MainActor
-    func testRealPickerImportsAJson() throws {
+    /// Runs the real picker on a new file, in one combination of mode and place.
+    private func realPicker(file: String, data: Data, single: Bool, inSheet: Bool) throws {
         let storage = try localStorage()
-        try Self.widget.write(to: storage.appendingPathComponent("probe-json.json"), atomically: true, encoding: .utf8)
-        let app = launch()
-        openFromMyWidgets(app)
-        try pick("probe-json.json", app: app)
-        expectImported(app, "real picker, .json")
+        try data.write(to: storage.appendingPathComponent(file))
+        let app = launch(environment: single ? ["WS_UITEST_SINGLE_PICK": "1"] : [:])
+        if inSheet { openFromUseAnotherAI(app) } else { openFromMyWidgets(app) }
+        try pick(file, app: app)
+        expectImported(app, "\(file), \(single ? "single" : "multi") selection, \(inSheet ? "in the Create sheet" : "from My widgets")")
+    }
+
+    // The import bug's matrix: one variable at a time.
+
+    @MainActor
+    func testRealPickerMultiFromMyWidgets() throws {
+        try realPicker(file: "probe-a.json", data: Data(Self.widget.utf8), single: false, inSheet: false)
+    }
+
+    @MainActor
+    func testRealPickerSingleFromMyWidgets() throws {
+        try realPicker(file: "probe-b.json", data: Data(Self.widget.utf8), single: true, inSheet: false)
+    }
+
+    @MainActor
+    func testRealPickerMultiInTheSheet() throws {
+        try realPicker(file: "probe-c.json", data: Data(Self.widget.utf8), single: false, inSheet: true)
+    }
+
+    /// The owner's path and the old importer's mode.
+    @MainActor
+    func testRealPickerSingleInTheSheet() throws {
+        try realPicker(file: "probe-d.json", data: Data(Self.widget.utf8), single: true, inSheet: true)
     }
 
     /// A .zip through the real picker: the old importer's types didn't allow it at all.
     @MainActor
-    func testRealPickerImportsAZip() throws {
-        let storage = try localStorage()
-        try Self.zip(name: "probe.json", content: Self.widget).write(to: storage.appendingPathComponent("probe-zip.zip"))
-        let app = launch()
-        openFromMyWidgets(app)
-        try pick("probe-zip.zip", app: app)
-        expectImported(app, "real picker, .zip")
-    }
-
-    /// The owner's path and the old importer's mode: single selection, inside the Create sheet.
-    /// A tap alone must return the file.
-    @MainActor
-    func testRealPickerSingleSelectionInsideTheSheet() throws {
-        let storage = try localStorage()
-        try Self.widget.write(to: storage.appendingPathComponent("probe-single.json"), atomically: true, encoding: .utf8)
-        let app = launch(environment: ["WS_UITEST_SINGLE_PICK": "1"])
-        openFromUseAnotherAI(app)
-        try pick("probe-single.json", app: app)
-        expectImported(app, "real picker, single selection in the sheet")
+    func testRealPickerZip() throws {
+        try realPicker(file: "probe-e.zip", data: Self.zip(name: "probe.json", content: Self.widget), single: false, inSheet: false)
     }
 }
