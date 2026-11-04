@@ -41,8 +41,10 @@ final class ImportPickerUITests: XCTestCase {
     }
 
     /// The picker may live in the app or in its own service process, depending on the iOS version.
+    /// Only a running service is asked: querying one that isn't makes XCTest try to launch it.
     private func picker(_ app: XCUIApplication) -> [XCUIApplication] {
-        [app, XCUIApplication(bundleIdentifier: "com.apple.DocumentManagerUICore.Service")]
+        let service = XCUIApplication(bundleIdentifier: "com.apple.DocumentManagerUICore.Service")
+        return service.state == .notRunning ? [app] : [app, service]
     }
 
     private func element(named name: String, in apps: [XCUIApplication], timeout: TimeInterval = 15) -> XCUIElement? {
