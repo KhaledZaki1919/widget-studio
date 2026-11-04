@@ -1,20 +1,21 @@
 {
-  "cases" : {
-    "draw-i-agenda" : 1,
-    "draw-i-batteries" : 1,
-    "draw-i-compass" : 1,
-    "draw-i-dial" : 1,
-    "draw-i-dotclock" : 1,
-    "draw-i-home" : 1,
-    "draw-i-music" : 1,
-    "draw-i-sliders" : 1,
-    "draw-i-spotify" : 1,
-    "draw-i-status" : 1,
-    "draw-i-timer" : 0.75,
-    "draw-i-toggles" : 0.5,
-    "draw-i-volume" : 1
+  "cases": {
+    "draw-i-agenda": 1,
+    "draw-i-batteries": 1,
+    "draw-i-compass": 1,
+    "draw-i-dial": 1,
+    "draw-i-dotclock": 1,
+    "draw-i-home": 1,
+    "draw-i-music": 1,
+    "draw-i-sliders": 1,
+    "draw-i-spotify": 1,
+    "draw-i-status": 1,
+    "draw-i-timer": 0.75,
+    "draw-i-toggles": 0.5,
+    "draw-i-volume": 1,
+    "draw-i-control": 0.9090909090909091
   },
-  "model" : "gemini-3.5-flash-lite",
-  "prompt" : "generate_v5",
-  "score" : 0.9423076923076923
+  "model": "gemini-3.5-flash-lite",
+  "prompt": "generate_v5",
+  "score": 0.9399350649350648
 }
