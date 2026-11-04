@@ -117,26 +117,26 @@
    "type": "shape",
    "kind": "roundedRect",
    "fill": "@dim",
+   "cornerRadius": 18,
    "frame": {
     "x": 16,
     "y": 112,
-    "w": 72,
+    "w": 104,
     "h": 72
-   },
-   "cornerRadius": 18
+   }
   },
   {
    "type": "shape",
    "kind": "roundedRect",
    "fill": "@accent",
+   "cornerRadius": 18,
+   "when": "{{system.wifi}}",
    "frame": {
     "x": 16,
     "y": 112,
-    "w": 72,
+    "w": 104,
     "h": 72
-   },
-   "cornerRadius": 18,
-   "when": "{{system.wifi}}"
+   }
   },
   {
    "type": "icon",
@@ -144,7 +144,7 @@
    "size": 24,
    "color": "@fg",
    "frame": {
-    "x": 37,
+    "x": 53,
     "y": 133,
     "w": 30,
     "h": 30
@@ -154,26 +154,26 @@
    "type": "shape",
    "kind": "roundedRect",
    "fill": "@dim",
+   "cornerRadius": 18,
    "frame": {
-    "x": 100,
+    "x": 130,
     "y": 112,
-    "w": 72,
+    "w": 104,
     "h": 72
-   },
-   "cornerRadius": 18
+   }
   },
   {
    "type": "shape",
    "kind": "roundedRect",
    "fill": "@accent",
-   "frame": {
-    "x": 100,
-    "y": 112,
-    "w": 72,
-    "h": 72
-   },
    "cornerRadius": 18,
-   "when": "{{system.bluetooth}}"
+   "when": "{{system.bluetooth}}",
+   "frame": {
+    "x": 130,
+    "y": 112,
+    "w": 104,
+    "h": 72
+   }
   },
   {
    "type": "icon",
@@ -181,7 +181,7 @@
    "size": 24,
    "color": "@fg",
    "frame": {
-    "x": 121,
+    "x": 167,
     "y": 133,
     "w": 30,
     "h": 30
@@ -191,26 +191,26 @@
    "type": "shape",
    "kind": "roundedRect",
    "fill": "@dim",
+   "cornerRadius": 18,
    "frame": {
-    "x": 184,
+    "x": 244,
     "y": 112,
-    "w": 72,
+    "w": 104,
     "h": 72
-   },
-   "cornerRadius": 18
+   }
   },
   {
    "type": "shape",
    "kind": "roundedRect",
    "fill": "@accent",
-   "frame": {
-    "x": 184,
-    "y": 112,
-    "w": 72,
-    "h": 72
-   },
    "cornerRadius": 18,
-   "when": "{{system.airplane}}"
+   "when": "{{system.airplane}}",
+   "frame": {
+    "x": 244,
+    "y": 112,
+    "w": 104,
+    "h": 72
+   }
   },
   {
    "type": "icon",
@@ -218,7 +218,7 @@
    "size": 24,
    "color": "@fg",
    "frame": {
-    "x": 205,
+    "x": 281,
     "y": 133,
     "w": 30,
     "h": 30
@@ -228,26 +228,26 @@
    "type": "shape",
    "kind": "roundedRect",
    "fill": "@dim",
+   "cornerRadius": 18,
    "frame": {
-    "x": 268,
-    "y": 112,
-    "w": 72,
+    "x": 16,
+    "y": 196,
+    "w": 104,
     "h": 72
-   },
-   "cornerRadius": 18
+   }
   },
   {
    "type": "shape",
    "kind": "roundedRect",
    "fill": "@accent",
-   "frame": {
-    "x": 268,
-    "y": 112,
-    "w": 72,
-    "h": 72
-   },
    "cornerRadius": 18,
-   "when": "{{system.torch}}"
+   "when": "{{system.torch}}",
+   "frame": {
+    "x": 16,
+    "y": 196,
+    "w": 104,
+    "h": 72
+   }
   },
   {
    "type": "icon",
@@ -255,8 +255,8 @@
    "size": 24,
    "color": "@fg",
    "frame": {
-    "x": 289,
-    "y": 133,
+    "x": 53,
+    "y": 217,
     "w": 30,
     "h": 30
    }
@@ -265,26 +265,26 @@
    "type": "shape",
    "kind": "roundedRect",
    "fill": "@dim",
+   "cornerRadius": 18,
    "frame": {
-    "x": 16,
+    "x": 130,
     "y": 196,
-    "w": 72,
+    "w": 104,
     "h": 72
-   },
-   "cornerRadius": 18
+   }
   },
   {
    "type": "shape",
    "kind": "roundedRect",
    "fill": "@accent",
-   "frame": {
-    "x": 16,
-    "y": 196,
-    "w": 72,
-    "h": 72
-   },
    "cornerRadius": 18,
-   "when": "{{system.dnd}}"
+   "when": "{{system.dnd}}",
+   "frame": {
+    "x": 130,
+    "y": 196,
+    "w": 104,
+    "h": 72
+   }
   },
   {
    "type": "icon",
@@ -292,7 +292,7 @@
    "size": 24,
    "color": "@fg",
    "frame": {
-    "x": 37,
+    "x": 167,
     "y": 217,
     "w": 30,
     "h": 30
@@ -302,26 +302,26 @@
    "type": "shape",
    "kind": "roundedRect",
    "fill": "@dim",
+   "cornerRadius": 18,
    "frame": {
-    "x": 100,
+    "x": 244,
     "y": 196,
-    "w": 72,
+    "w": 104,
     "h": 72
-   },
-   "cornerRadius": 18
+   }
   },
   {
    "type": "shape",
    "kind": "roundedRect",
    "fill": "@accent",
-   "frame": {
-    "x": 100,
-    "y": 196,
-    "w": 72,
-    "h": 72
-   },
    "cornerRadius": 18,
-   "when": "{{system.darkMode}}"
+   "when": "{{system.darkMode}}",
+   "frame": {
+    "x": 244,
+    "y": 196,
+    "w": 104,
+    "h": 72
+   }
   },
   {
    "type": "icon",
@@ -329,81 +329,7 @@
    "size": 24,
    "color": "@fg",
    "frame": {
-    "x": 121,
-    "y": 217,
-    "w": 30,
-    "h": 30
-   }
-  },
-  {
-   "type": "shape",
-   "kind": "roundedRect",
-   "fill": "@dim",
-   "frame": {
-    "x": 184,
-    "y": 196,
-    "w": 72,
-    "h": 72
-   },
-   "cornerRadius": 18
-  },
-  {
-   "type": "shape",
-   "kind": "roundedRect",
-   "fill": "@accent",
-   "frame": {
-    "x": 184,
-    "y": 196,
-    "w": 72,
-    "h": 72
-   },
-   "cornerRadius": 18,
-   "when": "{{system.mobileData}}"
-  },
-  {
-   "type": "icon",
-   "symbol": "antenna.radiowaves.left.and.right",
-   "size": 24,
-   "color": "@fg",
-   "frame": {
-    "x": 205,
-    "y": 217,
-    "w": 30,
-    "h": 30
-   }
-  },
-  {
-   "type": "shape",
-   "kind": "roundedRect",
-   "fill": "@dim",
-   "frame": {
-    "x": 268,
-    "y": 196,
-    "w": 72,
-    "h": 72
-   },
-   "cornerRadius": 18
-  },
-  {
-   "type": "shape",
-   "kind": "roundedRect",
-   "fill": "@accent",
-   "frame": {
-    "x": 268,
-    "y": 196,
-    "w": 72,
-    "h": 72
-   },
-   "cornerRadius": 18,
-   "when": "{{system.rotationLock}}"
-  },
-  {
-   "type": "icon",
-   "symbol": "lock.rotation",
-   "size": 24,
-   "color": "@fg",
-   "frame": {
-    "x": 289,
+    "x": 281,
     "y": 217,
     "w": 30,
     "h": 30
@@ -495,7 +421,7 @@
    "frame": {
     "x": 16,
     "y": 112,
-    "w": 72,
+    "w": 104,
     "h": 72
    }
   },
@@ -503,9 +429,9 @@
    "type": "button",
    "action": "system.toggle.bluetooth",
    "frame": {
-    "x": 100,
+    "x": 130,
     "y": 112,
-    "w": 72,
+    "w": 104,
     "h": 72
    }
   },
@@ -513,9 +439,9 @@
    "type": "button",
    "action": "system.toggle.airplane",
    "frame": {
-    "x": 184,
+    "x": 244,
     "y": 112,
-    "w": 72,
+    "w": 104,
     "h": 72
    }
   },
@@ -523,9 +449,9 @@
    "type": "button",
    "action": "system.toggle.torch",
    "frame": {
-    "x": 268,
-    "y": 112,
-    "w": 72,
+    "x": 16,
+    "y": 196,
+    "w": 104,
     "h": 72
    }
   },
@@ -533,9 +459,9 @@
    "type": "button",
    "action": "system.toggle.dnd",
    "frame": {
-    "x": 16,
+    "x": 130,
     "y": 196,
-    "w": 72,
+    "w": 104,
     "h": 72
    }
   },
@@ -543,29 +469,9 @@
    "type": "button",
    "action": "system.toggle.darkMode",
    "frame": {
-    "x": 100,
+    "x": 244,
     "y": 196,
-    "w": 72,
-    "h": 72
-   }
-  },
-  {
-   "type": "button",
-   "action": "system.toggle.mobileData",
-   "frame": {
-    "x": 184,
-    "y": 196,
-    "w": 72,
-    "h": 72
-   }
-  },
-  {
-   "type": "button",
-   "action": "system.toggle.rotation",
-   "frame": {
-    "x": 268,
-    "y": 196,
-    "w": 72,
+    "w": 104,
     "h": 72
    }
   },

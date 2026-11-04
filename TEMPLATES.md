@@ -91,7 +91,7 @@ Fixed widgets, so they reach the home screen without an App Group.
 | id | name | family | Layout |
 |---|---|---|---|
 | `mono.media.player` | Now Playing / يُشغَّل الآن | medium | Album art, song, artist, progress, times, previous, play/pause, next |
-| `mono.control.center` | Control Center / مركز التحكم | large | Now playing with transport, eight switches lit by their state, volume and brightness bars with up/down zones |
+| `mono.control.center` | Control Center / مركز التحكم | large | Now playing with transport, six switches lit by their state, volume and brightness bars with up/down zones |
 | `mono.timer.focus` | Timer / مؤقت | small | Ring and time left; tap to start or pause, +5, reset |
 
 ## Skipped from the image (with reason)

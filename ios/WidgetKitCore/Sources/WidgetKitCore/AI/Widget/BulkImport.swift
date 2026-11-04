@@ -24,6 +24,11 @@ public enum BulkImport {
         public var id: String { name }
         public let name: String
         public let error: ExternalAI.ImportError
+
+        public init(name: String, error: ExternalAI.ImportError) {
+            self.name = name
+            self.error = error
+        }
     }
 
     public struct Added: Sendable, Equatable, Identifiable {
