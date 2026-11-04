@@ -3,7 +3,7 @@ import Foundation
 /// Turns bindings into values for one render (brief §4.5). Digits are always Latin, so they
 /// suit the `dot` font and never mirror; weekday and month names follow the language.
 public struct BindingResolver {
-    public enum Value: Equatable {
+    public enum Value: Equatable, Sendable {
         case text(String)
         case number(Double, display: String)
         case levels([Double])
@@ -63,6 +63,15 @@ public struct BindingResolver {
     public func levels(_ text: String) -> [Double] {
         if case .levels(let levels)? = soleValue(text) { return levels }
         return SpecLiterals.levels(text) ?? SpecLiterals.dotPattern(text) ?? []
+    }
+
+    /// `dotGrid` values: levels as above, or a number 0…1 that lights that share of the cells.
+    public func gridLevels(_ text: String, cells: Int) -> [Double] {
+        if case .number(let share, _)? = soleValue(text) {
+            let lit = Int((min(max(share, 0), 1) * Double(cells)).rounded())
+            return (0..<max(cells, 0)).map { $0 < lit ? 1 : 0 }
+        }
+        return levels(text)
     }
 
     public func date(_ text: String) -> Date? {
@@ -133,6 +142,12 @@ public struct BindingResolver {
         case "date.d": return .text(format("d"))
         case "date.EEEE": return .text(localizedFormat("EEEE"))
         case "date.MMM": return .text(localizedFormat("MMM"))
+        case "date.dd": return .text(format("dd"))
+        case "date.EEE": return .text(localizedFormat("EEE"))
+        case "date.MMMM": return .text(localizedFormat("MMMM"))
+        case "date.M": return .text(format("M"))
+        case "date.yyyy": return .text(format("yyyy"))
+        case "date.hijri": return .text(hijriDate())
         case "tz.offset": return .text(Self.offset(context.timeZone, at: context.date))
         case "weather.temp": return data.weather.map { number($0.temperature, digits: 0) }
         case "weather.hi": return data.weather.map { number($0.high, digits: 0) }
@@ -160,16 +175,58 @@ public struct BindingResolver {
         case "prayer.next.time": return data.prayer.map { .date($0.nextTime) }
         case "prayer.next.key": return data.prayer.map { .text($0.nextKey) }
         case "qibla.bearing": return data.qiblaBearing.map { number($0, digits: 0) }
+        case "location.city": return data.place.map { .text($0.resolved(language: context.language)) } ?? data.live[name]
         case "location.lat": return data.latitude.map { number($0, digits: 2) }
         case "location.lon": return data.longitude.map { number($0, digits: 2) }
         case "location.alt": return data.altitude.map { number($0, digits: 0) }
         case "battery.level": return data.batteryLevel.map { .number($0, display: String(Int(($0 * 100).rounded()))) }
+        case "media.playing", "media.symbol", "media.elapsed", "media.duration", "media.remaining", "media.progress":
+            return data.media.map { media(name, $0) } ?? data.live[name]
+        case "timer.running", "timer.remaining", "timer.progress", "timer.end":
+            return data.timer.flatMap { timer(name, $0) } ?? data.live[name]
         default:
+            if let value = data.live[name] { return value }
             if name.hasPrefix("prayer."), let time = data.prayer?.times[String(name.dropFirst("prayer.".count))] {
                 return .date(time)
             }
             return nil
         }
+    }
+
+    /// Playback values at this entry's date, so they move along a timeline (ADR-027).
+    private func media(_ name: String, _ playback: MediaPlayback) -> Value {
+        let position = playback.position(at: context.date)
+        switch name {
+        case "media.playing": return .text(playback.playing ? "1" : "0")
+        case "media.symbol": return .text(playback.playing ? "pause.fill" : "play.fill")
+        case "media.elapsed": return .text(MediaPlayback.clock(position))
+        case "media.duration": return .text(MediaPlayback.clock(playback.duration))
+        case "media.remaining": return .text("-" + MediaPlayback.clock(playback.duration - position))
+        default:
+            let share = playback.duration > 0 ? min(position / playback.duration, 1) : 0
+            return .number(share, display: String(Int((share * 100).rounded())))
+        }
+    }
+
+    private func timer(_ name: String, _ timer: TimerState) -> Value? {
+        switch name {
+        case "timer.running": return .text(timer.isRunning(at: context.date) ? "1" : "0")
+        case "timer.remaining": return .text(MediaPlayback.clock(timer.remaining(at: context.date)))
+        case "timer.end": return timer.end.map(Value.date)
+        default:
+            let share = timer.progress(at: context.date)
+            return .number(share, display: String(Int((share * 100).rounded())))
+        }
+    }
+
+    /// "23 Jumada I 1448" in the render language, digits Latin (Umm al-Qura).
+    private func hijriDate() -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .islamicUmmAlQura)
+        formatter.locale = Locale(identifier: context.localeIdentifier)
+        formatter.timeZone = context.timeZone
+        formatter.dateFormat = "d MMMM yyyy"
+        return formatter.string(from: context.date)
     }
 
     private func fieldValueOfType(_ type: FieldSpec.Kind) -> String? {

@@ -19,6 +19,13 @@ public struct WeatherReport: Codable, Sendable, Equatable {
     public var code: Int
     public var isDay: Bool
     public var days: [Day]
+    /// Optional: reports cached before ADR-027 don't have them.
+    public var humidity: Double?
+    public var wind: Double?
+    public var feelsLike: Double?
+    /// Local "yyyy-MM-ddTHH:mm" per day, in `timeZone`.
+    public var sunrise: [String]?
+    public var sunset: [String]?
 
     public static let cacheName = "weather"
     /// Hourly refresh (brief §4.5); a little early so the hourly timeline reload fetches.
@@ -29,6 +36,23 @@ public struct WeatherReport: Codable, Sendable, Equatable {
         let place = StoredLocation(latitude: latitude, longitude: longitude, altitude: nil, updated: fetched)
         return now.timeIntervalSince(fetched) < Self.maxAge && now >= fetched && unit == wanted
             && place.distance(toLatitude: lat, longitude: lon) < 5
+    }
+
+    /// The extra values as catalog bindings (ADR-027).
+    public func liveValues(now: Date) -> [String: BindingResolver.Value] {
+        var live: [String: BindingResolver.Value] = [:]
+        func number(_ value: Double?, _ id: String) {
+            if let value { live[id] = .number(value, display: String(Int(value.rounded()))) }
+        }
+        number(humidity, "weather.humidity")
+        number(wind, "weather.wind")
+        number(feelsLike, "weather.feels")
+        let zone = TimeZone(identifier: timeZone) ?? .current
+        let today = FormatterCache.date("yyyy-MM-dd", locale: "en_US_POSIX", zone: zone).string(from: now)
+        let parser = FormatterCache.date("yyyy-MM-dd'T'HH:mm", locale: "en_US_POSIX", zone: zone)
+        if let text = sunrise?.first(where: { $0.hasPrefix(today) }), let date = parser.date(from: text) { live["weather.sunrise"] = .date(date) }
+        if let text = sunset?.first(where: { $0.hasPrefix(today) }), let date = parser.date(from: text) { live["weather.sunset"] = .date(date) }
+        return live
     }
 
     /// The renderer's weather: today's high/low and the days from today on.
@@ -59,8 +83,8 @@ public enum OpenMeteo {
         components?.queryItems = [
             URLQueryItem(name: "latitude", value: String(format: "%.2f", latitude)),
             URLQueryItem(name: "longitude", value: String(format: "%.2f", longitude)),
-            URLQueryItem(name: "current", value: "temperature_2m,weather_code,is_day"),
-            URLQueryItem(name: "daily", value: "weather_code,temperature_2m_max,temperature_2m_min"),
+            URLQueryItem(name: "current", value: "temperature_2m,weather_code,is_day,relative_humidity_2m,apparent_temperature,wind_speed_10m"),
+            URLQueryItem(name: "daily", value: "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset"),
             URLQueryItem(name: "timezone", value: "auto"),
             URLQueryItem(name: "forecast_days", value: "7"),
             URLQueryItem(name: "temperature_unit", value: unit.rawValue),
@@ -79,9 +103,13 @@ public enum OpenMeteo {
             let temperature: Double
             let weatherCode: Int
             let isDay: Int?
+            let humidity: Double?
+            let feelsLike: Double?
+            let wind: Double?
 
             enum CodingKeys: String, CodingKey {
-                case temperature = "temperature_2m", weatherCode = "weather_code", isDay = "is_day"
+                case temperature = "temperature_2m", weatherCode = "weather_code", isDay = "is_day",
+                     humidity = "relative_humidity_2m", feelsLike = "apparent_temperature", wind = "wind_speed_10m"
             }
         }
 
@@ -90,9 +118,11 @@ public enum OpenMeteo {
             let weatherCode: [Int]
             let high: [Double?]
             let low: [Double?]
+            let sunrise: [String]?
+            let sunset: [String]?
 
             enum CodingKeys: String, CodingKey {
-                case time, weatherCode = "weather_code", high = "temperature_2m_max", low = "temperature_2m_min"
+                case time, weatherCode = "weather_code", high = "temperature_2m_max", low = "temperature_2m_min", sunrise, sunset
             }
         }
 
@@ -114,7 +144,8 @@ public enum OpenMeteo {
             fetched: fetched, latitude: latitude, longitude: longitude, unit: unit,
             timeZone: response.timezone ?? TimeZone.current.identifier,
             temperature: response.current.temperature, code: response.current.weatherCode,
-            isDay: (response.current.isDay ?? 1) == 1, days: days
+            isDay: (response.current.isDay ?? 1) == 1, days: days, humidity: response.current.humidity, wind: response.current.wind,
+            feelsLike: response.current.feelsLike, sunrise: daily.sunrise, sunset: daily.sunset
         )
     }
 

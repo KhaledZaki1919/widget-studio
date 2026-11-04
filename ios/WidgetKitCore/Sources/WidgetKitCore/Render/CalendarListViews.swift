@@ -181,11 +181,29 @@ struct ProgressBarView: View {
     var body: some View {
         GeometryReader { proxy in
             let value = min(max(progress, 0), 1)
-            let radius = layer.cornerRadius.map { $0 * scale } ?? proxy.size.height / 2
+            let vertical = layer.vertical == true
+            let radius = layer.cornerRadius.map { $0 * scale } ?? (vertical ? proxy.size.width : proxy.size.height) / 2
             let fill = Color(hex: layer.color)
             let track = Accented.fill(layer.trackColor ?? "#8080804D", accented: accented)
             let segments = layer.segments ?? 1
-            if segments > 1 {
+            if vertical {
+                if segments > 1 {
+                    let lit = Int((value * Double(segments)).rounded())
+                    VStack(spacing: max(1, 2 * scale)) {
+                        ForEach(0..<segments, id: \.self) { index in
+                            RoundedRectangle(cornerRadius: min(radius, proxy.size.width / 2), style: .continuous)
+                                .fill(index >= segments - lit ? fill : track)
+                        }
+                    }
+                } else {
+                    ZStack(alignment: .bottom) {
+                        RoundedRectangle(cornerRadius: radius, style: .continuous).fill(track)
+                        RoundedRectangle(cornerRadius: radius, style: .continuous).fill(fill)
+                            .frame(height: proxy.size.height * value)
+                            .widgetAccentableIf(accented)
+                    }
+                }
+            } else if segments > 1 {
                 let lit = Int((value * Double(segments)).rounded())
                 HStack(spacing: max(1, 2 * scale)) {
                     ForEach(0..<segments, id: \.self) { index in

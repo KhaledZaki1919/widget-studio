@@ -388,14 +388,25 @@ public struct ForecastRowLayer: Codable, Sendable, Equatable {
 }
 
 public struct ButtonLayer: Codable, Sendable, Equatable {
-    public enum Action: String, Codable, Sendable, CaseIterable {
-        case counterIncrement = "counter.increment"
-        case counterReset = "counter.reset"
-        case counterNext = "counter.next"
-        case stopwatchToggle = "stopwatch.toggle"
-        case shortcutRun = "shortcut.run"
-        case openURL = "open.url"
-        case openApp = "open.app"
+    /// A catalog action id (`capabilities.json`, ADR-027). Any string decodes; `SpecValidator`
+    /// rejects ids the catalog doesn't have, so old designs keep opening.
+    public struct Action: RawRepresentable, Codable, Sendable, Hashable {
+        public let rawValue: String
+
+        public init(rawValue: String) {
+            self.rawValue = rawValue
+        }
+
+        public static let counterIncrement = Action(rawValue: "counter.increment")
+        public static let counterReset = Action(rawValue: "counter.reset")
+        public static let counterNext = Action(rawValue: "counter.next")
+        public static let stopwatchToggle = Action(rawValue: "stopwatch.toggle")
+        public static let shortcutRun = Action(rawValue: "shortcut.run")
+        public static let openURL = Action(rawValue: "open.url")
+        public static let openApp = Action(rawValue: "open.app")
+
+        /// Every action in the catalog.
+        public static var allCases: [Action] { Capabilities.actions.map { Action(rawValue: $0.id) } }
     }
 
     public var action: Action

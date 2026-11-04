@@ -157,12 +157,14 @@ struct LayerView: View {
     var body: some View {
         switch layer.content {
         case .text(let text): TextLayerView(layer: text, resolver: resolver, scale: scale, mirrored: mirrored)
-        case .image(let image): ImageLayerView(layer: image, image: resolver.context.userImage, scale: scale)
+        case .image(let image):
+            ImageLayerView(layer: image, image: Bindings.soleBinding(image.source) == nil ? resolver.context.userImage : resolver.context.mediaArtwork,
+                           scale: scale)
         case .shape(let shape): ShapeLayerView(layer: shape, scale: scale)
         case .icon(let icon): IconLayerView(layer: icon, resolver: resolver, scale: scale)
         case .analogClock(let clock): AnalogClockView(layer: clock, resolver: resolver)
         case .dotGrid(let grid):
-            DotGridView(layer: grid, levels: resolver.levels(grid.values), scale: scale, mirrored: mirrored)
+            DotGridView(layer: grid, levels: resolver.gridLevels(grid.values, cells: grid.rows * grid.cols), scale: scale, mirrored: mirrored)
         case .dotBars(let bars): DotBarsView(layer: bars, resolver: resolver, scale: scale, mirrored: mirrored)
         case .ring(let ring): RingView(layer: ring, progress: resolver.number(ring.progress) ?? 0, scale: scale)
         case .forecastRow(let row): ForecastRowView(layer: row, resolver: resolver, scale: scale, mirrored: mirrored)

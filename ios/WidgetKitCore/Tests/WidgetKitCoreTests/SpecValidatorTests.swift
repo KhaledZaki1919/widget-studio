@@ -269,7 +269,7 @@ struct SpecValidatorTests {
     // MARK: Buttons and actions
 
     @Test func unknownActionFails() throws {
-        #expect(try issues(layers: [layer("button", ["action": "wifi.toggle"])]) == [SpecIssue("layers[0].action", "unknown value")])
+        #expect(try issues(layers: [layer("button", ["action": "wifi.toggle"])]) == [SpecIssue("layers[0].action", "unknown action \"wifi.toggle\"; use an id from the allowed list")])
     }
 
     @Test func openURLNeedsAURLField() throws {
@@ -292,7 +292,8 @@ struct SpecValidatorTests {
         #expect(try issues(layers: [layer("button", ["action": "open.app"]), text("{{time.hh}}:{{time.mm}} {{weather.temp}}")], fields: [], mode: .ai).isEmpty)
         // ADR-018: battery, prayer and steps too.
         #expect(try issues(layers: [text("{{battery.level}} {{prayer.next.name}} {{qibla.bearing}} {{steps.today}}")], fields: [], mode: .ai).isEmpty)
-        #expect(try issues(layers: [layer("button", ["action": "counter.increment"])], mode: .ai).contains { $0.path == "layers[0].action" })
+        #expect(try issues(layers: [layer("button", ["action": "wifi.toggle"])], mode: .ai).contains { $0.path == "layers[0].action" })
+        #expect(try issues(layers: [layer("button", ["action": "media.next"])], mode: .ai).isEmpty)
         for binding in ["sleep.lastNight", "location.lat", "counter.value", "focus.today"] {
             #expect(try issues(layers: [text("{{\(binding)}}")], fields: [], mode: .ai).contains { $0.message.contains("AI output") }, "\(binding)")
         }

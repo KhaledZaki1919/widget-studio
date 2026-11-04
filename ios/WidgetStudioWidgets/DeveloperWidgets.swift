@@ -322,6 +322,7 @@ struct PickWidgetView: View {
                                                  defaultClock: entry.inputs.settings.clockFormat)
             ?? RenderContext(date: entry.date, language: language, data: data)
         if entry.design == nil { context.uses24Hour = entry.inputs.settings.clockFormat.uses24Hour() }
+        context.mediaArtwork = entry.inputs.device.artwork
         switch entry.appearance {
         case .template: break
         case .system: context.theme = colorScheme == .dark ? .dark : .light

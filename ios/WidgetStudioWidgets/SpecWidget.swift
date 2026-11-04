@@ -197,6 +197,10 @@ enum LiveSchedule {
         if !groups.isDisjoint(with: [.weather, .health, .location, .device, .prayer]) {
             reload = min(reload, now.addingTimeInterval(3600))
         }
+        // Values that change without telling the widget: iOS allows a reload about every 15 minutes.
+        if !groups.isDisjoint(with: [.media, .audio, .system, .calendar, .reminders]) {
+            reload = min(reload, now.addingTimeInterval(900))
+        }
         if groups.contains(.prayer), let next = LiveData.snapshot(inputs, now: now).prayer?.nextTime {
             reload = min(reload, next.addingTimeInterval(60))
         }
@@ -233,6 +237,7 @@ struct TemplateWidgetView: View {
             data: entry.sample ? .sample(now: entry.date) : LiveData.snapshot(entry.inputs, now: entry.date)
         )
         context.uses24Hour = entry.inputs.settings.clockFormat.uses24Hour()
+        context.mediaArtwork = entry.inputs.device.artwork
         return context
     }
 }

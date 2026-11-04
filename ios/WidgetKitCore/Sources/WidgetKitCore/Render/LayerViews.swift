@@ -129,7 +129,7 @@ struct ImageLayerView: View {
     }
 
     @ViewBuilder private var picture: some View {
-        if layer.source == "user_image", let image {
+        if let image, layer.source == "user_image" || Bindings.soleBinding(layer.source) != nil {
             Image(decorative: image, scale: 1)
                 .resizable()
                 .accentedPhoto(accented)

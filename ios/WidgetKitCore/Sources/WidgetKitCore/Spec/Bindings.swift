@@ -13,34 +13,19 @@ public enum Bindings {
         case date
         /// An SF Symbol name (`icon`).
         case symbol
+        /// A picture (`image` layers, `{{media.artwork}}`).
+        case image
     }
 
     public enum Group: String, Sendable, CaseIterable {
-        case time, weather, health, app, prayer, location, device, field
+        case time, weather, health, app, prayer, location, device, field, calendar, reminders, media, audio, system
     }
 
-    static let catalog: [String: (Kind, Group)] = [
-        "time.h": (.text, .time), "time.hh": (.text, .time), "time.mm": (.text, .time),
-        "time.ampm": (.text, .time), "date.d": (.text, .time), "date.EEEE": (.text, .time),
-        "date.MMM": (.text, .time), "tz.offset": (.text, .time),
-        "weather.temp": (.number, .weather), "weather.hi": (.number, .weather), "weather.lo": (.number, .weather),
-        "weather.cond": (.text, .weather), "weather.symbol": (.symbol, .weather), "weather.city": (.text, .weather),
-        "steps.today": (.number, .health), "steps.streak": (.number, .health), "steps.monthGrid": (.levels, .health),
-        // ADR-011: total of the current month.
-        "steps.month": (.number, .health),
-        "sleep.lastNight": (.text, .health), "sleep.week": (.levels, .health),
-        "counter.value": (.number, .app), "stopwatch.running": (.text, .app), "stopwatch.start": (.date, .app),
-        // ADR-011: counter / the spec's `target` number field, 0…1.
-        "counter.progress": (.number, .app), "counter.dhikr": (.text, .app),
-        "focus.today": (.text, .app), "focus.week": (.levels, .app),
-        "prayer.next.name": (.text, .prayer), "prayer.next.time": (.date, .prayer),
-        // ADR-011: fajr | dhuhr | asr | maghrib | isha, for `when` conditions.
-        "prayer.next.key": (.text, .prayer),
-        "prayer.fajr": (.date, .prayer), "prayer.dhuhr": (.date, .prayer), "prayer.asr": (.date, .prayer),
-        "prayer.maghrib": (.date, .prayer), "prayer.isha": (.date, .prayer), "qibla.bearing": (.number, .prayer),
-        "location.lat": (.number, .location), "location.lon": (.number, .location), "location.alt": (.number, .location),
-        "battery.level": (.number, .device),
-    ]
+    /// Built from `capabilities.json` (ADR-027); never list bindings by hand. Parametric entries
+    /// (`field.<key>`, `days.<key>`, `tz.<key>.time`) are parsed by `Name` instead.
+    static let catalog: [String: (Kind, Group)] = Dictionary(uniqueKeysWithValues: Capabilities.bindings
+        .filter { !$0.parametric }
+        .map { ($0.id, ($0.bindingKind, Group(rawValue: $0.group) ?? .app)) })
 
     /// A parsed binding name.
     public enum Name: Sendable, Equatable {

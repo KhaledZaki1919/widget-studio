@@ -30,8 +30,8 @@ public struct SpecValidator: Sendable {
     public enum Mode: Sendable {
         /// Bundled templates and specs the user edited.
         case standard
-        /// AI output (brief §5.1, ADR-018): only `open.app` buttons; time, date, weather, battery,
-        /// prayer and steps bindings; text and image fields only; photos only as `user_image`.
+        /// AI output (brief §5.1, ADR-018, ADR-027): the catalog's bindings and actions marked for
+        /// AI; text, date, link, Shortcut, time zone and image fields; photos only as `user_image`.
         case ai
     }
 
@@ -76,26 +76,22 @@ public struct SpecValidator: Sendable {
         return .success(normalized)
     }
 
-    /// Bindings AI output may use: time and date, weather, battery, prayer and Qibla, steps
-    /// (not sleep), and text fields. Location, sleep and app data are left out.
+    /// Bindings AI output may use: every catalog binding marked for AI (ADR-027), plus fields,
+    /// days left and world clocks, which each need the matching field.
     public static func allowsInAI(_ name: Bindings.Name) -> Bool {
         switch name {
-        case .builtin(let raw):
-            switch name.group {
-            case .time, .weather, .device: return true
-            // `prayer.next.key` only feeds `when` conditions, which AI output doesn't use.
-            case .prayer: return raw != "prayer.next.key"
-            case .health: return raw.hasPrefix("steps.")
-            default: return false
-            }
-        case .field: return true
-        case .daysUntil: return true   // needs a date field (countdowns, ADR-019)
-        case .timezoneTime: return false
+        case .builtin(let raw): return Capabilities.binding(raw)?.ai ?? false
+        case .field, .daysUntil, .timezoneTime: return true
         }
     }
 
+    /// Actions AI output may use.
+    public static func allowsInAI(_ action: ButtonLayer.Action) -> Bool {
+        Capabilities.action(action.rawValue)?.ai ?? false
+    }
+
     /// Field types AI output may declare.
-    public static let aiFieldTypes: Set<FieldSpec.Kind> = [.text, .date, .image]
+    public static let aiFieldTypes: Set<FieldSpec.Kind> = [.text, .date, .image, .url, .shortcut, .timezone]
 
     /// Readable text for the AI retry ("Your previous reply was not valid: …").
     public static func describe(_ issues: [SpecIssue]) -> String {
@@ -166,8 +162,10 @@ private struct Check {
         checkBackground()
         checkFields()
         if spec.layers.isEmpty { fail("layers", "needs at least one layer") }
-        if spec.layers.count > SpecValidator.maxLayers { fail("layers", "at most \(SpecValidator.maxLayers) layers") }
-        if spec.allLayers.count > SpecValidator.maxTotalLayers {
+        // Tap areas don't count: every control needs one (ADR-027).
+        func drawn(_ layers: [Layer]) -> Int { layers.filter { if case .button = $0.content { false } else { true } }.count }
+        if drawn(spec.layers) > SpecValidator.maxLayers { fail("layers", "at most \(SpecValidator.maxLayers) layers") }
+        if drawn(spec.allLayers) > SpecValidator.maxTotalLayers {
             fail("layers", "at most \(SpecValidator.maxTotalLayers) layers counting the children of stacks")
         }
         for (index, layer) in spec.layers.enumerated() {
@@ -298,7 +296,7 @@ private struct Check {
                 if field.type != .date { fail(path, "{{\(raw)}} needs a date field") }
                 kind = .number
             default:
-                if mode == .ai, field.type != .text && field.type != .date { fail(path, "AI output may only bind text and date fields") }
+                if mode == .ai, field.type == .image || !SpecValidator.aiFieldTypes.contains(field.type) { fail(path, "AI output may only bind text, date, link and Shortcut fields") }
                 kind = Self.kind(of: field)
             }
         case .builtin:
@@ -365,7 +363,7 @@ private struct Check {
             if !Bindings.isValidKey(field.key) { fail("\(path).key", "letters, digits and underscores, starting with a letter") }
             if !keys.insert(field.key).inserted { fail("\(path).key", "duplicate key \"\(field.key)\"") }
             if mode == .ai, !SpecValidator.aiFieldTypes.contains(field.type) {
-                fail("\(path).type", "AI output may only use text and image fields")
+                fail("\(path).type", "AI output may only use text, date, url, shortcut, timezone and image fields")
             }
             for value in field.label.allValues { text(path: "\(path).label", value, allowBindings: false) }
             for value in field.default?.allValues ?? [] {
@@ -412,8 +410,10 @@ private struct Check {
         case .text(let text):
             checkText(text, path: path)
         case .image(let image):
-            if image.source != "user_image" && !Self.isAssetSource(image.source) {
-                fail("\(path).source", "must be \"user_image\" or \"asset:<id>\"")
+            if let raw = Bindings.soleBinding(image.source) {
+                binding(path: "\(path).source", raw, expecting: [.image])
+            } else if image.source != "user_image" && !Self.isAssetSource(image.source) {
+                fail("\(path).source", "must be \"user_image\", \"{{media.artwork}}\" or \"asset:<id>\"")
             } else if mode == .ai, image.source != "user_image" {
                 fail("\(path).source", "AI output may only use \"user_image\"")
             }
@@ -457,7 +457,8 @@ private struct Check {
             color("\(path).onColor", grid.onColor)
             color("\(path).offColor", grid.offColor)
             color("\(path).highlightColor", grid.highlightColor)
-            bindingOrLiteral(path: "\(path).values", grid.values, kinds: [.levels]) { SpecLiterals.dotPattern($0) != nil }
+            // A number 0…1 (`{{volume.level}}`) lights that share of the dots, in order (ADR-027).
+            bindingOrLiteral(path: "\(path).values", grid.values, kinds: [.levels, .number]) { SpecLiterals.dotPattern($0) != nil }
         case .dotBars(let bars):
             count("\(path).bars", bars.bars, in: 1...31)
             count("\(path).maxDots", bars.maxDots, in: 1...24)
@@ -554,22 +555,25 @@ private struct Check {
         }
     }
 
+    /// The action must be in the catalog (ADR-027); its `arg` rule says what it takes.
     mutating func checkButton(_ button: ButtonLayer, path: String) {
-        if mode == .ai, button.action != .openApp {
-            fail("\(path).action", "only open.app is allowed in AI output")
+        guard let capability = Capabilities.action(button.action.rawValue) else {
+            fail("\(path).action", "unknown action \"\(button.action.rawValue)\"; use an id from the allowed list")
             return
         }
-        switch button.action {
-        case .openURL, .shortcutRun:
-            let required: FieldSpec.Kind = button.action == .openURL ? .url : .shortcut
-            guard let arg = button.arg, let raw = Bindings.soleBinding(arg),
-                  case .field(let key)? = Bindings.Name(raw), let field = spec.field(key), field.type == required
-            else {
-                fail("\(path).arg", "must be {{field.<key>}} of a \(required.rawValue) field")
-                return
-            }
-        case .counterIncrement, .counterReset, .counterNext, .stopwatchToggle, .openApp:
+        if mode == .ai, !capability.ai {
+            fail("\(path).action", "\(capability.id) is not allowed in AI output")
+            return
+        }
+        guard let required = capability.argFieldKind else {
             if let arg = button.arg, !arg.isEmpty { text(path: "\(path).arg", arg) }
+            return
+        }
+        guard let arg = button.arg, let raw = Bindings.soleBinding(arg),
+              case .field(let key)? = Bindings.Name(raw), let field = spec.field(key), field.type == required
+        else {
+            fail("\(path).arg", "must be {{field.<key>}} of a \(required.rawValue) field")
+            return
         }
     }
 

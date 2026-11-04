@@ -1,6 +1,23 @@
 {
   "sourceLanguage": "ar",
   "strings": {
+    "action.hint.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يمكن تنفيذ ذلك من الويدجت"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This can't run from the widget"
+          }
+        }
+      }
+    },
     "ai.consent.footer": {
       "extractionState": "manual",
       "localizations": {

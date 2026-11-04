@@ -161,8 +161,12 @@ public struct ProgressBarLayer: Codable, Sendable, Equatable {
     public var segments: Int?
     /// Defaults to half the bar's height (pill ends).
     public var cornerRadius: Double?
+    /// Fills from the bottom up: a volume or brightness slider (ADR-027).
+    public var vertical: Bool?
 
-    public init(progress: String, color: String, trackColor: String? = nil, segments: Int? = nil, cornerRadius: Double? = nil) {
+    public init(progress: String, color: String, trackColor: String? = nil, segments: Int? = nil, cornerRadius: Double? = nil,
+                vertical: Bool? = nil) {
+        self.vertical = vertical
         self.progress = progress
         self.color = color
         self.trackColor = trackColor

@@ -74,8 +74,16 @@ public struct DataSnapshot: Sendable, Equatable {
     public var latitude: Double?
     public var longitude: Double?
     public var altitude: Double?
+    /// The place name of the last location fix (`location.city`).
+    public var place: LocalizedText?
     /// 0…1.
     public var batteryLevel: Double?
+    /// What is playing, with its position, so each timeline entry shows the right progress.
+    public var media: MediaPlayback?
+    public var timer: TimerState?
+    /// Every other catalog binding by id (ADR-027): a provider fills this, so a new capability
+    /// needs no field here and no case in `BindingResolver`.
+    public var live: [String: BindingResolver.Value] = [:]
 
     public init() {}
 
@@ -128,7 +136,31 @@ public struct DataSnapshot: Sendable, Equatable {
         data.longitude = 31.24
         data.altitude = 23
         data.batteryLevel = 0.87
+        data.live = sampleLive(now: now, calendar: calendar)
         return data
+    }
+
+    /// The catalog's examples for bindings without a field above: previews show every capability.
+    static func sampleLive(now: Date, calendar: Calendar) -> [String: BindingResolver.Value] {
+        var live: [String: BindingResolver.Value] = [:]
+        for binding in Capabilities.bindings where !binding.parametric {
+            guard let example = binding.example, !example.isEmpty else { continue }
+            switch binding.type {
+            case "number":
+                let value = Double(example.replacingOccurrences(of: ",", with: "")) ?? 0
+                let isShare = example.hasPrefix("0.") || binding.layers.contains("ring")
+                live[binding.id] = .number(value, display: isShare ? String(Int((value * 100).rounded())) : example)
+            case "date":
+                let parts = example.split(separator: ":").compactMap { Int($0) }
+                let date = parts.count == 2 ? calendar.date(bySettingHour: parts[0], minute: parts[1], second: 0, of: now) : nil
+                live[binding.id] = .date(date ?? now)
+            case "levels":
+                live[binding.id] = .levels(SpecLiterals.levels(example) ?? [])
+            default:
+                live[binding.id] = .text(example)
+            }
+        }
+        return live
     }
 }
 
@@ -142,6 +174,8 @@ public struct RenderContext {
     public var fieldValues: [String: LocalizedText]
     public var data: DataSnapshot
     public var userImage: CGImage?
+    /// The album art of what is playing (`{{media.artwork}}`).
+    public var mediaArtwork: CGImage?
     /// Renders live texts (relative, timer) as fixed text measured from `date`, because SwiftUI's
     /// live styles measure from the real clock. For snapshot tests only.
     public var freezesLiveText = false
@@ -163,6 +197,13 @@ public struct RenderContext {
         self.fieldValues = fieldValues
         self.data = data
         self.userImage = userImage
+    }
+
+    /// The same context with the album art of what is playing.
+    public func with(artwork: CGImage?) -> RenderContext {
+        var context = self
+        context.mediaArtwork = artwork
+        return context
     }
 
     public var isArabic: Bool { language.hasPrefix("ar") }

@@ -31,6 +31,15 @@ public enum Icons {
         "house.fill": "home", "music.note": "music_note", "play.fill": "play_arrow", "pause.fill": "pause",
         "headphones": "headphones", "phone.fill": "call", "message.fill": "chat", "link": "link",
         "app.fill": "apps", "square.grid.2x2.fill": "grid_view", "bolt.horizontal.fill": "electric_bolt",
+        "dot.radiowaves.left.and.right": "bluetooth", "leaf.fill": "eco", "lightbulb.fill": "lightbulb", "lock.fill": "lock",
+        "power": "power_settings_new", "fan.fill": "mode_fan", "list.bullet": "format_list_bulleted",
+        // Media and sound (ADR-027)
+        "stop.fill": "stop", "forward.end.fill": "skip_next", "backward.end.fill": "skip_previous",
+        "forward.fill": "fast_forward", "backward.fill": "fast_rewind", "repeat": "repeat", "shuffle": "shuffle",
+        "speaker.fill": "volume_mute", "speaker.wave.2.fill": "volume_down", "speaker.wave.3.fill": "volume_up",
+        "speaker.slash.fill": "volume_off", "bell.fill": "notifications", "bell.slash.fill": "notifications_off",
+        "sun.min.fill": "brightness_low", "minus.circle.fill": "do_not_disturb_on",
+        "chevron.up": "keyboard_arrow_up", "chevron.down": "keyboard_arrow_down",
         // Counters and actions
         "plus": "add", "minus": "remove", "plus.circle.fill": "add_circle", "arrow.counterclockwise": "replay",
         "arrow.triangle.2.circlepath": "sync",

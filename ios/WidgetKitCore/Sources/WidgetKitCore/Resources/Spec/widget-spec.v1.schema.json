@@ -111,7 +111,7 @@
             "target": { "type": "string" }
           }
         },
-        "source": { "type": "string", "pattern": "^(user_image|asset:[a-z0-9._-]+)$" },
+        "source": { "type": "string", "pattern": "^(user_image|\\{\\{media\\.artwork\\}\\}|asset:[a-z0-9._-]+)$" },
         "fit": { "type": "string", "enum": ["fill", "fit"] },
         "mask": { "type": "string", "enum": ["rect", "roundedRect", "circle"] },
         "cornerRadius": { "type": "number", "minimum": 0, "maximum": 200 },
@@ -148,10 +148,11 @@
         "maxDots": { "type": "integer", "minimum": 1, "maximum": 24 },
         "labels": { "$ref": "#/$defs/text" },
         "progress": { "type": "string" },
+        "vertical": { "type": "boolean" },
         "trackColor": { "$ref": "#/$defs/color" },
         "lineWidth": { "type": "number", "minimum": 0.5, "maximum": 60 },
         "days": { "type": "integer", "minimum": 1, "maximum": 7 },
-        "action": { "type": "string", "enum": ["counter.increment", "counter.reset", "counter.next", "stopwatch.toggle", "shortcut.run", "open.url", "open.app"] },
+        "action": { "type": "string", "enum": ["open.app", "open.url", "open.deeplink", "app.launch", "call.dial", "message.open", "shortcut.run", "camera.open", "qr.scan", "calendar.open", "reminders.open", "compass.open", "weather.open", "counter.increment", "counter.reset", "counter.next", "stopwatch.toggle", "timer.toggle", "timer.add", "timer.reset", "media.playPause", "media.next", "media.previous", "media.open", "volume.up", "volume.down", "volume.mute", "volume.ringUp", "volume.ringDown", "brightness.up", "brightness.down", "system.toggle.torch", "system.toggle.wifi", "system.toggle.bluetooth", "system.toggle.airplane", "system.toggle.mobileData", "system.toggle.darkMode", "system.toggle.lowPower", "system.toggle.silent", "system.toggle.rotation", "system.toggle.dnd"] },
         "arg": { "type": "string" },
         "titleFormat": { "type": "string", "enum": ["none", "MMM", "MMMM", "MMM yyyy", "MMMM yyyy"] },
         "titleCase": { "type": "string", "enum": ["upper", "lower", "natural"] },

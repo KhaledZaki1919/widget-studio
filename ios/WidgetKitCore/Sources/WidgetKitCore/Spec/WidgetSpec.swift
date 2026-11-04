@@ -15,6 +15,8 @@ public struct WidgetSpec: Codable, Sendable, Equatable {
     public var layers: [Layer]
     /// Library section (ADR-011); optional for specs that aren't templates.
     public var category: SpecCategory?
+    /// Elements that look live but aren't, with why (prompt v5's wiring list, ADR-027).
+    public var decorative: [DecorativeNote]?
 
     public init(schemaVersion: Int = 1, id: String, name: LocalizedText, family: SpecFamily,
                 theme: SpecTheme = .dark, refresh: RefreshPolicy = .none, background: Background,
@@ -32,7 +34,7 @@ public struct WidgetSpec: Codable, Sendable, Equatable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case schemaVersion, id, name, family, theme, refresh, background, fields, layers, category
+        case schemaVersion, id, name, family, theme, refresh, background, fields, layers, category, decorative
     }
 
     public init(from decoder: Decoder) throws {
@@ -47,6 +49,7 @@ public struct WidgetSpec: Codable, Sendable, Equatable {
         fields = try container.decodeIfPresent([FieldSpec].self, forKey: .fields) ?? []
         layers = try container.decode([Layer].self, forKey: .layers)
         category = try container.decodeIfPresent(SpecCategory.self, forKey: .category)
+        decorative = try container.decodeIfPresent([DecorativeNote].self, forKey: .decorative)
     }
 
     public func field(_ key: String) -> FieldSpec? {

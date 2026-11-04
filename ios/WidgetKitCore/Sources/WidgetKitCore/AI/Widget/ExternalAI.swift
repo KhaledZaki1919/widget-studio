@@ -41,7 +41,8 @@ public enum ExternalAI {
 
     /// A small valid answer (texts inside a stack, palette tokens), so the external AI sees the exact shape.
     static let example = """
-    {"inventory":["big time","weekday under it"],"name":{"en":"Clock","ar":"الساعة"},"family":"small","theme":"dark",\
+    {"inventory":["big time","weekday under it"],"wiring":[{"element":"big time","shows":"{{time.hh}}:{{time.mm}}","tap":null,"decorative":null},\
+    {"element":"weekday","shows":"{{date.EEEE}}","tap":null,"decorative":null}],"name":{"en":"Clock","ar":"الساعة"},"family":"small","theme":"dark",\
     "palette":{"bg":"#101418","fg":"#F5F5F5","accent":"#FF5A36"},\
     "background":{"type":"solid","color":"@bg","colors":null,"angle":null,"outerColor":null},"fields":[],\
     "layers":[{"type":"stack","axis":"vertical","spacing":4,"padding":null,"alignItems":"center","justify":"center","columns":null,\
@@ -63,7 +64,8 @@ public enum ExternalAI {
         do {
             let parsed = try AIWidgetParser.parseWidget(trimmed, options: GenerationOptions(mode: .recreate, size: size), id: id,
                                                         enforceLayout: false)
-            return GeneratedWidget(spec: parsed.spec, colors: parsed.colors, model: "external", attempts: 1, layout: parsed.layout)
+            return GeneratedWidget(spec: parsed.spec, colors: parsed.colors, model: "external", attempts: 1, layout: parsed.layout,
+                                   autoWired: parsed.autoWired)
         } catch let error as AIValidationError {
             if error.description.contains("no JSON object found") { throw ImportError.noJSON }
             throw ImportError.invalid(error.description)

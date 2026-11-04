@@ -129,7 +129,7 @@ struct MyWidgetView: View {
                     date: entry.date, language: RenderContext.preferredLanguage,
                     data: LiveData.snapshot(entry.inputs, now: entry.date), image: image,
                     defaultClock: entry.inputs.settings.clockFormat
-                ))
+                ).with(artwork: entry.inputs.device.artwork))
                 .environment(\.specActionButton, WidgetActionButtons.make)
             }
         case .noAppGroup:

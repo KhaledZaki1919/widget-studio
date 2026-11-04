@@ -63,9 +63,12 @@ public struct GeneratedWidget: Sendable, Equatable {
     public let differences: [String]
     /// Whether the layout was repaired locally, or still needs the layer editor (ADR-022).
     public let layout: LayoutRepair
+    /// What the post-pass wired (ADR-027).
+    public let autoWired: [String]
 
     public init(spec: WidgetSpec, colors: [String: String], model: String, attempts: Int, reviewed: Bool = false,
-                differences: [String] = [], layout: LayoutRepair = .clean) {
+                differences: [String] = [], layout: LayoutRepair = .clean, autoWired: [String] = []) {
+        self.autoWired = autoWired
         self.spec = spec
         self.colors = colors
         self.model = model
@@ -90,21 +93,21 @@ public struct GeneratedWidget: Sendable, Equatable {
 
 // MARK: - Prompt
 
-/// Builds the request: the versioned system prompt (`Prompts/generate_v4.md`, ADR-019, ADR-023), the user
+/// Builds the request: the versioned system prompt (`Prompts/generate_v5.md`, ADR-019, ADR-023, ADR-027), the user
 /// text with mode, size and the user's instructions, the image, and the AI schema. Also the one
 /// self-review request (`Prompts/review_v1.md`).
 public enum WidgetPrompt {
-    public static let version = "generate_v4"
+    public static let version = "generate_v5"
     public static let reviewVersion = "review_v1"
     /// Room for 30 layers with their nulls; thinking providers get extra on top.
     public static let maxOutputTokens = 16000
     /// Per HTTP request: two attempts (structured, then prompt-only) fit the 240 s deadline.
     public static let requestTimeout: TimeInterval = 110
 
-    /// The system prompt with the allowed bindings and icons filled in. Static per app version,
+    /// The system prompt with the capability catalog and icons filled in. Static per app version,
     /// so providers can cache it.
     public static let system: String = prompt(version)
-        .replacingOccurrences(of: "$BINDINGS$", with: bindingList)
+        .replacingOccurrences(of: "$CAPABILITIES$", with: capabilityList)
         .replacingOccurrences(of: "$ICONS$", with: Icons.whitelist.keys.sorted().joined(separator: ", "))
 
     /// The review instructions (sent as user text with the original and the render).
@@ -115,27 +118,31 @@ public enum WidgetPrompt {
         return url.flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? ""
     }
 
-    /// One line per allowed binding, with what it shows.
-    static var bindingList: String {
-        aiBindings.map { "- `{{\($0.name)}}`: \($0.meaning)" }.joined(separator: "\n")
+    /// The catalog as the model reads it (ADR-027), built from `capabilities.json`: live values
+    /// and tap actions by group, with what each looks like. Never edited by hand.
+    public static var capabilityList: String {
+        var sections: [String] = []
+        for group in Capabilities.groups {
+            let bindings = Capabilities.bindings.filter { $0.group == group.id && $0.ai }
+            let lines = bindings.map { binding -> String in
+                let type = binding.type.map { " (\($0))" } ?? ""
+                return "- `{{\(binding.id)}}`\(type): \(binding.description)"
+            }
+            if !lines.isEmpty { sections.append("Live values, \(group.title.resolved(language: "en")):\n" + lines.joined(separator: "\n")) }
+        }
+        var actions: [String] = []
+        for group in Capabilities.groups {
+            for action in Capabilities.actions where action.group == group.id && action.ai {
+                let looks = action.icons.prefix(3).joined(separator: ", ")
+                actions.append("- `\(action.id)`: \(action.description)" + (looks.isEmpty ? "" : " (icons: \(looks))"))
+            }
+        }
+        sections.append("Tap actions:\n" + actions.joined(separator: "\n"))
+        return sections.joined(separator: "\n\n")
     }
 
-    /// The bindings AI output may use (brief §5.1 as extended for M5): time, date, weather,
-    /// battery, prayer, steps. Kept in sync with `SpecValidator` by a test.
-    static let aiBindings: [(name: String, meaning: String)] = [
-        ("time.h", "hour without leading zero"), ("time.hh", "hour, two digits"), ("time.mm", "minutes, two digits"),
-        ("time.ampm", "AM/PM marker"), ("date.d", "day of the month"), ("date.EEEE", "weekday name"),
-        ("date.MMM", "short month name"), ("tz.offset", "time zone offset like GMT+3"),
-        ("weather.temp", "current temperature (number; add °)"), ("weather.hi", "today's high"), ("weather.lo", "today's low"),
-        ("weather.cond", "condition text"), ("weather.symbol", "condition icon (for icon.symbol)"), ("weather.city", "city name"),
-        ("battery.level", "battery 0…1 (ring progress; shows a percentage in text)"),
-        ("prayer.next.name", "name of the next prayer"), ("prayer.next.time", "time of the next prayer (date; use in live.target)"),
-        ("prayer.fajr", "Fajr time"), ("prayer.dhuhr", "Dhuhr time"), ("prayer.asr", "Asr time"),
-        ("prayer.maghrib", "Maghrib time"), ("prayer.isha", "Isha time"), ("qibla.bearing", "Qibla direction in degrees"),
-        ("steps.today", "steps today"), ("steps.streak", "days in a row the step goal was met"),
-        ("steps.month", "steps this month"), ("steps.monthGrid", "month calendar levels (for dotGrid values, 5×7)"),
-        ("days.<dateField>", "whole days left until a date field, e.g. {{days.event}}"),
-    ]
+    /// The bindings AI output may use, from the catalog.
+    static var aiBindings: [Capability] { Capabilities.bindings.filter(\.ai) }
 
     /// small for square images, medium for wide ones, large for tall ones.
     public static func suggestedFamily(width: Int, height: Int) -> SpecFamily {
@@ -153,7 +160,8 @@ public enum WidgetPrompt {
             lines.append("Task: the image shows a widget design or a screenshot of widgets. Recreate the main widget as closely as "
                 + "possible with the layer types, fonts and bindings above: start with the inventory, then map every element. "
                 + "Do not use image layers: draw everything with text, calendars, lists, shapes, icons and the other layers. "
-                + "Replace sample values (times, dates, temperatures, step counts) with the matching live bindings.")
+                + "Replace sample values (times, dates, temperatures, step counts, song names, levels, states) with the matching live "
+                + "bindings, and give every control its action: fill `wiring` first.")
         case .photo:
             lines.append("Task: the image is the user's photo. Design a widget around it: use exactly one image layer with "
                 + "\"source\": \"user_image\" for the photo (add a field of type image with key \"photo\"), and add text "
@@ -246,6 +254,10 @@ public enum AIWidgetSchema {
     public static func schema(mode: GenerationMode, review: Bool = false) -> JSONValue {
         var properties: [String: JSONValue] = [
             "inventory": JSONSchema.array(JSONSchema.string),
+            // Prompt v5 (ADR-027): what each element shows and does; ids come from the catalog.
+            "wiring": JSONSchema.array(JSONSchema.object([
+                "element": JSONSchema.string, "shows": nullableString, "tap": nullableEnum(aiActions), "decorative": nullableString,
+            ])),
             "name": localized,
             "family": JSONSchema.enumeration(SpecFamily.allCases.map(\.rawValue)),
             "theme": JSONSchema.enumeration(SpecTheme.allCases.map(\.rawValue)),
@@ -260,7 +272,7 @@ public enum AIWidgetSchema {
             ]),
             "fields": JSONSchema.array(JSONSchema.object([
                 "key": JSONSchema.string,
-                "type": JSONSchema.enumeration(mode == .photo ? ["text", "date", "image"] : ["text", "date"]),
+                "type": JSONSchema.enumeration(["text", "date", "url", "shortcut", "timezone"] + (mode == .photo ? ["image"] : [])),
                 "label": localized,
                 "default": JSONSchema.nullable(localized),
             ])),
@@ -268,6 +280,13 @@ public enum AIWidgetSchema {
         ]
         if review { properties["differences"] = JSONSchema.array(JSONSchema.string) }
         return JSONSchema.object(properties)
+    }
+
+    /// Catalog action ids AI output may use.
+    static var aiActions: [String] { Capabilities.actions.filter(\.ai).map(\.id) }
+    /// Whitelisted symbols plus the live icon bindings.
+    static var symbols: [String] {
+        Icons.whitelist.keys.sorted() + Capabilities.bindings.filter { $0.ai && $0.type == "symbol" }.map { "{{\($0.id)}}" }
     }
 
     static let localized = JSONSchema.object(["en": JSONSchema.string, "ar": JSONSchema.string])
@@ -292,6 +311,8 @@ public enum AIWidgetSchema {
         all["frame"] = frame
         all["opacity"] = nullableNumber
         all["mirror"] = JSONSchema.nullable(JSONSchema.boolean)
+        all["when"] = nullableString
+        all["rotation"] = nullableString
         return JSONSchema.object(all)
     }
 
@@ -301,6 +322,7 @@ public enum AIWidgetSchema {
         all["type"] = JSONSchema.enumeration([type])
         all["width"] = nullableNumber
         all["height"] = nullableNumber
+        all["when"] = nullableString
         return JSONSchema.object(all)
     }
 
@@ -323,7 +345,7 @@ public enum AIWidgetSchema {
         "glass": JSONSchema.nullable(JSONSchema.boolean),
     ]
     static let iconProperties: [String: JSONValue] = [
-        "symbol": JSONSchema.enumeration(Icons.whitelist.keys.sorted() + ["{{weather.symbol}}"]),
+        "symbol": JSONSchema.enumeration(symbols),
         "size": JSONSchema.number,
         "color": JSONSchema.string,
     ]
@@ -334,6 +356,7 @@ public enum AIWidgetSchema {
     static let progressBarProperties: [String: JSONValue] = [
         "progress": JSONSchema.string, "color": JSONSchema.string, "trackColor": nullableString,
         "segments": JSONSchema.nullable(JSONSchema.integer), "cornerRadius": nullableNumber,
+        "vertical": JSONSchema.nullable(JSONSchema.boolean),
     ]
 
     static func stackProperties(children: [JSONValue]) -> [String: JSONValue] {
@@ -382,7 +405,7 @@ public enum AIWidgetSchema {
             ]),
             layer("ring", ringProperties),
             layer("forecastRow", ["days": JSONSchema.integer, "color": JSONSchema.string]),
-            layer("button", ["action": JSONSchema.enumeration([ButtonLayer.Action.openApp.rawValue])]),
+            layer("button", ["action": JSONSchema.enumeration(aiActions), "arg": nullableString]),
             // ADR-019.
             layer("calendarMonth", [
                 "font": font, "color": JSONSchema.string,
@@ -411,15 +434,14 @@ public enum AIWidgetSchema {
             ]),
             layer("progressBar", progressBarProperties),
         ]
-        if mode == .photo {
-            shapes.append(layer("image", [
-                "source": JSONSchema.enumeration(["user_image"]),
-                "fit": nullableEnum(ImageLayer.Fit.allCases.map(\.rawValue)),
-                "mask": nullableEnum(ImageLayer.Mask.allCases.map(\.rawValue)),
-                "cornerRadius": nullableNumber,
-                "filter": nullableEnum(ImageLayer.Filter.allCases.map(\.rawValue)),
-            ]))
-        }
+        // Album art is live data, so recreated designs may use it too (ADR-027).
+        shapes.append(layer("image", [
+            "source": JSONSchema.enumeration((mode == .photo ? ["user_image"] : []) + ["{{media.artwork}}"]),
+            "fit": nullableEnum(ImageLayer.Fit.allCases.map(\.rawValue)),
+            "mask": nullableEnum(ImageLayer.Mask.allCases.map(\.rawValue)),
+            "cornerRadius": nullableNumber,
+            "filter": nullableEnum(ImageLayer.Filter.allCases.map(\.rawValue)),
+        ]))
         return shapes
     }
 }
@@ -446,6 +468,22 @@ public enum AIWidgetParser {
         public let spec: WidgetSpec
         public let colors: [String: String]
         public let layout: LayoutRepair
+        /// What the post-pass wired (ADR-027).
+        public var autoWired: [String] = []
+    }
+
+    /// Prompt v5's `decorative` entries, and the `inventory` for the post-pass.
+    static func decorativeNotes(_ wiring: JSONValue?) -> [DecorativeNote] {
+        guard case .array(let items)? = wiring else { return [] }
+        return items.prefix(30).compactMap { item in
+            guard let reason = item["decorative"]?.stringValue, !reason.isEmpty, let element = item["element"]?.stringValue else { return nil }
+            return DecorativeNote(element: String(element.prefix(80)), reason: String(reason.prefix(120)))
+        }
+    }
+
+    static func inventory(_ value: JSONValue?) -> [String] {
+        guard case .array(let items)? = value else { return [] }
+        return items.compactMap(\.stringValue)
     }
 
     /// `enforceLayout`: overlapping frames and oversized icons are problems (they send the retry).
@@ -484,10 +522,13 @@ public enum AIWidgetParser {
 
         let card = object["card"]?["shape"]?.stringValue.flatMap(WidgetCardShape.init(rawValue:)) ?? options.detectedCard
         if options.mode == .recreate { applyCard(card, to: &object, colors: &colors, wallpaper: options.wallpaperColor) }
+        let notes = decorativeNotes(object["wiring"])
+        let listed = Self.inventory(object["inventory"])
         object["card"] = nil
         object["palette"] = nil
         object["category"] = nil
         object["inventory"] = nil
+        object["wiring"] = nil
         object["differences"] = nil
         object["layers"] = object["layers"].map(withoutUnknownIcons).map(withKnownShapeKinds)
         object["fields"] = object["fields"].map(withCleanFieldLabels)
@@ -507,8 +548,16 @@ public enum AIWidgetParser {
             guard problems.isEmpty else { throw AIValidationError(problems.joined(separator: "; ")) }
             var layout = LayoutRepair.clean
             if !enforceLayout { (spec, layout) = repaired(spec) }
+            if !notes.isEmpty { spec.decorative = notes }
+            // The post-pass may only add wiring: its result must still pass the AI rules (ADR-027).
+            var autoWired: [String] = []
+            let wired = AutoWire.apply(spec, inventory: listed)
+            if case .success(let checked) = SpecValidator(mode: .ai, checksTextOverlaps: false).validate(wired.spec) {
+                spec = checked
+                autoWired = wired.changes
+            }
             spec.refresh = refresh(for: spec)
-            return Parsed(spec: spec, colors: colors, layout: layout)
+            return Parsed(spec: spec, colors: colors, layout: layout, autoWired: autoWired)
         }
     }
 
@@ -611,7 +660,7 @@ public enum AIWidgetParser {
     /// Recreate: no image layers (the screenshot is never embedded). Photo: the photo is shown.
     static func modeProblems(_ spec: WidgetSpec, mode: GenerationMode) -> [String] {
         let images = spec.layers.indices.filter {
-            if case .image = spec.layers[$0].content { return true }
+            if case .image(let image) = spec.layers[$0].content { return Bindings.soleBinding(image.source) == nil }
             return false
         }
         switch mode {
@@ -654,7 +703,8 @@ public enum AIWidgetParser {
             }
         }
         let hasCalendar = spec.layers.contains { if case .calendarMonth = $0.content { true } else { false } }
-        if hasClock || names.contains(where: { $0.hasPrefix("time.") }) { return .minute }
+        let moving = ["time.", "media.", "timer.", "stopwatch."]
+        if hasClock || names.contains(where: { name in moving.contains { name.hasPrefix($0) } }) { return .minute }
         if names.contains(where: { !$0.hasPrefix("date.") && !$0.hasPrefix("field.") }) { return .hourly }
         if hasCalendar || names.contains(where: { $0.hasPrefix("date.") }) { return .daily }
         return .none
@@ -711,7 +761,7 @@ public struct WidgetGenerator: Sendable {
             try AIWidgetParser.parseWidget(text, options: options, id: id, enforceLayout: firstRound.next() == 1)
         }
         let first = GeneratedWidget(spec: result.value.spec, colors: result.value.colors, model: result.model, attempts: result.attempts,
-                                    layout: result.value.layout)
+                                    layout: result.value.layout, autoWired: result.value.autoWired)
         guard let review, let render = await review(first.spec, first.colors) else { return first }
         if Task.isCancelled { throw AIError.cancelled }
 
@@ -727,7 +777,7 @@ public struct WidgetGenerator: Sendable {
             if case .needsEditing = reviewed.value.0.layout, !first.needsEditing { return first }
             return GeneratedWidget(spec: reviewed.value.0.spec, colors: reviewed.value.0.colors, model: reviewed.model,
                                    attempts: first.attempts + reviewed.attempts, reviewed: true, differences: reviewed.value.1,
-                                   layout: reviewed.value.0.layout)
+                                   layout: reviewed.value.0.layout, autoWired: reviewed.value.0.autoWired)
         } catch AIError.cancelled {
             throw AIError.cancelled
         } catch {

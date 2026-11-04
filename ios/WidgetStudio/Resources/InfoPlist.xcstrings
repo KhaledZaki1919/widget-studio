@@ -18,6 +18,40 @@
         }
       }
     },
+    "NSAppleMusicUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يعرض الويدجت ما يُشغَّل في Apple Music ويتحكم في التشغيل."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shows what is playing in Apple Music in widgets and controls playback."
+          }
+        }
+      }
+    },
+    "NSCalendarsFullAccessUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يعرض الويدجت أحداث تقويمك القادمة."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shows your upcoming calendar events in widgets."
+          }
+        }
+      }
+    },
     "NSHealthShareUsageDescription": {
       "extractionState": "manual",
       "localizations": {
@@ -48,6 +82,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Your location is used for weather, prayer times and the Qibla direction in widgets."
+          }
+        }
+      }
+    },
+    "NSRemindersFullAccessUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يعرض الويدجت تذكيراتك المفتوحة."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shows your open reminders in widgets."
           }
         }
       }

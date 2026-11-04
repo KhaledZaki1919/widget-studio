@@ -34,7 +34,8 @@ public enum DataRequirements {
             case .list(let list):
                 strings += list.items.flatMap { $0.title.allValues + ($0.detail?.allValues ?? []) }
             case .progressBar(let bar): strings.append(bar.progress)
-            case .image, .shape, .calendarMonth, .stack, .spacer, .unknown: break
+            case .image(let image): strings.append(image.source)
+            case .shape, .calendarMonth, .stack, .spacer, .unknown: break
             }
         }
         return strings.flatMap(Bindings.names(in:))
@@ -61,17 +62,21 @@ public struct LiveInputs: Sendable {
     public var battery: Double?
     public var counter: CounterState
     public var stopwatch: StopwatchState
+    public var timer: TimerState
     public var settings: AppSettings
+    /// Catalog bindings read from the device (`DeviceData`, ADR-027).
+    public var device = DeviceValues()
 
     public init(location: StoredLocation? = nil, weather: WeatherReport? = nil, health: Result<HealthSummary, HealthIssue>? = nil,
                 battery: Double? = nil, counter: CounterState = CounterState(), stopwatch: StopwatchState = StopwatchState(),
-                settings: AppSettings = AppSettings()) {
+                timer: TimerState = TimerState(), settings: AppSettings = AppSettings()) {
         self.location = location
         self.weather = weather
         self.health = health
         self.battery = battery
         self.counter = counter
         self.stopwatch = stopwatch
+        self.timer = timer
         self.settings = settings
     }
 }
@@ -88,9 +93,14 @@ public enum LiveData {
             data.prayer = PrayerCalculator.prayer(latitude: location.latitude, longitude: location.longitude, date: now,
                                                   timeZone: zone, method: inputs.settings.prayerMethod)
             data.qiblaBearing = PrayerCalculator.qibla(latitude: location.latitude, longitude: location.longitude)
+            data.place = location.city
         }
+        data.live = inputs.device.live
+        data.media = inputs.device.media
+        data.timer = inputs.timer
         if let weather = inputs.weather {
             data.weather = weather.snapshot(now: now, city: inputs.location?.city)
+            data.live.merge(weather.liveValues(now: now)) { _, new in new }
         }
         if case .success(let health)? = inputs.health {
             let goal = Double(inputs.settings.stepGoal)
@@ -100,6 +110,14 @@ public enum LiveData {
             data.stepsMonth = health.monthTotal(now: now, calendar: calendar)
             data.sleepLastNight = health.sleepLastNight(now: now, calendar: calendar).map(HealthSummary.duration(minutes:))
             data.sleepWeek = health.sleepWeek(now: now, calendar: calendar)
+            if goal > 0 {
+                let share = min(health.stepsToday(now: now, calendar: calendar) / goal, 1)
+                data.live["steps.progress"] = .number(share, display: String(Int((share * 100).rounded())))
+            }
+            if let window = health.sleepWindow(now: now, calendar: calendar) {
+                data.live["sleep.bedtime"] = .date(window.start)
+                data.live["sleep.wake"] = .date(window.end)
+            }
         }
         data.batteryLevel = inputs.battery
         data.counter = Double(inputs.counter.count(in: inputs.settings.dhikrList))
