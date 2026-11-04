@@ -21,6 +21,8 @@ struct AIEvalTests {
         let mode: String
         let size: String
         let note: String?
+        /// Catalog ids this design must end up with (ADR-027); "a|b" takes either. "clock" is an analog clock.
+        let wiring: [String]?
     }
 
     /// One case's outcome, for the comparison table.
@@ -29,6 +31,8 @@ struct AIEvalTests {
         let seconds: Int
         let attempts: Int
         let layout: LayoutRepair?
+        var modelScore: Double?
+        var finalScore: Double?
     }
 
     let environment = ProcessInfo.processInfo.environment
@@ -48,7 +52,10 @@ struct AIEvalTests {
         let review = environment["AI_EVAL_REVIEW"] == "1"
         let only = environment["AI_EVAL_CASES"].map { Set($0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }) }
         let cases = try JSONDecoder().decode([Case].self, from: Data(contentsOf: input.appendingPathComponent("cases.json")))
-            .filter { item in only.map { $0.contains(item.file) || $0.isEmpty } ?? true }
+            .filter { item in
+                guard let only, !only.isEmpty, only != [""] else { return true }
+                return only.contains(item.file) || only.contains { $0.hasSuffix("*") && item.file.hasPrefix($0.dropLast()) }
+            }
         let structured = environment["AI_EVAL_STRUCTURED"] != "0"
 
         // The provider's own model list confirms the IDs.
@@ -75,6 +82,7 @@ struct AIEvalTests {
                 service.structuredFirst = structured
                 let generator = WidgetGenerator(service: service)
                 var outcomes: [Outcome] = []
+                var scores: [String: Double] = [:]
                 details += ["# `\(model)` · crop \(mode)", ""]
 
                 for item in cases {
@@ -103,13 +111,15 @@ struct AIEvalTests {
                     }
                     for target in targets {
                         let outcome = await run(generator, target: target, review: review, folder: folder, name: name + target.suffix,
-                                                defaults: defaults, details: &details)
+                                                defaults: defaults, details: &details, wiring: item.wiring)
+                        if let score = outcome.finalScore { scores[name] = score }
                         outcomes.append(outcome)
                         // Free keys allow few requests per minute.
                         try await Task.sleep(nanoseconds: UInt64((Double(environment["AI_EVAL_PAUSE"] ?? "") ?? 8) * 1_000_000_000))
                     }
                     details.append("")
                 }
+                try gate(scores, model: model, folder: folder, table: &table, outcomes: outcomes)
                 let label = model + (modes.count > 1 || mode == "on" ? " · crop \(mode)" : "")
                 table.append(Self.row(model: label, listed: listed.isEmpty ? nil : listed.contains(model), outcomes: outcomes))
                 // Write as we go, so a cancelled run still leaves the finished models.
@@ -122,6 +132,93 @@ struct AIEvalTests {
         summary += table + ["", "Listed by the provider (IDs like the requested ones): "
             + (listed.isEmpty ? "no model list" : similar.map { "`\($0)`" }.joined(separator: ", ")), ""] + details
         try summary.joined(separator: "\n").write(to: output.appendingPathComponent("summary.md"), atomically: true, encoding: .utf8)
+    }
+
+    /// The wiring score of a run (ADR-027): the mean over the interactive cases, written to
+    /// `wiring.json`. With `AI_EVAL_GATE=1` a score under the best run fails the workflow.
+    func gate(_ scores: [String: Double], model: String, folder: URL, table: inout [String], outcomes: [Outcome]) throws {
+        guard !scores.isEmpty else { return }
+        let final = scores.values.reduce(0, +) / Double(scores.count)
+        let modelScores = outcomes.compactMap(\.modelScore)
+        let raw = modelScores.isEmpty ? 0 : modelScores.reduce(0, +) / Double(modelScores.count)
+        table.append("")
+        table.append("**Wiring \(model):** \(Self.percent(final)) with the post-pass, \(Self.percent(raw)) from the model alone, \(scores.count) cases")
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let report = WiringBest(score: final, model: model, prompt: WidgetPrompt.version, cases: scores)
+        try encoder.encode(report).write(to: folder.appendingPathComponent("wiring.json"))
+        if environment["AI_EVAL_GATE"] == "1", let best = WiringGateTests.best(), final + 0.0001 < best.score {
+            Issue.record("Wiring score \(Self.percent(final)) is below the best run \(Self.percent(best.score))")
+        }
+    }
+
+    static func percent(_ value: Double) -> String { String(format: "%.0f%%", value * 100) }
+
+    /// The 10 widgets of a set before and after (ADR-027): each JSON as it was, through the
+    /// post-pass, and through prompt v5 from a render of the old design. `AI_EVAL_SET` is a folder
+    /// outside the repo; the set isn't committed.
+    @Test @MainActor func setBeforeAndAfter() async throws {
+        guard let folderPath = environment["AI_EVAL_SET"], !folderPath.isEmpty else { return }
+        let input = URL(fileURLWithPath: folderPath)
+        let output = URL(fileURLWithPath: environment["AI_EVAL_OUT"] ?? NSTemporaryDirectory() + "ai-eval").appendingPathComponent("set")
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        if let fonts = environment["AI_EVAL_FONTS"] { registerFonts(in: URL(fileURLWithPath: fonts)) }
+        let files = try FileManager.default.contentsOfDirectory(at: input, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "json" }.sorted { $0.lastPathComponent < $1.lastPathComponent }
+        func wired(_ spec: WidgetSpec) -> (live: Int, taps: Int, ids: [String]) {
+            let ids = WiringScore.ids(in: spec).filter { !$0.hasPrefix("field.") && $0 != "open.app" }
+            let taps = ids.filter { Capabilities.action($0) != nil }.count
+            return (ids.count - taps, taps, ids.sorted())
+        }
+        var generator: WidgetGenerator?
+        let kind = AIProviderKind(rawValue: environment["AI_EVAL_PROVIDER"] ?? "gemini") ?? .gemini
+        if environment["AI_EVAL_SET_V5"] == "1", let key = environment["AI_EVAL_KEY"], !key.isEmpty {
+            let keys = AIKeyStore(storage: MemoryKeyStorage())
+            try keys.save(key, for: kind)
+            let defaults = testDefaults()
+            let model = (environment["AI_EVAL_MODEL"] ?? "").split(separator: ",").first.map(String.init) ?? kind.recommendedModel
+            AISettings(provider: kind, models: [kind.rawValue: model]).save(to: defaults)
+            generator = WidgetGenerator(service: AIService(keyStore: keys, defaults: defaults))
+        }
+        var lines = ["# The set, before and after", "", "| Widget | Before (live / taps) | Post-pass | Prompt v5 + post-pass | Post-pass changed |", "|---|---|---|---|---|"]
+        var detail: [String] = []
+        for file in files {
+            let name = file.deletingPathExtension().lastPathComponent
+            let text = try String(contentsOf: file, encoding: .utf8)
+            let options = GenerationOptions()
+            do {
+                let before = try AIWidgetParser.parseWidget(text, options: options, id: "set.\(name)", enforceLayout: false, autoWire: false)
+                let after = try AIWidgetParser.parseWidget(text, options: options, id: "set.\(name)", enforceLayout: false)
+                let (was, now) = (wired(before.spec), wired(after.spec))
+                var images = [SpecSnapshot.render(before.spec, colors: before.colors), SpecSnapshot.render(after.spec, colors: after.colors)].compactMap { $0 }
+                var third = "not run"
+                if let generator, let render = images.first, let prepared = AIImage.prepare(image: render) {
+                    var v5Options = GenerationOptions(size: SizeChoice(rawValue: before.spec.family.rawValue) ?? .auto)
+                    v5Options.cropped = true
+                    do {
+                        let result = try await generator.generate(image: prepared, options: v5Options)
+                        let v5 = wired(result.spec)
+                        third = "\(v5.live) / \(v5.taps)"
+                        if let image = SpecSnapshot.render(result.spec, colors: result.colors) { images.append(image) }
+                        detail.append("- \(name) v5: \(v5.ids.joined(separator: ", "))")
+                        try result.reply.write(to: output.appendingPathComponent("\(name).v5.reply.json"), atomically: true, encoding: .utf8)
+                    } catch {
+                        third = "failed"
+                        detail.append("- \(name) v5 failed: \(error)")
+                    }
+                    try await Task.sleep(nanoseconds: UInt64((Double(environment["AI_EVAL_PAUSE"] ?? "") ?? 8) * 1_000_000_000))
+                }
+                lines.append("| \(name) | \(was.live) / \(was.taps) | \(now.live) / \(now.taps) | \(third) | \(after.autoWired.count) |")
+                detail.append("- \(name) before: \(was.ids.joined(separator: ", "))")
+                detail.append("- \(name) post-pass: \(now.ids.joined(separator: ", "))")
+                detail += after.autoWired.map { "  - \($0)" }
+                if let combined = sideBySide(images) { try png(combined).write(to: output.appendingPathComponent("\(name).png")) }
+            } catch {
+                lines.append("| \(name) | failed | | | |")
+                detail.append("- \(name) failed: \(error)")
+            }
+        }
+        try (lines + [""] + detail).joined(separator: "\n").write(to: output.appendingPathComponent("set.md"), atomically: true, encoding: .utf8)
     }
 
     /// One image sent to the model: the whole picture, or one detected widget's crop (ADR-024).
@@ -145,7 +242,7 @@ struct AIEvalTests {
     /// Generates, renders and records one target; failures go to the summary.
     @MainActor
     func run(_ generator: WidgetGenerator, target: EvalTarget, review: Bool, folder: URL, name: String,
-             defaults: UserDefaults, details: inout [String]) async -> Outcome {
+             defaults: UserDefaults, details: inout [String], wiring: [String]? = nil) async -> Outcome {
         let photo = target.options.mode == .photo ? target.image : nil
         var renderer: SpecRenderer?
         if review {
@@ -180,13 +277,24 @@ struct AIEvalTests {
                 + "\(seconds) s, reviewed: \(result.reviewed), layout: \(Self.describe(result.layout))")
             details.append("- layers: " + spec.layers.map(\.content.typeName).joined(separator: ", "))
             for difference in result.differences { details.append("  - fixed: \(difference)") }
-            return Outcome(ok: true, seconds: seconds, attempts: result.attempts, layout: result.layout)
+            var outcome = Outcome(ok: true, seconds: seconds, attempts: result.attempts, layout: result.layout)
+            if let wiring {
+                try result.reply.write(to: folder.appendingPathComponent("\(name).reply.json"), atomically: true, encoding: .utf8)
+                let raw = try? AIWidgetParser.parseWidget(result.reply, options: target.options, id: "eval", enforceLayout: false, autoWire: false)
+                outcome.modelScore = raw.map { WiringScore.score($0.spec, expected: wiring) }
+                outcome.finalScore = WiringScore.score(spec, expected: wiring)
+                let missing = wiring.filter { !WiringScore.hits(spec, expected: [$0]).contains($0) }
+                details.append("- wiring: \(Self.percent(outcome.finalScore ?? 0)) (model \(Self.percent(outcome.modelScore ?? 0))), missing: "
+                    + (missing.isEmpty ? "nothing" : missing.joined(separator: ", ")))
+                for change in result.autoWired { details.append("  - \(change)") }
+            }
+            return outcome
         } catch {
             details.append("- \(name) FAILED: \(error)")
             if let diagnostic = AIDiagnosticsStore.load(from: defaults) {
                 details += ["```", diagnostic.report(), "```"]
             }
-            return Outcome(ok: false, seconds: Int(Date().timeIntervalSince(started)), attempts: 0, layout: nil)
+            return Outcome(ok: false, seconds: Int(Date().timeIntervalSince(started)), attempts: 0, layout: nil, modelScore: nil, finalScore: nil)
         }
     }
 

@@ -183,6 +183,7 @@ fun LayerDetail(state: EditorState, path: List<Int>, onOpenItems: (List<Int>) ->
         }
         else -> Unit
     }
+    WiringCards(state, path)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
         OutlinedButton(onClick = { state.setLayers { LayerEditing.duplicate(path, it) } }) { Text(tr("Duplicate", "تكرار")) }
         OutlinedButton(onClick = { state.setLayers { LayerEditing.remove(path, it) }; onGone() }) { Text(tr("Delete", "حذف"), color = MaterialTheme.colorScheme.error) }

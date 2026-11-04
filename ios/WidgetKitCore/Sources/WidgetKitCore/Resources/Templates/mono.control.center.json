@@ -1,0 +1,613 @@
+{
+ "schemaVersion": 1,
+ "id": "mono.control.center",
+ "category": "tiles",
+ "name": {
+  "en": "Control Center",
+  "ar": "مركز التحكم"
+ },
+ "family": "large",
+ "theme": "dark",
+ "refresh": "minute",
+ "background": {
+  "type": "solid",
+  "color": "@bg"
+ },
+ "fields": [],
+ "layers": [
+  {
+   "type": "shape",
+   "kind": "roundedRect",
+   "fill": "@dim",
+   "frame": {
+    "x": 16,
+    "y": 16,
+    "w": 332,
+    "h": 84
+   },
+   "cornerRadius": 20
+  },
+  {
+   "type": "stack",
+   "axis": "vertical",
+   "spacing": 2,
+   "frame": {
+    "x": 32,
+    "y": 26,
+    "w": 170,
+    "h": 44
+   },
+   "children": [
+    {
+     "type": "text",
+     "value": "{{media.title}}",
+     "font": {
+      "family": "system",
+      "size": 15,
+      "weight": "semibold"
+     },
+     "color": "@fg",
+     "maxLines": 1
+    },
+    {
+     "type": "text",
+     "value": "{{media.artist}}",
+     "font": {
+      "family": "system",
+      "size": 12,
+      "weight": "regular"
+     },
+     "color": "@muted",
+     "maxLines": 1
+    }
+   ],
+   "alignItems": "start",
+   "mirror": true
+  },
+  {
+   "type": "progressBar",
+   "progress": "{{media.progress}}",
+   "color": "@fg",
+   "trackColor": "@dim",
+   "frame": {
+    "x": 32,
+    "y": 80,
+    "w": 300,
+    "h": 4
+   },
+   "mirror": true
+  },
+  {
+   "type": "icon",
+   "symbol": "backward.end.fill",
+   "size": 20,
+   "color": "@fg",
+   "frame": {
+    "x": 212,
+    "y": 34,
+    "w": 28,
+    "h": 28
+   }
+  },
+  {
+   "type": "icon",
+   "symbol": "{{media.symbol}}",
+   "size": 24,
+   "color": "@fg",
+   "frame": {
+    "x": 254,
+    "y": 32,
+    "w": 32,
+    "h": 32
+   }
+  },
+  {
+   "type": "icon",
+   "symbol": "forward.end.fill",
+   "size": 20,
+   "color": "@fg",
+   "frame": {
+    "x": 300,
+    "y": 34,
+    "w": 28,
+    "h": 28
+   }
+  },
+  {
+   "type": "shape",
+   "kind": "roundedRect",
+   "fill": "@dim",
+   "frame": {
+    "x": 16,
+    "y": 112,
+    "w": 72,
+    "h": 72
+   },
+   "cornerRadius": 18
+  },
+  {
+   "type": "shape",
+   "kind": "roundedRect",
+   "fill": "@accent",
+   "frame": {
+    "x": 16,
+    "y": 112,
+    "w": 72,
+    "h": 72
+   },
+   "cornerRadius": 18,
+   "when": "{{system.wifi}}"
+  },
+  {
+   "type": "icon",
+   "symbol": "wifi",
+   "size": 24,
+   "color": "@fg",
+   "frame": {
+    "x": 37,
+    "y": 133,
+    "w": 30,
+    "h": 30
+   }
+  },
+  {
+   "type": "shape",
+   "kind": "roundedRect",
+   "fill": "@dim",
+   "frame": {
+    "x": 100,
+    "y": 112,
+    "w": 72,
+    "h": 72
+   },
+   "cornerRadius": 18
+  },
+  {
+   "type": "shape",
+   "kind": "roundedRect",
+   "fill": "@accent",
+   "frame": {
+    "x": 100,
+    "y": 112,
+    "w": 72,
+    "h": 72
+   },
+   "cornerRadius": 18,
+   "when": "{{system.bluetooth}}"
+  },
+  {
+   "type": "icon",
+   "symbol": "dot.radiowaves.left.and.right",
+   "size": 24,
+   "color": "@fg",
+   "frame": {
+    "x": 121,
+    "y": 133,
+    "w": 30,
+    "h": 30
+   }
+  },
+  {
+   "type": "shape",
+   "kind": "roundedRect",
+   "fill": "@dim",
+   "frame": {
+    "x": 184,
+    "y": 112,
+    "w": 72,
+    "h": 72
+   },
+   "cornerRadius": 18
+  },
+  {
+   "type": "shape",
+   "kind": "roundedRect",
+   "fill": "@accent",
+   "frame": {
+    "x": 184,
+    "y": 112,
+    "w": 72,
+    "h": 72
+   },
+   "cornerRadius": 18,
+   "when": "{{system.airplane}}"
+  },
+  {
+   "type": "icon",
+   "symbol": "airplane",
+   "size": 24,
+   "color": "@fg",
+   "frame": {
+    "x": 205,
+    "y": 133,
+    "w": 30,
+    "h": 30
+   }
+  },
+  {
+   "type": "shape",
+   "kind": "roundedRect",
+   "fill": "@dim",
+   "frame": {
+    "x": 268,
+    "y": 112,
+    "w": 72,
+    "h": 72
+   },
+   "cornerRadius": 18
+  },
+  {
+   "type": "shape",
+   "kind": "roundedRect",
+   "fill": "@accent",
+   "frame": {
+    "x": 268,
+    "y": 112,
+    "w": 72,
+    "h": 72
+   },
+   "cornerRadius": 18,
+   "when": "{{system.torch}}"
+  },
+  {
+   "type": "icon",
+   "symbol": "flashlight.on.fill",
+   "size": 24,
+   "color": "@fg",
+   "frame": {
+    "x": 289,
+    "y": 133,
+    "w": 30,
+    "h": 30
+   }
+  },
+  {
+   "type": "shape",
+   "kind": "roundedRect",
+   "fill": "@dim",
+   "frame": {
+    "x": 16,
+    "y": 196,
+    "w": 72,
+    "h": 72
+   },
+   "cornerRadius": 18
+  },
+  {
+   "type": "shape",
+   "kind": "roundedRect",
+   "fill": "@accent",
+   "frame": {
+    "x": 16,
+    "y": 196,
+    "w": 72,
+    "h": 72
+   },
+   "cornerRadius": 18,
+   "when": "{{system.dnd}}"
+  },
+  {
+   "type": "icon",
+   "symbol": "moon.fill",
+   "size": 24,
+   "color": "@fg",
+   "frame": {
+    "x": 37,
+    "y": 217,
+    "w": 30,
+    "h": 30
+   }
+  },
+  {
+   "type": "shape",
+   "kind": "roundedRect",
+   "fill": "@dim",
+   "frame": {
+    "x": 100,
+    "y": 196,
+    "w": 72,
+    "h": 72
+   },
+   "cornerRadius": 18
+  },
+  {
+   "type": "shape",
+   "kind": "roundedRect",
+   "fill": "@accent",
+   "frame": {
+    "x": 100,
+    "y": 196,
+    "w": 72,
+    "h": 72
+   },
+   "cornerRadius": 18,
+   "when": "{{system.darkMode}}"
+  },
+  {
+   "type": "icon",
+   "symbol": "circle.lefthalf.filled",
+   "size": 24,
+   "color": "@fg",
+   "frame": {
+    "x": 121,
+    "y": 217,
+    "w": 30,
+    "h": 30
+   }
+  },
+  {
+   "type": "shape",
+   "kind": "roundedRect",
+   "fill": "@dim",
+   "frame": {
+    "x": 184,
+    "y": 196,
+    "w": 72,
+    "h": 72
+   },
+   "cornerRadius": 18
+  },
+  {
+   "type": "shape",
+   "kind": "roundedRect",
+   "fill": "@accent",
+   "frame": {
+    "x": 184,
+    "y": 196,
+    "w": 72,
+    "h": 72
+   },
+   "cornerRadius": 18,
+   "when": "{{system.mobileData}}"
+  },
+  {
+   "type": "icon",
+   "symbol": "antenna.radiowaves.left.and.right",
+   "size": 24,
+   "color": "@fg",
+   "frame": {
+    "x": 205,
+    "y": 217,
+    "w": 30,
+    "h": 30
+   }
+  },
+  {
+   "type": "shape",
+   "kind": "roundedRect",
+   "fill": "@dim",
+   "frame": {
+    "x": 268,
+    "y": 196,
+    "w": 72,
+    "h": 72
+   },
+   "cornerRadius": 18
+  },
+  {
+   "type": "shape",
+   "kind": "roundedRect",
+   "fill": "@accent",
+   "frame": {
+    "x": 268,
+    "y": 196,
+    "w": 72,
+    "h": 72
+   },
+   "cornerRadius": 18,
+   "when": "{{system.rotationLock}}"
+  },
+  {
+   "type": "icon",
+   "symbol": "lock.rotation",
+   "size": 24,
+   "color": "@fg",
+   "frame": {
+    "x": 289,
+    "y": 217,
+    "w": 30,
+    "h": 30
+   }
+  },
+  {
+   "type": "icon",
+   "symbol": "{{volume.symbol}}",
+   "size": 18,
+   "color": "@muted",
+   "frame": {
+    "x": 16,
+    "y": 284,
+    "w": 24,
+    "h": 24
+   }
+  },
+  {
+   "type": "progressBar",
+   "progress": "{{volume.level}}",
+   "color": "@fg",
+   "trackColor": "@dim",
+   "cornerRadius": 8,
+   "frame": {
+    "x": 50,
+    "y": 286,
+    "w": 298,
+    "h": 20
+   }
+  },
+  {
+   "type": "icon",
+   "symbol": "sun.max.fill",
+   "size": 18,
+   "color": "@muted",
+   "frame": {
+    "x": 16,
+    "y": 328,
+    "w": 24,
+    "h": 24
+   }
+  },
+  {
+   "type": "progressBar",
+   "progress": "{{brightness.level}}",
+   "color": "@fg",
+   "trackColor": "@dim",
+   "cornerRadius": 8,
+   "frame": {
+    "x": 50,
+    "y": 330,
+    "w": 298,
+    "h": 20
+   }
+  },
+  {
+   "type": "button",
+   "action": "media.previous",
+   "frame": {
+    "x": 204,
+    "y": 22,
+    "w": 44,
+    "h": 50
+   }
+  },
+  {
+   "type": "button",
+   "action": "media.playPause",
+   "frame": {
+    "x": 248,
+    "y": 22,
+    "w": 44,
+    "h": 50
+   }
+  },
+  {
+   "type": "button",
+   "action": "media.next",
+   "frame": {
+    "x": 292,
+    "y": 22,
+    "w": 44,
+    "h": 50
+   }
+  },
+  {
+   "type": "button",
+   "action": "system.toggle.wifi",
+   "frame": {
+    "x": 16,
+    "y": 112,
+    "w": 72,
+    "h": 72
+   }
+  },
+  {
+   "type": "button",
+   "action": "system.toggle.bluetooth",
+   "frame": {
+    "x": 100,
+    "y": 112,
+    "w": 72,
+    "h": 72
+   }
+  },
+  {
+   "type": "button",
+   "action": "system.toggle.airplane",
+   "frame": {
+    "x": 184,
+    "y": 112,
+    "w": 72,
+    "h": 72
+   }
+  },
+  {
+   "type": "button",
+   "action": "system.toggle.torch",
+   "frame": {
+    "x": 268,
+    "y": 112,
+    "w": 72,
+    "h": 72
+   }
+  },
+  {
+   "type": "button",
+   "action": "system.toggle.dnd",
+   "frame": {
+    "x": 16,
+    "y": 196,
+    "w": 72,
+    "h": 72
+   }
+  },
+  {
+   "type": "button",
+   "action": "system.toggle.darkMode",
+   "frame": {
+    "x": 100,
+    "y": 196,
+    "w": 72,
+    "h": 72
+   }
+  },
+  {
+   "type": "button",
+   "action": "system.toggle.mobileData",
+   "frame": {
+    "x": 184,
+    "y": 196,
+    "w": 72,
+    "h": 72
+   }
+  },
+  {
+   "type": "button",
+   "action": "system.toggle.rotation",
+   "frame": {
+    "x": 268,
+    "y": 196,
+    "w": 72,
+    "h": 72
+   }
+  },
+  {
+   "type": "button",
+   "action": "volume.down",
+   "frame": {
+    "x": 50,
+    "y": 276,
+    "w": 149,
+    "h": 40
+   }
+  },
+  {
+   "type": "button",
+   "action": "volume.up",
+   "frame": {
+    "x": 199,
+    "y": 276,
+    "w": 149,
+    "h": 40
+   }
+  },
+  {
+   "type": "button",
+   "action": "brightness.down",
+   "frame": {
+    "x": 50,
+    "y": 320,
+    "w": 149,
+    "h": 40
+   }
+  },
+  {
+   "type": "button",
+   "action": "brightness.up",
+   "frame": {
+    "x": 199,
+    "y": 320,
+    "w": 149,
+    "h": 40
+   }
+  }
+ ]
+}

@@ -49,6 +49,7 @@ struct LayerDetailView: View {
                 if isTopLevel { Text("editor.layer.mirror.footer") }
             }
             kindSection(layer)
+            WiringSections(model: model, path: path)
             Section {
                 Button {
                     model.duplicateLayer(path)

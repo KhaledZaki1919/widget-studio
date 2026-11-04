@@ -65,10 +65,13 @@ public struct GeneratedWidget: Sendable, Equatable {
     public let layout: LayoutRepair
     /// What the post-pass wired (ADR-027).
     public let autoWired: [String]
+    /// The model's reply as received (the eval records it).
+    public let reply: String
 
     public init(spec: WidgetSpec, colors: [String: String], model: String, attempts: Int, reviewed: Bool = false,
-                differences: [String] = [], layout: LayoutRepair = .clean, autoWired: [String] = []) {
+                differences: [String] = [], layout: LayoutRepair = .clean, autoWired: [String] = [], reply: String = "") {
         self.autoWired = autoWired
+        self.reply = reply
         self.spec = spec
         self.colors = colors
         self.model = model
@@ -470,6 +473,8 @@ public enum AIWidgetParser {
         public let layout: LayoutRepair
         /// What the post-pass wired (ADR-027).
         public var autoWired: [String] = []
+        /// The model's reply as received (the eval records it).
+        public var reply = ""
     }
 
     /// Prompt v5's `decorative` entries, and the `inventory` for the post-pass.
@@ -495,8 +500,9 @@ public enum AIWidgetParser {
         return (parsed.spec, parsed.colors)
     }
 
+    /// `autoWire` false shows what the model wired by itself (the eval's before column).
     public static func parseWidget(_ text: String, options: GenerationOptions, id: String,
-                                   enforceLayout: Bool = true) throws -> Parsed {
+                                   enforceLayout: Bool = true, autoWire: Bool = true) throws -> Parsed {
         guard let data = StructuredAI.extractJSON(text),
               case .object(var object)? = try? JSONDecoder().decode(JSONValue.self, from: data) else {
             throw AIValidationError("no JSON object found")
@@ -551,13 +557,15 @@ public enum AIWidgetParser {
             if !notes.isEmpty { spec.decorative = notes }
             // The post-pass may only add wiring: its result must still pass the AI rules (ADR-027).
             var autoWired: [String] = []
-            let wired = AutoWire.apply(spec, inventory: listed)
-            if case .success(let checked) = SpecValidator(mode: .ai, checksTextOverlaps: false).validate(wired.spec) {
-                spec = checked
-                autoWired = wired.changes
+            if autoWire {
+                let wired = AutoWire.apply(spec, inventory: listed)
+                if case .success(let checked) = SpecValidator(mode: .ai, checksTextOverlaps: false).validate(wired.spec) {
+                    spec = checked
+                    autoWired = wired.changes
+                }
             }
             spec.refresh = refresh(for: spec)
-            return Parsed(spec: spec, colors: colors, layout: layout, autoWired: autoWired)
+            return Parsed(spec: spec, colors: colors, layout: layout, autoWired: autoWired, reply: text)
         }
     }
 
@@ -761,7 +769,7 @@ public struct WidgetGenerator: Sendable {
             try AIWidgetParser.parseWidget(text, options: options, id: id, enforceLayout: firstRound.next() == 1)
         }
         let first = GeneratedWidget(spec: result.value.spec, colors: result.value.colors, model: result.model, attempts: result.attempts,
-                                    layout: result.value.layout, autoWired: result.value.autoWired)
+                                    layout: result.value.layout, autoWired: result.value.autoWired, reply: result.value.reply)
         guard let review, let render = await review(first.spec, first.colors) else { return first }
         if Task.isCancelled { throw AIError.cancelled }
 
@@ -777,7 +785,7 @@ public struct WidgetGenerator: Sendable {
             if case .needsEditing = reviewed.value.0.layout, !first.needsEditing { return first }
             return GeneratedWidget(spec: reviewed.value.0.spec, colors: reviewed.value.0.colors, model: reviewed.model,
                                    attempts: first.attempts + reviewed.attempts, reviewed: true, differences: reviewed.value.1,
-                                   layout: reviewed.value.0.layout, autoWired: reviewed.value.0.autoWired)
+                                   layout: reviewed.value.0.layout, autoWired: reviewed.value.0.autoWired, reply: reviewed.value.0.reply)
         } catch AIError.cancelled {
             throw AIError.cancelled
         } catch {

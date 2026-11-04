@@ -84,9 +84,8 @@ final class AppState {
     var tab: Tab = .library
     /// Create from image (M5), opened from the Library and My widgets.
     var isCreatingFromImage = false
-    /// A .json file opened in the app (share sheet → Widget Studio): imported in Create from
-    /// image → Use another AI (ADR-023).
-    var pendingImport: String?
+    /// Files opened or shared to the app (Files, WhatsApp, Telegram…): bulk import in My widgets (ADR-027).
+    var pendingBulk: BulkRequest?
     /// The introduction (M6): shown on first launch, reopenable from Settings.
     var isShowingOnboarding = !UserDefaults.standard.bool(forKey: AppState.onboardingDoneKey)
         || !UserDefaults.standard.bool(forKey: AppState.permissionsSeenKey)

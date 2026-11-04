@@ -52,11 +52,16 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
+            <!-- One or many .json or .zip files, from Files, WhatsApp, Telegram or share (ADR-027): bulk import. -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="application/json" />
+                <data android:mimeType="text/json" />
+                <data android:mimeType="application/zip" />
+                <data android:mimeType="application/x-zip-compressed" />
             </intent-filter>
             <!-- Health Connect: the privacy policy shown from its permission screen. -->
             <intent-filter>

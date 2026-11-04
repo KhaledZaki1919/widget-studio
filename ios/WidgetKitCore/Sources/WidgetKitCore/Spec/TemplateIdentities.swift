@@ -41,8 +41,12 @@ public enum TemplateIDs {
     public enum TilesPills4: TemplateIdentity { public static let id = "mono.tiles.pills4" }
     public enum TilesRound: TemplateIdentity { public static let id = "mono.tiles.round" }
     public enum TilesHero: TemplateIdentity { public static let id = "mono.tiles.hero" }
+    // Live controls (ADR-027): fixed widgets, so they also reach the home screen without an App Group.
+    public enum MediaPlayer: TemplateIdentity { public static let id = "mono.media.player" }
+    public enum ControlCenter: TemplateIdentity { public static let id = "mono.control.center" }
     // Counters
     public enum CounterTasbeeh: TemplateIdentity { public static let id = "mono.counter.tasbeeh" }
+    public enum TimerFocus: TemplateIdentity { public static let id = "mono.timer.focus" }
 
     /// Every identity, in library order. The extension's widget bundles use the same order.
     public static let all: [any TemplateIdentity.Type] = [
@@ -52,7 +56,7 @@ public enum TemplateIDs {
         PrayerNext.self, PrayerDay.self, Qibla.self,
         FocusToday.self, CountdownRed.self, CountdownTrip.self, Stopwatch.self,
         PhotoSquare.self, PhotoCircle.self, PhotoHalftone.self, MusicCard.self,
-        TilesPills2.self, TilesPills4.self, TilesRound.self, TilesHero.self,
-        CounterTasbeeh.self,
+        TilesPills2.self, TilesPills4.self, TilesRound.self, TilesHero.self, MediaPlayer.self, ControlCenter.self,
+        CounterTasbeeh.self, TimerFocus.self,
     ]
 }

@@ -83,8 +83,8 @@ public enum TemplateLibrary {
         "mono.prayer.next", "mono.prayer.day", "mono.qibla",
         "mono.focus.today", "mono.countdown.red", "mono.countdown.trip", "mono.stopwatch",
         "mono.photo.square", "mono.photo.circle", "mono.photo.halftone", "mono.music.card",
-        "mono.tiles.pills2", "mono.tiles.pills4", "mono.tiles.round", "mono.tiles.hero",
-        "mono.counter.tasbeeh",
+        "mono.tiles.pills2", "mono.tiles.pills4", "mono.tiles.round", "mono.tiles.hero", "mono.media.player", "mono.control.center",
+        "mono.counter.tasbeeh", "mono.timer.focus",
     ]
 
     static func order(_ id: String) -> String {

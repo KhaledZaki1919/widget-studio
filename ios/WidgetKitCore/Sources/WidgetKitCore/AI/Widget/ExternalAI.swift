@@ -16,6 +16,8 @@ public enum ExternalAI {
         case noJSON
         /// The JSON failed the checks; the text says what (English, for the fix request).
         case invalid(String)
+        /// A picked or shared file couldn't be read.
+        case unreadable
     }
 
     /// Everything the external AI needs, in one paste: our rules (the app's system prompt), the
@@ -78,6 +80,8 @@ public enum ExternalAI {
         case .empty, .noJSON:
             return "Reply again with only the widget JSON object, exactly as the schema in my first message describes: "
                 + "no explanation, no code fences."
+        case .unreadable:
+            return "The file could not be read. Reply again with the whole JSON object as text."
         case .tooLarge:
             return "That reply is too long. Simplify the design (fewer layers) and reply with only the JSON object."
         case .invalid(let problems):

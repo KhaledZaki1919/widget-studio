@@ -179,7 +179,10 @@ fun EditorScreen(state: EditorState, onClose: () -> Unit, onSaved: () -> Unit, l
             EditorPreview(state, language) { path -> screen = EditorScreen.Layer(path) }
             Footnote(tr("Real-size preview with your real data. Tap a part to edit it.", "معاينة بالحجم الحقيقي ببياناتك. اضغط أي جزء لتعديله."))
             when (val s = screen) {
-                is EditorScreen.Main -> MainForm(state, layout, onRegenerate) { screen = EditorScreen.Layers(emptyList()) }
+                is EditorScreen.Main -> {
+                    InteractiveCard(state) { screen = EditorScreen.Layer(it) }
+                    MainForm(state, layout, onRegenerate) { screen = EditorScreen.Layers(emptyList()) }
+                }
                 is EditorScreen.Layers -> LayersList(state, s.parent, onOpen = { screen = EditorScreen.Layer(it) })
                 is EditorScreen.Layer -> LayerDetail(state, s.path, onOpenItems = { screen = EditorScreen.Layers(it) }, onGone = { screen = EditorScreen.Layers(s.path.dropLast(1)) })
             }

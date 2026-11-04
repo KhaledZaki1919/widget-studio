@@ -6,12 +6,10 @@ import WidgetKitCore
 
 /// "Use another AI" (ADR-023), inside Create from image: pick and crop the image to the widget
 /// (ADR-024) and share the crop, copy self-contained instructions for ChatGPT, Claude or Gemini
-/// on the web, then import the JSON they return (paste, a .json file,
-/// or a file shared to the app). The import runs the app's own checks and layout fix, and the
-/// result opens in the editor. Nothing here calls an AI or runs code.
+/// on the web, then import the JSON they return: a paste opens in the editor; files, a .zip, a folder
+/// or several pasted designs go to bulk import (ADR-027). Every import runs the app's own checks,
+/// layout fix and auto-wire. Nothing here calls an AI or runs code.
 struct ExternalAIView: View {
-    /// Text that arrived from the share sheet (a .json file opened in the app).
-    let initialText: String?
     let onImported: (SavedDesign, LayoutRepair) -> Void
 
     @State private var size = SizeChoice.auto
@@ -19,8 +17,9 @@ struct ExternalAIView: View {
     @State private var pasted = ""
     @State private var error: ExternalAI.ImportError?
     @State private var fixCopied = false
-    @State private var picksFile = false
     @State private var fileUnreadable = false
+    /// Files or several pasted designs: bulk import (ADR-027).
+    @State private var bulk: BulkRequest?
     /// Crop step (ADR-024).
     @State private var photoItem: PhotosPickerItem?
     @State private var picked: CGImage?
@@ -65,11 +64,17 @@ struct ExternalAIView: View {
                 }
                 .accessibilityIdentifier("ax.create.external.paste")
                 Button {
-                    picksFile = true
+                    DocumentPicker.present { bulk = BulkRequest(urls: $0) }
                 } label: {
-                    Label("create.external.file", systemImage: "folder")
+                    Label("create.external.file", systemImage: "doc")
                 }
                 .accessibilityIdentifier("ax.create.external.file")
+                Button {
+                    DocumentPicker.present(folder: true) { bulk = BulkRequest(urls: $0) }
+                } label: {
+                    Label("create.external.folder", systemImage: "folder")
+                }
+                .accessibilityIdentifier("ax.create.external.folder")
                 TextField("create.external.field", text: $pasted, axis: .vertical)
                     .lineLimit(3...8)
                     .font(.footnote.monospaced())
@@ -99,16 +104,7 @@ struct ExternalAIView: View {
         }
         .navigationTitle("create.external.title")
         .navigationBarTitleDisplayMode(.inline)
-        .fileImporter(isPresented: $picksFile, allowedContentTypes: [.json, .plainText]) { result in
-            guard case .success(let url) = result, let text = Self.read(url) else {
-                fileUnreadable = true
-                return
-            }
-            importText(text)
-        }
-        .onAppear {
-            if let initialText { importText(initialText) }
-        }
+        .navigationDestination(item: $bulk) { BulkImportView(request: $0) }
         .onChange(of: photoItem) { _, item in
             if let item { Task { await load(item) } }
         }
@@ -217,6 +213,11 @@ struct ExternalAIView: View {
     private func importText(_ text: String) {
         fileUnreadable = false
         fixCopied = false
+        // A JSON array or several objects in one paste (ADR-027).
+        if BulkImport.split(text).count > 1 {
+            bulk = BulkRequest(text: text)
+            return
+        }
         do {
             let widget = try ExternalAI.importWidget(text, size: size)
             error = nil
@@ -234,16 +235,7 @@ struct ExternalAIView: View {
         case .tooLarge: "create.external.error.tooLarge"
         case .noJSON: "create.external.error.noJSON"
         case .invalid: "create.external.error.invalid"
+        case .unreadable: "create.external.error.file"
         }
-    }
-
-    /// A picked or shared file's text, at most `ExternalAI.maxImportBytes` (+ a little).
-    static func read(_ url: URL) -> String? {
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
-        defer { try? handle.close() }
-        guard let data = try? handle.read(upToCount: ExternalAI.maxImportBytes + 1) else { return nil }
-        return String(data: data, encoding: .utf8)
     }
 }

@@ -100,5 +100,184 @@
     "mode": "recreate",
     "size": "auto",
     "note": "Four widgets in a 2×2 gallery (ADR-024): one per widget with the crop, Create all"
+  },
+  {
+    "file": "draw-i-music.png",
+    "mode": "recreate",
+    "size": "medium",
+    "note": "Music player: song, artist, elapsed and length, seek bar, previous, play, next",
+    "wiring": [
+      "media.title",
+      "media.artist",
+      "media.elapsed|media.remaining",
+      "media.duration|media.remaining",
+      "media.progress",
+      "media.previous",
+      "media.playPause",
+      "media.next"
+    ]
+  },
+  {
+    "file": "draw-i-spotify.png",
+    "mode": "recreate",
+    "size": "medium",
+    "note": "Streaming card: album art, song, artist, seek dots, transport",
+    "wiring": [
+      "media.artwork",
+      "media.title",
+      "media.artist",
+      "media.progress",
+      "media.previous",
+      "media.playPause",
+      "media.next"
+    ]
+  },
+  {
+    "file": "draw-i-volume.png",
+    "mode": "recreate",
+    "size": "large",
+    "note": "Two upright sliders over headphone and bell icons",
+    "wiring": [
+      "volume.level",
+      "volume.ring",
+      "volume.up",
+      "volume.down",
+      "volume.ringUp",
+      "volume.ringDown"
+    ]
+  },
+  {
+    "file": "draw-i-toggles.png",
+    "mode": "recreate",
+    "size": "small",
+    "note": "Three switches: Wi-Fi, Bluetooth, Airplane",
+    "wiring": [
+      "system.toggle.wifi",
+      "system.toggle.bluetooth",
+      "system.toggle.airplane",
+      "system.wifi",
+      "system.bluetooth",
+      "system.airplane"
+    ]
+  },
+  {
+    "file": "draw-i-control.png",
+    "mode": "recreate",
+    "size": "large",
+    "note": "Control center grid of eight round tiles and a brightness bar",
+    "wiring": [
+      "system.toggle.wifi",
+      "system.toggle.bluetooth",
+      "system.toggle.airplane",
+      "system.toggle.mobileData",
+      "system.toggle.torch",
+      "system.toggle.dnd",
+      "system.toggle.rotation",
+      "system.toggle.darkMode",
+      "brightness.level",
+      "brightness.up",
+      "brightness.down"
+    ]
+  },
+  {
+    "file": "draw-i-timer.png",
+    "mode": "recreate",
+    "size": "small",
+    "note": "Timer: progress ring, 12:30 left, Start and Reset",
+    "wiring": [
+      "timer.remaining",
+      "timer.progress",
+      "timer.toggle",
+      "timer.reset"
+    ]
+  },
+  {
+    "file": "draw-i-agenda.png",
+    "mode": "recreate",
+    "size": "large",
+    "note": "Calendar agenda: today, three events with times",
+    "wiring": [
+      "date.EEEE",
+      "date.d",
+      "calendar.1.title|calendar.next.title",
+      "calendar.1.time|calendar.next.time",
+      "calendar.2.title",
+      "calendar.2.time",
+      "calendar.3.title",
+      "calendar.3.time"
+    ]
+  },
+  {
+    "file": "draw-i-batteries.png",
+    "mode": "recreate",
+    "size": "medium",
+    "note": "Battery of devices: phone, earbuds, watch with rings",
+    "wiring": [
+      "battery.level"
+    ]
+  },
+  {
+    "file": "draw-i-compass.png",
+    "mode": "recreate",
+    "size": "small",
+    "note": "Compass: N E S W and a north arrow",
+    "wiring": [
+      "compass.north|qibla.bearing",
+      "compass.open"
+    ]
+  },
+  {
+    "file": "draw-i-dotclock.png",
+    "mode": "recreate",
+    "size": "small",
+    "note": "Dot analog clock with the date",
+    "wiring": [
+      "clock",
+      "date.d",
+      "date.EEE|date.EEEE"
+    ]
+  },
+  {
+    "file": "draw-i-home.png",
+    "mode": "recreate",
+    "size": "medium",
+    "note": "Smart-home tiles: Lights, AC, Fan, Door",
+    "wiring": [
+      "shortcut.run"
+    ]
+  },
+  {
+    "file": "draw-i-dial.png",
+    "mode": "recreate",
+    "size": "small",
+    "note": "Quick dial: four contacts",
+    "wiring": [
+      "call.dial"
+    ]
+  },
+  {
+    "file": "draw-i-status.png",
+    "mode": "recreate",
+    "size": "medium",
+    "note": "Status strip: temperature, battery, steps",
+    "wiring": [
+      "weather.temp",
+      "battery.level",
+      "steps.today"
+    ]
+  },
+  {
+    "file": "draw-i-sliders.png",
+    "mode": "recreate",
+    "size": "medium",
+    "note": "Horizontal brightness and volume sliders",
+    "wiring": [
+      "brightness.level",
+      "volume.level",
+      "volume.up",
+      "volume.down",
+      "brightness.up",
+      "brightness.down"
+    ]
   }
 ]

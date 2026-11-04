@@ -21,7 +21,7 @@ object WidgetPreviews {
     private val sizes = listOf(
         Triple(SmallWidgetReceiver::class.java, Family.SMALL, "mono.clock.dotAnalog"),
         Triple(MediumWidgetReceiver::class.java, Family.MEDIUM, "mono.weather.forecast"),
-        Triple(LargeWidgetReceiver::class.java, Family.LARGE, "mono.prayer.day"),
+        Triple(LargeWidgetReceiver::class.java, Family.LARGE, "mono.control.center"),
     )
 
     fun publish(context: Context) {

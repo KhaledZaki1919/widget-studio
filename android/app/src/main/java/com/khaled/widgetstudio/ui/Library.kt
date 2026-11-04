@@ -88,11 +88,17 @@ class MainActivity : ComponentActivity() {
     /** What an intent asks to show; shared text or a .json file goes to the import screen. */
     private fun opening(intent: Intent?): String? {
         when (intent?.action) {
+            // Files shared or opened in the app go to bulk import (ADR-027); text to the import screen.
             Intent.ACTION_SEND -> {
-                val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: streamText(intent.getParcelableExtra(Intent.EXTRA_STREAM))
-                if (text != null) { PendingImport.text = text; return OPEN_IMPORT }
+                val stream = intent.getParcelableExtra<android.net.Uri>(Intent.EXTRA_STREAM)
+                if (stream != null) { PendingImport.bulk = BulkRequest(uris = listOf(stream)); return OPEN_BULK }
+                intent.getStringExtra(Intent.EXTRA_TEXT)?.let { PendingImport.text = it; return OPEN_IMPORT }
             }
-            Intent.ACTION_VIEW -> streamText(intent.data)?.let { PendingImport.text = it; return OPEN_IMPORT }
+            Intent.ACTION_SEND_MULTIPLE -> {
+                val streams = intent.getParcelableArrayListExtra<android.net.Uri>(Intent.EXTRA_STREAM).orEmpty()
+                if (streams.isNotEmpty()) { PendingImport.bulk = BulkRequest(uris = streams); return OPEN_BULK }
+            }
+            Intent.ACTION_VIEW -> intent.data?.let { PendingImport.bulk = BulkRequest(uris = listOf(it)); return OPEN_BULK }
             "androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE", "android.intent.action.VIEW_PERMISSION_USAGE" -> {
                 val anchor = if (WidgetEnvironment.language(this) == "ar") "ar" else "en"
                 startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://khaledzaki1919.github.io/widget-studio/privacy.html#$anchor")))
@@ -103,16 +109,12 @@ class MainActivity : ComponentActivity() {
         return intent?.getStringExtra(EXTRA_OPEN)
     }
 
-    @Suppress("DEPRECATION")
-    private fun streamText(uri: android.net.Uri?): String? = uri?.let {
-        runCatching { contentResolver.openInputStream(it)?.use { stream -> com.khaled.widgetstudio.ai.ExternalAI.read(stream) } }.getOrNull()
-    }
-
     companion object {
         const val EXTRA_OPEN = "open"
         const val OPEN_SETTINGS = "settings"
         const val OPEN_QIBLA = "qibla"
         const val OPEN_IMPORT = "import"
+        const val OPEN_BULK = "bulk"
 
         fun intent(context: Context, open: String?) = Intent(context, MainActivity::class.java)
             .putExtra(EXTRA_OPEN, open).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -125,6 +127,9 @@ sealed class Overlay {
     data object Qibla : Overlay()
     data object Create : Overlay()
     data object Onboarding : Overlay()
+    data class Bulk(val request: BulkRequest) : Overlay()
+    /** Right after saving: what the design needs (ADR-027). */
+    data class Permissions(val specs: List<com.khaled.widgetstudio.spec.WidgetSpec>) : Overlay()
 }
 
 enum class Tab { LIBRARY, MY_WIDGETS, SETTINGS }
@@ -134,7 +139,7 @@ fun AppRoot(open: String?) {
     val context = LocalContext.current
     val live = remember { WidgetEnvironment.live(context) }
     var tab by rememberSaveable { mutableStateOf(if (open == MainActivity.OPEN_SETTINGS) Tab.SETTINGS else Tab.LIBRARY) }
-    var overlay by remember { mutableStateOf<Overlay?>(if (!live.settings.onboardingDone) Overlay.Onboarding else if (open == MainActivity.OPEN_QIBLA) Overlay.Qibla else if (open == MainActivity.OPEN_IMPORT) Overlay.Create else null) }
+    var overlay by remember { mutableStateOf<Overlay?>(if (!live.settings.onboardingDone) Overlay.Onboarding else if (open == MainActivity.OPEN_QIBLA) Overlay.Qibla else if (open == MainActivity.OPEN_IMPORT) Overlay.Create else if (open == MainActivity.OPEN_BULK) PendingImport.bulk?.let { Overlay.Bulk(it) } else null) }
     LaunchedEffect(Unit) {
         live.refresh()
         Widgets.updateAll(context)
@@ -143,13 +148,20 @@ fun AppRoot(open: String?) {
     fun edit(design: SavedDesign, isNew: Boolean, photo: Bitmap? = null) {
         overlay = Overlay.Editor(EditorState(design, isNew, photo))
     }
+    fun saved(specs: List<com.khaled.widgetstudio.spec.WidgetSpec>) {
+        tab = Tab.MY_WIDGETS
+        overlay = if (needsPermissions(context, specs)) Overlay.Permissions(specs) else null
+    }
     when (val current = overlay) {
-        is Overlay.Editor -> EditorScreen(current.state, onClose = { overlay = null }, onSaved = { overlay = null; tab = Tab.MY_WIDGETS }, layout = current.layout, onRegenerate = current.onRegenerate)
+        is Overlay.Editor -> EditorScreen(current.state, onClose = { overlay = null }, onSaved = { saved(listOf(current.state.design.spec)) }, layout = current.layout, onRegenerate = current.onRegenerate)
+        is Overlay.Bulk -> BulkImportScreen(current.request, onOpen = { edit(it, false) }, onClose = { specs -> PendingImport.bulk = null; saved(specs) })
+        is Overlay.Permissions -> PermissionsScreen(current.specs, onDone = { overlay = null })
         Overlay.Qibla -> QiblaScreen(onClose = { overlay = null })
         Overlay.Create -> CreateScreen(
             onClose = { overlay = null },
             onResult = { design, photo, layout, regenerate -> overlay = Overlay.Editor(EditorState(design, true, photo), layout, regenerate) },
             onCreatedAll = { overlay = null; tab = Tab.MY_WIDGETS },
+            onBulk = { overlay = Overlay.Bulk(it) },
         )
         Overlay.Onboarding -> OnboardingScreen(onFinish = { live.settings.onboardingDone = true; overlay = null })
         null -> Scaffold(bottomBar = {
@@ -162,7 +174,7 @@ fun AppRoot(open: String?) {
             Box(Modifier.padding(bottom = padding.calculateBottomPadding())) {
                 when (tab) {
                     Tab.LIBRARY -> LibraryScreen(onPick = { spec -> edit(SavedDesign.new(spec, language), true) }, onCreate = { overlay = Overlay.Create })
-                    Tab.MY_WIDGETS -> MyWidgetsScreen(onEdit = { edit(it, false) }, onBrowse = { tab = Tab.LIBRARY }, onCreate = { overlay = Overlay.Create })
+                    Tab.MY_WIDGETS -> MyWidgetsScreen(onEdit = { edit(it, false) }, onBrowse = { tab = Tab.LIBRARY }, onCreate = { overlay = Overlay.Create }, onImport = { overlay = Overlay.Bulk(it) })
                     Tab.SETTINGS -> SettingsScreen(onQibla = { overlay = Overlay.Qibla }, onIntroduction = { overlay = Overlay.Onboarding })
                 }
             }
@@ -230,7 +242,7 @@ fun LibraryScreen(onPick: (WidgetSpec) -> Unit, onCreate: () -> Unit) {
 /** Saved designs: edit, rename, duplicate, delete. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyWidgetsScreen(onEdit: (SavedDesign) -> Unit, onBrowse: () -> Unit, onCreate: () -> Unit) {
+fun MyWidgetsScreen(onEdit: (SavedDesign) -> Unit, onBrowse: () -> Unit, onCreate: () -> Unit, onImport: (BulkRequest) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val store = remember { DesignStore.get(context) }
@@ -239,7 +251,12 @@ fun MyWidgetsScreen(onEdit: (SavedDesign) -> Unit, onBrowse: () -> Unit, onCreat
     val copySuffix = tr(" copy", " (نسخة)")
     var renaming by remember { mutableStateOf<SavedDesign?>(null) }
     var deleting by remember { mutableStateOf<SavedDesign?>(null) }
-    Scaffold(topBar = { TopAppBar(title = { Text(tr("My widgets", "ودجاتي")) }) }) { padding ->
+    Scaffold(topBar = {
+        Column {
+            TopAppBar(title = { Text(tr("My widgets", "ودجاتي")) })
+            Box(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)) { ImportButtons(onImport) }
+        }
+    }) { padding ->
         if (designs.isEmpty()) {
             Column(Modifier.fillMaxSize().padding(padding).padding(32.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                 MaterialSymbol("widgets", 56)

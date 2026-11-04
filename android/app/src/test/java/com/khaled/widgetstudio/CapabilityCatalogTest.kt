@@ -2,6 +2,10 @@ package com.khaled.widgetstudio
 
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
+import com.khaled.widgetstudio.ai.AIWidgetParser
+import com.khaled.widgetstudio.ai.BulkImport
+import com.khaled.widgetstudio.ai.ExternalAI
+import com.khaled.widgetstudio.ai.GenerationOptions
 import com.khaled.widgetstudio.data.DeviceState
 import com.khaled.widgetstudio.design.AutoWire
 import com.khaled.widgetstudio.design.BindingCatalog
@@ -23,6 +27,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -95,6 +100,52 @@ class CapabilityCatalogTest {
             if (binding.parametric || binding.type == "image" || binding.id == "counter.progress") continue
             assertNotNull("${binding.id} resolves to nothing", resolver.value(binding.id))
         }
+    }
+
+    /** The best eval run's recorded replies through this app's parser and post-pass (WiringGateTests.swift). */
+    @Test
+    fun replayedWiringHoldsTheBestRun() {
+        val folder = File("../../docs/ai-eval")
+        val bestFile = File(folder, "wiring-best.json")
+        if (!bestFile.exists()) return
+        val best = Json.parseToJsonElement(bestFile.readText()).jsonObject
+        val perCase = best.getValue("cases").jsonObject
+        val cases = Json.parseToJsonElement(File(folder, "cases.json").readText()).jsonArray
+        val scores = mutableListOf<Double>()
+        for (entry in cases) {
+            val case = entry.jsonObject
+            val wiring = (case["wiring"] as? JsonArray)?.map { it.jsonPrimitive.content } ?: continue
+            val name = case.getValue("file").jsonPrimitive.content.removeSuffix(".png")
+            val reply = File(folder, "recorded/$name.json").takeIf { it.exists() }?.readText() ?: continue
+            val size = case.getValue("size").jsonPrimitive.content
+            val parsed = AIWidgetParser.parseWidget(reply, GenerationOptions(size = size), "gate", enforceLayout = false)
+            val score = WiringScore.hits(parsed.spec, wiring).size.toDouble() / wiring.size
+            val floor = perCase[name]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.0
+            assertTrue("$name dropped to $score; missing ${wiring - WiringScore.hits(parsed.spec, wiring).toSet()}", score + 0.0001 >= floor)
+            scores += score
+        }
+        assertTrue(scores.isNotEmpty())
+    }
+
+    @Test
+    fun bulkImportSplitsAndReadsZips() {
+        val folder = File("../../ios/WidgetKitCore/Tests/WidgetKitCoreTests/Fixtures/Bulk")
+        val names = BulkImport.zipEntries(File(folder, "nested.zip").readBytes()).map { it.name }.sorted()
+        assertEquals(listOf("a.json", "deep/er/c.json", "deep/stored.json"), names)
+        try {
+            BulkImport.zipEntries(File(folder, "traversal.zip").readBytes())
+            fail("a traversal path must fail the zip")
+        } catch (error: ExternalAI.ImportError) {
+            assertTrue(error is ExternalAI.ImportError.Invalid)
+        }
+        assertEquals(2, BulkImport.split("[{\"a\":1},{\"b\":2}]").size)
+        assertEquals(1, BulkImport.split("{\"a\":\"}{\"}").size)
+        assertEquals(2, BulkImport.split("{\"widgets\":[{\"layers\":[]},{\"layers\":[]}]}").size)
+        val reply = File("../../ios/WidgetKitCore/Tests/WidgetKitCoreTests/Fixtures/AI/spec-recreate.json").readText()
+        val summary = BulkImport.run(listOf(BulkImport.Source("1", reply), BulkImport.Source("2", reply), BulkImport.Source("3", "nope")), emptyList(), "en")
+        assertEquals(1, summary.added.size)
+        assertEquals(listOf("2"), summary.duplicates)
+        assertEquals(listOf("3"), summary.failed.map { it.name })
     }
 
     @Test

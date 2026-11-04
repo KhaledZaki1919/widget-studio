@@ -493,6 +493,7 @@ object ExternalAI {
         data object TooLarge : ImportError("too large")
         data object NoJSON : ImportError("no JSON")
         data class Invalid(val problems: String) : ImportError(problems)
+        data object Unreadable : ImportError("unreadable")
     }
 
     fun instructions(prompt: WidgetPrompt, options: GenerationOptions, today: LocalDate = LocalDate.now()): String {
@@ -528,6 +529,7 @@ object ExternalAI {
     }
 
     fun fixRequest(error: ImportError): String = when (error) {
+        ImportError.Unreadable -> "The file could not be read. Reply again with the whole JSON object as text."
         ImportError.Empty, ImportError.NoJSON -> "Reply again with only the widget JSON object, exactly as the schema in my first message describes: no explanation, no code fences."
         ImportError.TooLarge -> "That reply is too long. Simplify the design (fewer layers) and reply with only the JSON object."
         is ImportError.Invalid -> "Widget Studio could not import your JSON. These problems were found:\n\n${error.problems}\n\nFix only these problems, keep everything else, and reply with the whole corrected JSON object only."

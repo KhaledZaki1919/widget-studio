@@ -681,6 +681,83 @@ object AutoWire {
     }
 }
 
+/** What the layer editor changes (Wiring.swift, ADR-027): a layer's live value and what a tap on it does. */
+object Wiring {
+    fun bindableKind(layer: Layer): String? = when (layer.content) {
+        is LayerContent.Text -> "text"
+        is LayerContent.Ring -> "ring"
+        is LayerContent.ProgressBar -> "progressBar"
+        is LayerContent.DotGrid -> "dotGrid"
+        is LayerContent.Icon -> "icon"
+        else -> null
+    }
+
+    fun bindings(kind: String): List<Capability> = Capabilities.bindings.filter { !it.parametric && kind in it.layers && it.ai }
+
+    fun binding(layer: Layer): String? = when (val c = layer.content) {
+        is LayerContent.Text -> c.value.resolved("en")
+        is LayerContent.Ring -> c.progress
+        is LayerContent.ProgressBar -> c.progress
+        is LayerContent.DotGrid -> c.values
+        is LayerContent.Icon -> c.symbol
+        else -> null
+    }?.let(Bindings::soleBinding)?.trim()
+
+    fun withBinding(id: String?, layer: Layer): Layer {
+        val template = id?.let { "{{$it}}" }
+        return when (val c = layer.content) {
+            is LayerContent.Text -> layer.copy(content = c.copy(value = template?.let { LText.Localized(it, it) } ?: c.value))
+            is LayerContent.Ring -> layer.copy(content = c.copy(progress = template ?: "0"))
+            is LayerContent.ProgressBar -> layer.copy(content = c.copy(progress = template ?: "0"))
+            is LayerContent.DotGrid -> layer.copy(content = c.copy(values = template ?: "0".repeat(max(c.rows * c.cols, 1))))
+            is LayerContent.Icon -> layer.copy(content = c.copy(symbol = template ?: c.symbol))
+            else -> layer
+        }
+    }
+
+    fun frame(path: List<Int>, spec: WidgetSpec): Frame? = AutoWire.walk(spec.layers).firstOrNull { it.path == path }?.frame
+
+    /** The top-level button over a layer (its own, when the layer is a button): index and button. */
+    fun button(path: List<Int>, spec: WidgetSpec): Pair<Int, LayerContent.Button>? {
+        if (path.size == 1) (spec.layers.getOrNull(path[0])?.content as? LayerContent.Button)?.let { return path[0] to it }
+        val frame = frame(path, spec) ?: return null
+        for (index in spec.layers.indices.reversed()) {
+            val layer = spec.layers[index]
+            val button = layer.content as? LayerContent.Button ?: continue
+            if (AutoWire.inside(frame, layer.frame)) return index to button
+        }
+        return null
+    }
+
+    /** What a tap on the layer does; null removes it. A value-taking action gets a field for its value. */
+    fun withAction(id: String?, arg: String?, path: List<Int>, spec: WidgetSpec): WidgetSpec {
+        val existing = button(path, spec)
+        val capability = id?.let(Capabilities::action)
+        if (capability == null) return if (existing != null) spec.copy(layers = spec.layers.filterIndexed { index, _ -> index != existing.first }) else spec
+        var fields = spec.fields
+        var value = arg
+        capability.argFieldType?.let { kind ->
+            val base = when (kind) {
+                "shortcut" -> "shortcut"
+                "url" -> "link"
+                else -> "value"
+            }
+            var number = 1
+            while (fields.any { it.key == "$base$number" }) number += 1
+            val key = "$base$number"
+            fields = fields + FieldSpec(key, kind, capability.title, if (kind == "url") null else LText.Plain(""))
+            value = "{{field.$key}}"
+        }
+        val button = LayerContent.Button(capability.id, value)
+        if (existing != null) return spec.copy(fields = fields, layers = spec.layers.mapIndexed { index, layer -> if (index == existing.first) layer.copy(content = button) else layer })
+        val frame = frame(path, spec) ?: return spec
+        val w = max(frame.w, 36.0)
+        val h = max(frame.h, 36.0)
+        val padded = Frame(frame.x + frame.w / 2 - w / 2, frame.y + frame.h / 2 - h / 2, w, h)
+        return spec.copy(fields = fields, layers = spec.layers + Layer(padded, null, null, null, null, button))
+    }
+}
+
 /** What a design does (InteractiveSummary.swift): which elements are live, tappable or only look like controls. */
 data class InteractiveSummary(val live: List<Item>, val tappable: List<Item>, val decorative: List<Item>) {
     data class Item(val path: List<Int>, val title: String, val capability: String?, val detail: String?)

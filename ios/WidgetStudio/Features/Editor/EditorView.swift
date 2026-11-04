@@ -9,6 +9,7 @@ import WidgetKitCore
 struct EditorView: View {
     @Environment(DesignsModel.self) private var designs
     @Environment(AppState.self) private var appState
+    @Environment(LiveDataModel.self) private var live
     @Environment(\.dismiss) private var dismiss
     @State private var model: EditorModel
     @State private var saveError: String?
@@ -31,6 +32,7 @@ struct EditorView: View {
             Form {
                 previewSection
                 layoutSection
+                InteractiveSection(model: model)
                 if let onRegenerate {
                     Section {
                         Button(action: onRegenerate) {
@@ -246,8 +248,12 @@ struct EditorView: View {
     private func save() {
         do {
             try designs.save(model.design, newPhoto: model.newPhoto)
+            let spec = model.design.spec
+            let live = live
             dismiss()
             appState.tab = .myWidgets
+            // What this design needs, asked for right after saving (ADR-027).
+            Task { await WidgetPermissions.request(for: [spec], live: live) }
         } catch {
             saveError = error.localizedDescription
         }

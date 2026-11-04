@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import WidgetKitCore
 
 /// Saved designs (brief §7.4): preview, rename, duplicate, edit again, delete. Without an App
@@ -10,7 +11,19 @@ struct MyWidgetsView: View {
     @State private var renaming: SavedDesign?
     @State private var newName = ""
     @State private var deleting: SavedDesign?
+    /// Files, a folder or pasted designs (ADR-027).
+    @State private var bulk: BulkRequest?
     private let language = RenderContext.preferredLanguage
+
+    private func takePendingBulk() {
+        guard let pending = appState.pendingBulk else { return }
+        appState.pendingBulk = nil
+        bulk = pending
+    }
+
+    private func importClipboard() {
+        bulk = BulkRequest(text: UIPasteboard.general.string ?? "")
+    }
 
     var body: some View {
         List {
@@ -53,6 +66,24 @@ struct MyWidgetsView: View {
                     Label("create.button", systemImage: "sparkles")
                 }
                 .accessibilityIdentifier("ax.mywidgets.create")
+                Button {
+                    DocumentPicker.present { bulk = BulkRequest(urls: $0) }
+                } label: {
+                    Label("mywidgets.import", systemImage: "square.and.arrow.down")
+                }
+                .accessibilityIdentifier("ax.mywidgets.import")
+                Button {
+                    DocumentPicker.present(folder: true) { bulk = BulkRequest(urls: $0) }
+                } label: {
+                    Label("mywidgets.importFolder", systemImage: "folder")
+                }
+                .accessibilityIdentifier("ax.mywidgets.importFolder")
+                Button {
+                    importClipboard()
+                } label: {
+                    Label("mywidgets.importClipboard", systemImage: "doc.on.clipboard")
+                }
+                .accessibilityIdentifier("ax.mywidgets.importClipboard")
             }
             ForEach(designs.designs) { design in
                 row(design)
@@ -60,7 +91,12 @@ struct MyWidgetsView: View {
         }
         .accessibilityIdentifier("ax.mywidgets.list")
         .navigationTitle("mywidgets.title")
-        .onAppear { designs.reload() }
+        .onAppear {
+            designs.reload()
+            takePendingBulk()
+        }
+        .onChange(of: appState.pendingBulk) { _, _ in takePendingBulk() }
+        .navigationDestination(item: $bulk) { BulkImportView(request: $0) }
         .sheet(item: $editing) { design in
             EditorView(design: design, isNew: false)
         }

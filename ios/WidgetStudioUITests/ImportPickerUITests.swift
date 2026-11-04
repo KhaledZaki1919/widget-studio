@@ -92,6 +92,56 @@ final class ImportPickerUITests: XCTestCase {
         return element(named: (file as NSString).deletingPathExtension, in: apps, timeout: 1) == nil
     }
 
+    /// A minimal zip with one stored file (the reader doesn't need a checksum).
+    private static func zip(name: String, content: String) -> Data {
+        func u16(_ value: Int) -> [UInt8] { [UInt8(value & 0xFF), UInt8(value >> 8 & 0xFF)] }
+        func u32(_ value: Int) -> [UInt8] { u16(value & 0xFFFF) + u16(value >> 16) }
+        let (fileName, body) = (Array(name.utf8), Array(content.utf8))
+        let shared = u16(20) + u16(0) + u16(0) + u16(0) + u16(0) + u32(0) + u32(body.count) + u32(body.count) + u16(fileName.count) + u16(0)
+        let local = u32(0x0403_4B50) + shared + fileName + body
+        let central = u32(0x0201_4B50) + u16(20) + shared + u16(0) + u16(0) + u16(0) + u32(0) + u32(0) + fileName
+        let end = u32(0x0605_4B50) + u16(0) + u16(0) + u16(1) + u16(1) + u32(central.count) + u32(local.count) + u16(0)
+        return Data(local + central + end)
+    }
+
+    /// A .json and a .zip reach My widgets (the files the picker would return).
+    @MainActor
+    func testImportingAJsonAndAZip() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let json = folder.appendingPathComponent("one.json")
+        try Self.widget.write(to: json, atomically: true, encoding: .utf8)
+        let zip = folder.appendingPathComponent("pack.zip")
+        try Self.zip(name: "nested/two.json", content: Self.widget.replacingOccurrences(of: "{{time.hh}}", with: "{{time.mm}}")).write(to: zip)
+
+        let app = XCUIApplication()
+        app.launchArguments = ["-uiTesting", "-uiTestingStubAI", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launchEnvironment["WS_UITEST_IMPORT"] = [json, zip].map(\.path).joined(separator: ",")
+        app.launch()
+        app.tabBars.buttons.element(boundBy: 1).tap()
+        let open = app.buttons["ax.mywidgets.import"]
+        for _ in 0..<6 where !(open.exists && open.isHittable) { app.swipeUp() }
+        XCTAssertTrue(open.waitForExistence(timeout: 10), "Import button missing in My widgets")
+        open.tap()
+        let added = app.descendants(matching: .any).matching(identifier: "ax.bulk.added").firstMatch
+        XCTAssertTrue(added.waitForExistence(timeout: 20), "no summary after importing")
+        XCTAssertTrue(added.label.contains("2"), "expected 2 added, the summary says: \(added.label)")
+        XCTAssertTrue(app.buttons["ax.bulk.open"].firstMatch.exists, "no Open button for the added designs")
+    }
+
+    /// A .zip through the real picker.
+    @MainActor
+    func testTappingAZipFileImportsIt() throws {
+        let storage = try localStorage()
+        try Self.zip(name: "probe.json", content: Self.widget).write(to: storage.appendingPathComponent("probe-zip.zip"))
+        let app = XCUIApplication()
+        app.launchArguments = ["-uiTesting", "-uiTestingStubAI", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        XCTAssertTrue(try pick("probe-zip.zip", app: app), "the picker stayed open after tapping a .zip file")
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "ax.bulk.added").firstMatch.waitForExistence(timeout: 15),
+                      "the zip was picked but nothing was imported")
+    }
+
     /// A plain `.json` file: the case that must work.
     @MainActor
     func testTappingAJsonFileImportsIt() throws {
@@ -101,8 +151,7 @@ final class ImportPickerUITests: XCTestCase {
         app.launchArguments = ["-uiTesting", "-uiTestingStubAI", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
         XCTAssertTrue(try pick("probe-json.json", app: app), "the picker stayed open after tapping a .json file")
-        XCTAssertTrue(app.buttons["ax.editor.save"].waitForExistence(timeout: 10)
-                      || app.staticTexts["ax.bulk.summary"].waitForExistence(timeout: 2),
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "ax.bulk.added").firstMatch.waitForExistence(timeout: 15),
                       "the file was picked but nothing was imported")
     }
 }

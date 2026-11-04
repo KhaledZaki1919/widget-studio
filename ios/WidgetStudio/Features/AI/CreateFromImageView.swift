@@ -72,8 +72,7 @@ struct CreateFromImageView: View {
                         }
                     }
                     .navigationDestination(isPresented: $showExternal) {
-                        ExternalAIView(initialText: appState.pendingImport) { design, layout in
-                            appState.pendingImport = nil
+                        ExternalAIView { design, layout in
                             showExternal = false
                             phase = .imported(design: design, layout: layout)
                         }
@@ -81,14 +80,6 @@ struct CreateFromImageView: View {
             }
             .onAppear {
                 settings = AISettings.load()
-                if appState.pendingImport != nil { showExternal = true }
-            }
-            // A file shared while this screen is open; leaving the import screen drops it.
-            .onChange(of: appState.pendingImport) { _, text in
-                if text != nil { showExternal = true }
-            }
-            .onChange(of: showExternal) { _, showing in
-                if !showing { appState.pendingImport = nil }
             }
             .onChange(of: photoItem) { _, item in
                 if let item { Task { await load(item) } }

@@ -93,6 +93,8 @@ import java.io.File
 /** Text shared to the app (a chat's reply, a .json file), waiting for the import screen. */
 object PendingImport {
     @Volatile var text: String? = null
+    /** Files shared or opened in the app (ADR-027): they go to bulk import. */
+    @Volatile var bulk: BulkRequest? = null
 }
 
 private sealed class CreateStep {
@@ -121,7 +123,7 @@ fun loadImage(context: Context, uri: Uri, maxSide: Int = 2048): Bitmap? = runCat
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateScreen(onClose: () -> Unit, onResult: (SavedDesign, Bitmap?, LayoutRepair, () -> Unit) -> Unit, onCreatedAll: () -> Unit) {
+fun CreateScreen(onClose: () -> Unit, onResult: (SavedDesign, Bitmap?, LayoutRepair, () -> Unit) -> Unit, onCreatedAll: () -> Unit, onBulk: (BulkRequest) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val gemini = remember { GeminiSettings(context) }
@@ -279,7 +281,7 @@ fun CreateScreen(onClose: () -> Unit, onResult: (SavedDesign, Bitmap?, LayoutRep
                 CreateStep.External -> ExternalAIView(prompt, picked, cropped, crop, cardShape, options.size,
                     onPick = { cropForExternal = true; pick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                     onCrop = { cropForExternal = true; step = CreateStep.Crop },
-                    onImported = { design, layout -> onResult(design, null, layout) { } })
+                    onImported = { design, layout -> onResult(design, null, layout) { } }, onBulk = onBulk)
             }
         }
     }
@@ -386,7 +388,7 @@ private fun CropView(image: Bitmap, detected: List<DetectedWidget>, allowsAll: B
 @Composable
 private fun ExternalAIView(
     prompt: WidgetPrompt, picked: Bitmap?, cropped: Bitmap?, crop: RectF?, cardShape: CardShape?, size: String,
-    onPick: () -> Unit, onCrop: () -> Unit, onImported: (SavedDesign, LayoutRepair) -> Unit,
+    onPick: () -> Unit, onCrop: () -> Unit, onImported: (SavedDesign, LayoutRepair) -> Unit, onBulk: (BulkRequest) -> Unit,
 ) {
     val context = LocalContext.current
     val language = appLanguage()
@@ -396,6 +398,12 @@ private fun ExternalAIView(
     var fixCopied by remember { mutableStateOf(false) }
     fun importText(text: String) {
         fixCopied = false
+        // A JSON array or several objects in one paste (ADR-027).
+        if (com.khaled.widgetstudio.ai.BulkImport.split(text).size > 1) {
+            PendingImport.text = null
+            onBulk(BulkRequest(text = text))
+            return
+        }
         try {
             val widget = ExternalAI.importWidget(text, size)
             error = null
@@ -406,9 +414,6 @@ private fun ExternalAIView(
         }
     }
     LaunchedEffect(Unit) { PendingImport.text?.let { importText(it) } }
-    val openFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) context.contentResolver.openInputStream(uri)?.use { stream -> importText(ExternalAI.read(stream)) }
-    }
     SectionTitle(tr("Your image", "صورتك"))
     SectionCard {
         (cropped ?: picked)?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxWidth().heightIn(max = 200.dp), contentScale = ContentScale.Fit) }
@@ -433,7 +438,7 @@ private fun ExternalAIView(
     SectionTitle(tr("2. Import the answer", "٢. استورد الرد"))
     SectionCard {
         Button(onClick = { importText(context.getSystemService(ClipboardManager::class.java)?.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString() ?: "") }) { Text(tr("Paste from clipboard", "الصق من الحافظة")) }
-        OutlinedButton(onClick = { openFile.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }) { Text(tr("Open a .json file", "افتح ملف ‎.json‎")) }
+        ImportButtons(onBulk)
         OutlinedTextField(pasted, { pasted = it }, label = { Text(tr("Or paste the reply here", "أو الصق الرد هنا")) }, modifier = Modifier.fillMaxWidth(), minLines = 3, maxLines = 8)
         if (pasted.isNotEmpty()) TextButton(onClick = { importText(pasted) }) { Text(tr("Import", "استيراد")) }
         Footnote(tr("Extra text and code fences are removed; only a widget design is accepted, never code. You can also share the reply or a .json file to Widget Studio.", "يُحذف النص الزائد وعلامات الكود، ولا يُقبل إلا تصميم ويدجت، وليس كودًا أبدًا. ويمكنك أيضًا مشاركة الرد أو ملف ‎.json‎ مع ستوديو الويدجت."))

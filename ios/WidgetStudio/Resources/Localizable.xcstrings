@@ -1327,6 +1327,159 @@
         }
       }
     },
+    "bulk.added %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أُضيف %lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld added"
+          }
+        }
+      }
+    },
+    "bulk.addedList": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أُضيف إلى ودجاتي"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Added to My widgets"
+          }
+        }
+      }
+    },
+    "bulk.duplicates %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تُخطي %lld لأنها مكررة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld skipped as duplicates"
+          }
+        }
+      }
+    },
+    "bulk.failed %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فشل %lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld failed"
+          }
+        }
+      }
+    },
+    "bulk.failedList": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يُستورد"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not imported"
+          }
+        }
+      }
+    },
+    "bulk.fixed %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أُصلح %lld تلقائيًا"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld fixed automatically"
+          }
+        }
+      }
+    },
+    "bulk.open": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "افتح"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open"
+          }
+        }
+      }
+    },
+    "bulk.progress %lld %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld من %2$lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld of %2$lld"
+          }
+        }
+      }
+    },
+    "bulk.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استيراد الويدجت"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import widgets"
+          }
+        }
+      }
+    },
     "common.appName": {
       "extractionState": "manual",
       "localizations": {
@@ -2064,13 +2217,13 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "افتح ملف ‎.json‎"
+            "value": "استيراد ملفات أو ملف .zip"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open a .json file"
+            "value": "Import files or a .zip"
           }
         }
       }
@@ -2088,6 +2241,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Copied. Send it to the AI"
+          }
+        }
+      }
+    },
+    "create.external.folder": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استيراد مجلد"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import a folder"
           }
         }
       }
@@ -4438,6 +4608,23 @@
         }
       }
     },
+    "editor.layer.arg": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "القيمة (دقائق أو shortcut)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Value (minutes, or shortcut)"
+          }
+        }
+      }
+    },
     "editor.layer.color": {
       "extractionState": "manual",
       "localizations": {
@@ -4965,6 +5152,23 @@
         }
       }
     },
+    "editor.layer.liveData": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بيانات حية"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live data"
+          }
+        }
+      }
+    },
     "editor.layer.mirror": {
       "extractionState": "manual",
       "localizations": {
@@ -4999,6 +5203,57 @@
         }
       }
     },
+    "editor.layer.none": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بدون"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "None"
+          }
+        }
+      }
+    },
+    "editor.layer.onTap": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عند الضغط"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On tap"
+          }
+        }
+      }
+    },
+    "editor.layer.onTap.field": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضبط قيمته في قسم الحقول."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set its value under Fields."
+          }
+        }
+      }
+    },
     "editor.layer.opacity": {
       "extractionState": "manual",
       "localizations": {
@@ -5012,6 +5267,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Opacity"
+          }
+        }
+      }
+    },
+    "editor.layer.pick": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose"
           }
         }
       }
@@ -6138,6 +6410,125 @@
         }
       }
     },
+    "interactive.change": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تغيير"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change"
+          }
+        }
+      }
+    },
+    "interactive.decorative": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "زخرفي"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decorative"
+          }
+        }
+      }
+    },
+    "interactive.empty": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "هذا التصميم يعرض محتوى ثابتًا: لا بيانات حية ولا شيء للضغط عليه."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This design shows fixed content: nothing live and nothing to tap."
+          }
+        }
+      }
+    },
+    "interactive.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«تغيير» يفتح الطبقة. «بيانات حية» و«عند الضغط» في آخر كل طبقة."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change opens that layer. Live data and On tap are at the end of each layer."
+          }
+        }
+      }
+    },
+    "interactive.live": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حي"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live"
+          }
+        }
+      }
+    },
+    "interactive.tap": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عند الضغط"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On tap"
+          }
+        }
+      }
+    },
+    "interactive.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تفاعلي"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interactive"
+          }
+        }
+      }
+    },
     "keyguide.footer": {
       "extractionState": "manual",
       "localizations": {
@@ -6491,6 +6882,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "No designs yet"
+          }
+        }
+      }
+    },
+    "mywidgets.import": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استيراد ملفات أو ملف .zip"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import files or a .zip"
+          }
+        }
+      }
+    },
+    "mywidgets.importClipboard": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استيراد من الحافظة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import from the clipboard"
+          }
+        }
+      }
+    },
+    "mywidgets.importFolder": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استيراد مجلد"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import a folder"
           }
         }
       }

@@ -20,6 +20,9 @@ object SpecWriter {
         put("background", background(spec.background))
         if (spec.fields.isNotEmpty()) put("fields", JsonArray(spec.fields.map(::field)))
         put("layers", JsonArray(spec.layers.map { layer(it, child = false) }))
+        if (spec.decorative.isNotEmpty()) {
+            put("decorative", JsonArray(spec.decorative.map { note -> buildJsonObject { put("element", note.element); put("reason", note.reason) } }))
+        }
     }
 
     fun ltext(text: LText): JsonElement = when (text) {

@@ -7,6 +7,8 @@ public enum WiringScore {
         var ids = Set(DataRequirements.bindingNames(in: spec).map { $0.trimmingCharacters(in: .whitespaces) })
         for layer in spec.allLayers {
             if case .button(let button) = layer.content { ids.insert(button.action.rawValue) }
+            // An analog clock is live with no binding; the eval calls it "clock".
+            if case .analogClock = layer.content { ids.insert("clock") }
         }
         return ids
     }

@@ -105,12 +105,15 @@ struct TilesTemplateWidgets: WidgetBundle {
         TemplateWidget<TemplateIDs.TilesPills4>()
         TemplateWidget<TemplateIDs.TilesRound>()
         TemplateWidget<TemplateIDs.TilesHero>()
+        TemplateWidget<TemplateIDs.MediaPlayer>()
+        TemplateWidget<TemplateIDs.ControlCenter>()
     }
 }
 
 struct CounterTemplateWidgets: WidgetBundle {
     var body: some Widget {
         TemplateWidget<TemplateIDs.CounterTasbeeh>()
+        TemplateWidget<TemplateIDs.TimerFocus>()
     }
 }
 

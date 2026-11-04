@@ -152,7 +152,9 @@ object BindingNames {
 /** How much of a design is wired (WiringScore.swift). */
 object WiringScore {
     fun ids(spec: WidgetSpec): Set<String> =
-        BindingNames.names(spec).toSet() + spec.layers.flatMap { it.flattened }.mapNotNull { (it.content as? LayerContent.Button)?.action }
+        BindingNames.names(spec).toSet() + spec.layers.flatMap { it.flattened }.mapNotNull {
+            (it.content as? LayerContent.Button)?.action ?: if (it.content is LayerContent.AnalogClock) "clock" else null
+        }
 
     fun hits(spec: WidgetSpec, expected: List<String>): List<String> {
         val present = ids(spec)

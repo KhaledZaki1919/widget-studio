@@ -76,10 +76,11 @@ struct RootView: View {
         }
         .onAppear(perform: AppInfo.touchHeartbeat)
         .onOpenURL { url in
-            // A .json file shared to the app: import it as an external AI's answer (ADR-023).
+            // A .json or .zip opened or shared to the app starts bulk import (ADR-027).
             if url.isFileURL {
-                appState.pendingImport = ExternalAIView.read(url) ?? ""
-                appState.isCreatingFromImage = true
+                appState.isCreatingFromImage = false
+                appState.tab = .myWidgets
+                appState.pendingBulk = BulkRequest(urls: [url])
                 return
             }
             guard url.scheme == "widgetstudio" else { return }
