@@ -26,8 +26,7 @@
     "y": 16,
     "w": 138,
     "h": 138
-   },
-   "mirror": true
+   }
   },
   {
    "type": "stack",
@@ -63,8 +62,7 @@
      "maxLines": 1
     }
    ],
-   "alignItems": "start",
-   "mirror": true
+   "alignItems": "start"
   },
   {
    "type": "progressBar",
@@ -76,8 +74,7 @@
     "y": 78,
     "w": 178,
     "h": 4
-   },
-   "mirror": true
+   }
   },
   {
    "type": "stack",
@@ -115,8 +112,7 @@
      "color": "@muted",
      "maxLines": 1
     }
-   ],
-   "mirror": true
+   ]
   },
   {
    "type": "icon",

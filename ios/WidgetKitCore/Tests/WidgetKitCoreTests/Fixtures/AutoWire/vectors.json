@@ -1095,5 +1095,423 @@
   "notWired": [
    "system.toggle.wifi"
   ]
+ },
+ {
+  "name": "a text badge on a card with a headphones icon is no slider",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.badge",
+   "name": {
+    "en": "Sleep",
+    "ar": "Sleep"
+   },
+   "family": "medium",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "fields": [],
+   "layers": [
+    {
+     "type": "shape",
+     "kind": "roundedRect",
+     "fill": "#2A2A2A",
+     "frame": {
+      "x": 276,
+      "y": 56,
+      "w": 72,
+      "h": 20
+     }
+    },
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 276,
+      "y": 56,
+      "w": 72,
+      "h": 20
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "8H 32M",
+        "ar": "8H 32M"
+       },
+       "font": {
+        "family": "system",
+        "size": 11
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    },
+    {
+     "type": "icon",
+     "symbol": "headphones",
+     "size": 14,
+     "color": "#FFFFFF",
+     "frame": {
+      "x": 320,
+      "y": 134,
+      "w": 20,
+      "h": 20
+     }
+    }
+   ]
+  },
+  "wired": [
+   "sleep.lastNight"
+  ],
+  "notWired": [
+   "volume.level",
+   "volume.up"
+  ]
+ },
+ {
+  "name": "switch drawn on: the knob moves to the off end",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.on",
+   "name": {
+    "en": "Flight Toggles",
+    "ar": "Flight Toggles"
+   },
+   "family": "small",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "fields": [],
+   "layers": [
+    {
+     "type": "shape",
+     "kind": "capsule",
+     "fill": "#F2F2F2",
+     "frame": {
+      "x": 20,
+      "y": 106,
+      "w": 130,
+      "h": 40
+     }
+    },
+    {
+     "type": "shape",
+     "kind": "circle",
+     "fill": "#000000",
+     "frame": {
+      "x": 113,
+      "y": 109,
+      "w": 34,
+      "h": 34
+     }
+    },
+    {
+     "type": "button",
+     "action": "open.app",
+     "frame": {
+      "x": 20,
+      "y": 106,
+      "w": 130,
+      "h": 40
+     }
+    },
+    {
+     "type": "icon",
+     "symbol": "airplane",
+     "size": 18,
+     "color": "#FFFFFF",
+     "frame": {
+      "x": 118,
+      "y": 114,
+      "w": 24,
+      "h": 24
+     }
+    }
+   ]
+  },
+  "wired": [
+   "system.toggle.airplane",
+   "system.airplane"
+  ],
+  "notWired": [
+   "open.app"
+  ]
+ },
+ {
+  "name": "the model named the binding in its wiring list; a progress word is no music",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.list",
+   "name": {
+    "en": "Timer",
+    "ar": "Timer"
+   },
+   "family": "small",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "fields": [],
+   "layers": [
+    {
+     "type": "ring",
+     "progress": "0.6",
+     "color": "#FFFFFF",
+     "lineWidth": 6,
+     "frame": {
+      "x": 35,
+      "y": 35,
+      "w": 100,
+      "h": 100
+     }
+    },
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 45,
+      "y": 70,
+      "w": 80,
+      "h": 30
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "12:30",
+        "ar": "12:30"
+       },
+       "font": {
+        "family": "system",
+        "size": 20
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    }
+   ]
+  },
+  "inventory": [
+   "circular progress ring",
+   "time left '12:30'"
+  ],
+  "wiring": [
+   {
+    "element": "Timer remaining time text '12:30'",
+    "shows": "{{timer.remaining}}",
+    "tap": null
+   }
+  ],
+  "wired": [
+   "timer.remaining",
+   "timer.progress"
+  ],
+  "notWired": [
+   "media.elapsed",
+   "media.progress"
+  ]
+ },
+ {
+  "name": "a timer countdown to a fixed date follows the timer",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.dots",
+   "name": {
+    "en": "Dot Timer",
+    "ar": "Dot Timer"
+   },
+   "family": "small",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "fields": [
+    {
+     "key": "event",
+     "type": "date",
+     "label": {
+      "en": "Ends at",
+      "ar": "ينتهي في"
+     },
+     "default": {
+      "en": "2030-11-04T03:13:00",
+      "ar": "2030-11-04T03:13:00"
+     }
+    }
+   ],
+   "layers": [
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 14,
+      "y": 116,
+      "w": 142,
+      "h": 40
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "{{field.event}}",
+        "ar": "{{field.event}}"
+       },
+       "font": {
+        "family": "system",
+        "size": 24
+       },
+       "color": "#FFFFFF",
+       "live": {
+        "kind": "timer",
+        "target": "{{field.event}}"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  "wired": [
+   "timer.remaining",
+   "timer.toggle"
+  ],
+  "notWired": [
+   "field.event"
+  ]
+ },
+ {
+  "name": "a trip countdown stays a countdown",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.trip",
+   "name": {
+    "en": "Trip countdown",
+    "ar": "Trip countdown"
+   },
+   "family": "small",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "fields": [
+    {
+     "key": "event",
+     "type": "date",
+     "label": {
+      "en": "Trip",
+      "ar": "الرحلة"
+     },
+     "default": {
+      "en": "2030-11-04T03:13:00",
+      "ar": "2030-11-04T03:13:00"
+     }
+    }
+   ],
+   "layers": [
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 14,
+      "y": 116,
+      "w": 142,
+      "h": 40
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "{{field.event}}",
+        "ar": "{{field.event}}"
+       },
+       "font": {
+        "family": "system",
+        "size": 24
+       },
+       "color": "#FFFFFF",
+       "live": {
+        "kind": "timer",
+        "target": "{{field.event}}"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  "wired": [
+   "field.event"
+  ],
+  "notWired": [
+   "timer.remaining",
+   "timer.toggle"
+  ]
+ },
+ {
+  "name": "switches inside stacks get their on look laid over them",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.rows",
+   "name": {
+    "en": "Switches",
+    "ar": "Switches"
+   },
+   "family": "small",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "fields": [],
+   "layers": [
+    {
+     "type": "stack",
+     "axis": "horizontal",
+     "frame": {
+      "x": 16,
+      "y": 16,
+      "w": 138,
+      "h": 40
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "Wi-Fi",
+        "ar": "Wi-Fi"
+       },
+       "font": {
+        "family": "system",
+        "size": 14
+       },
+       "color": "#FFFFFF"
+      },
+      {
+       "type": "spacer"
+      },
+      {
+       "type": "shape",
+       "kind": "capsule",
+       "fill": "#333333",
+       "width": 56,
+       "height": 30
+      }
+     ]
+    },
+    {
+     "type": "button",
+     "action": "system.toggle.wifi",
+     "frame": {
+      "x": 90,
+      "y": 16,
+      "w": 64,
+      "h": 40
+     }
+    }
+   ]
+  },
+  "wired": [
+   "system.toggle.wifi",
+   "system.wifi"
+  ]
  }
 ]

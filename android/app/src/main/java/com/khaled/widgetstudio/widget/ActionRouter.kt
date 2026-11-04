@@ -53,6 +53,10 @@ object ActionRouter {
         val capability = Capabilities.action(id)
         if (capability == null || capability.supportAndroid == "unsupported") return hint(id, arg)
         if (id == "open.app") return actionStartActivity(MainActivity.intent(context, null))
+        // Tiles from before ADR-027 name an iOS Shortcut: the torch still toggles right here.
+        if (id == "shortcut.run" && WidgetActions.tileKind(arg ?: "") == WidgetActions.Tile.TORCH) {
+            return actionRunCallback<Perform>(actionParametersOf(idKey to "system.toggle.torch", argKey to ""))
+        }
         missingPermission(context, id)?.let { return actionStartActivity(it) }
         if (id in inPlace) return actionRunCallback<Perform>(actionParametersOf(idKey to id, argKey to (arg ?: "")))
         if (capability.supportAndroid == "panel" && id.startsWith("system.toggle")) return actionStartActivity(panel(context, capability))

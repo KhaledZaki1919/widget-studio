@@ -61,8 +61,7 @@
      "maxLines": 1
     }
    ],
-   "alignItems": "start",
-   "mirror": true
+   "alignItems": "start"
   },
   {
    "type": "progressBar",
@@ -74,8 +73,7 @@
     "y": 80,
     "w": 300,
     "h": 4
-   },
-   "mirror": true
+   }
   },
   {
    "type": "icon",

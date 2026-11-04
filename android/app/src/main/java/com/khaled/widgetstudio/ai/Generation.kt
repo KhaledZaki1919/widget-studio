@@ -195,8 +195,9 @@ object AIWidgetParser {
         if (options.mode == GenerationMode.RECREATE) applyCard(card, obj, colors, options.wallpaperColor)
         val notes = decorativeNotes(obj["wiring"])
         val inventory = (obj["inventory"] as? JsonArray)?.mapNotNull { it.str() } ?: emptyList()
+        val wiring = (obj["wiring"] as? JsonArray)?.mapNotNull { item -> item["element"].str()?.let { AutoWire.WiringEntry(it, item["shows"].str()) } } ?: emptyList()
         listOf("card", "palette", "category", "inventory", "wiring", "differences").forEach { obj.remove(it) }
-        obj["layers"]?.let { obj["layers"] = withKnownShapeKinds(withoutUnknownIcons(it)) }
+        obj["layers"]?.let { obj["layers"] = withKnownColors(withKnownShapeKinds(withoutUnknownIcons(it))) }
         obj["fields"]?.let { obj["fields"] = withCleanFieldLabels(it) }
         obj["schemaVersion"] = JsonPrimitive(1)
         obj["id"] = JsonPrimitive(id)
@@ -222,13 +223,23 @@ object AIWidgetParser {
         if (!enforceLayout) repaired(result).let { (s, l) -> result = s; layout = l }
         if (notes.isNotEmpty()) result = result.copy(decorative = notes)
         // The post-pass may only add wiring: its result must still pass the AI rules (ADR-027).
-        val wired = AutoWire.apply(result, inventory)
+        val wired = AutoWire.apply(result, inventory, wiring)
         var autoWired = emptyList<String>()
         if (SpecValidator(ai = true, checksTextOverlaps = false).validate(wired.spec).isEmpty()) {
             result = wired.spec
             autoWired = wired.changes
         }
         return Parsed(result.copy(refresh = refresh(result)), colors, layout, autoWired)
+    }
+
+    /** Words models write for "no color", which would otherwise fail the whole widget. */
+    private fun withKnownColors(value: JsonElement): JsonElement = when (value) {
+        is JsonObject -> JsonObject(value.mapValues { (key, field) ->
+            val word = (field as? JsonPrimitive)?.takeIf { it.isString }?.content?.lowercase()
+            if ((key.lowercase().endsWith("color") || key == "fill") && word in setOf("transparent", "clear", "none")) JsonPrimitive("#00000000") else withKnownColors(field)
+        })
+        is JsonArray -> JsonArray(value.map(::withKnownColors))
+        else -> value
     }
 
     /** Prompt v5's `decorative` entries. */

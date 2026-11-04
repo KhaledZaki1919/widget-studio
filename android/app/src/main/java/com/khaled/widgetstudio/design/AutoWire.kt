@@ -25,9 +25,13 @@ import kotlin.math.min
 object AutoWire {
     data class Outcome(val spec: WidgetSpec, val changes: List<String>)
 
-    fun apply(spec: WidgetSpec, inventory: List<String> = emptyList()): Outcome {
+    /** One line of the model's wiring list: what it said an element shows. */
+    data class WiringEntry(val element: String, val shows: String?)
+
+    fun apply(spec: WidgetSpec, inventory: List<String> = emptyList(), wiring: List<WiringEntry> = emptyList()): Outcome {
         val run = Run(spec, inventory)
         run.sliders()
+        run.modelWiring(wiring)
         run.texts()
         run.mediaTitles()
         run.symbols()
@@ -35,6 +39,7 @@ object AutoWire {
         run.toggles()
         run.controls()
         run.sliderZones()
+        run.stateLooks()
         run.card()
         run.dropUnusedFields()
         return Outcome(run.spec, run.changes.toList())
@@ -244,12 +249,40 @@ object AutoWire {
             log("text \"$was\"", id)
         }
 
+        // The model's own list
+
+        /** The model said what an element shows but left the layer static. */
+        fun modelWiring(wiring: List<WiringEntry>) {
+            for (entry in wiring) {
+                val shows = entry.shows?.takeIf { it.isNotEmpty() } ?: continue
+                val names = Bindings.tokenize(shows).filterIsInstance<Bindings.Token.Binding>().map { it.name.trim() }
+                if (names.isEmpty() || names.any { Capabilities.binding(it) == null }) continue
+                val element = entry.element.lowercase()
+                for (item in walk(spec.layers)) {
+                    val text = item.layer.content as? LayerContent.Text ?: continue
+                    if (text.liveKind != null) continue
+                    val english = text.value.resolved("en").trim()
+                    if (english.length < 2 || english.contains("{{") || !element.contains(english.lowercase())) continue
+                    setText(item.path, shows, shows, english, names.first())
+                    break
+                }
+            }
+        }
+
         // Texts
 
         fun texts() {
             var clocks = 0
             for (item in walk(spec.layers)) {
                 val text = item.layer.content as? LayerContent.Text ?: continue
+                val target = text.liveTarget?.let(Bindings::soleBinding)?.trim()
+                if (text.liveKind == "timer" && target != null && target.startsWith("field.") && topics.has("timer")) {
+                    val key = target.removePrefix("field.")
+                    update(item.path) { it.copy(content = text.copy(value = LText.Plain("{{timer.remaining}}"), liveKind = null, liveTarget = null)) }
+                    replacedFields += key
+                    log("countdown {{field.$key}}", "timer.remaining")
+                    continue
+                }
                 if (text.liveKind != null) continue
                 val english = text.value.resolved("en").trim()
                 val sole = Bindings.soleBinding(english)
@@ -291,7 +324,7 @@ object AutoWire {
         }
 
         fun clockBinding(index: Int): String = when {
-            topics.value("media") >= 2 -> if (index == 1 && !uses("media.duration")) "media.elapsed" else "media.duration"
+            hasControls -> if (index == 1 && !uses("media.duration")) "media.elapsed" else "media.duration"
             topics.has("timer") -> "timer.remaining"
             else -> "time.hh"
         }
@@ -312,7 +345,7 @@ object AutoWire {
         }
 
         fun mediaTitles() {
-            if (topics.value("media") < 2 || !(hasControls || uses("media.progress")) || uses("media.title")) return
+            if (!(hasControls || uses("media.progress")) || uses("media.title")) return
             val generic = listOf("music", "player", "now playing", "playing", "موسيقى", "مشغل", "مشغّل")
             val texts = walk(spec.layers).filter { item ->
                 val text = item.layer.content as? LayerContent.Text ?: return@filter false
@@ -392,7 +425,8 @@ object AutoWire {
             val bars = mutableMapOf<Int, Layer>()
             var level = 0
             for ((index, layer) in layers.withIndex()) {
-                if (index in taken || !isSliderPiece(layer)) continue
+                // A badge holds a text; a slider holds none.
+                if (index in taken || !isSliderPiece(layer) || labels(layer.frame).isNotEmpty()) continue
                 val vertical = layer.frame.h > layer.frame.w
                 val parts = mutableListOf(index)
                 var union = layer.frame
@@ -422,7 +456,7 @@ object AutoWire {
             if (shape.kind !in listOf("capsule", "roundedRect", "rect") || shape.fill == null) return false
             val long = max(layer.frame.w, layer.frame.h)
             val short = min(layer.frame.w, layer.frame.h)
-            return short > 1.5 && short <= 44 && long >= 3 * short && long >= 60
+            return short > 1.5 && short <= 44 && long >= 4 * short && long >= 60
         }
 
         fun isDotTrack(layer: Layer): Boolean {
@@ -507,21 +541,47 @@ object AutoWire {
                 val state = action.state ?: continue
                 val knob = layers[knobIndex]
                 val isOffLook = knob.frame.x + knob.frame.w / 2 < layer.frame.x + layer.frame.w / 2
-                val gap = knob.frame.x - layer.frame.x
-                val other = layer.frame.x + layer.frame.w - gap - knob.frame.w
-                val shift = if (isOffLook) other - knob.frame.x else knob.frame.x - (layer.frame.x + gap)
+                // The knob's other end, the same distance from the track's edge.
+                val right = layer.frame.x + layer.frame.w - (knob.frame.x + knob.frame.w)
+                val shift = if (isOffLook) right - (knob.frame.x - layer.frame.x) else (layer.frame.x - knob.frame.x) + right
                 val pieces = listOf(knobIndex) + layers.indices.filter { layers[it].content is LayerContent.Icon && inside(layers[it].frame, knob.frame) }
                 for (piece in pieces) {
                     val moved = layers[piece]
                     extra += moved.copy(
-                        frame = moved.frame.copy(x = moved.frame.x + if (isOffLook) shift else -abs(shift)),
+                        frame = moved.frame.copy(x = moved.frame.x + shift),
                         condition = if (isOffLook) "{{$state}}" else "!{{$state}}",
                     )
                     update(listOf(piece)) { it.copy(condition = if (isOffLook) "!{{$state}}" else "{{$state}}") }
                 }
             }
-            spec = spec.copy(layers = spec.layers + extra)
+            insertDrawn(extra)
             add(planned)
+        }
+
+        /** Drawn layers go under the tap areas: anything on top of a button takes its taps. */
+        fun insertDrawn(layers: List<Layer>) {
+            val index = spec.layers.indexOfFirst { it.content is LayerContent.Button }.let { if (it < 0) spec.layers.size else it }
+            spec = spec.copy(layers = spec.layers.take(index) + layers + spec.layers.drop(index))
+        }
+
+        /** A switch drawn inside a stack can't be moved, so its on look is laid over it while the state is on. */
+        fun stateLooks() {
+            val looks = mutableListOf<Layer>()
+            for ((frame, action) in buttons) {
+                val state = Capabilities.action(action)?.state ?: continue
+                if (uses(state)) continue
+                val track = walk(spec.layers).firstOrNull { item ->
+                    val shape = item.layer.content as? LayerContent.Shape
+                    (shape?.kind == "capsule" || shape?.kind == "roundedRect") && inside(item.frame, frame) && item.frame.w >= 1.4 * item.frame.h && item.frame.h > 8
+                } ?: continue
+                val f = track.frame
+                val inset = f.h * 0.1
+                val knob = Frame(f.x + f.w - f.h + inset, f.y + inset, f.h - 2 * inset, f.h - 2 * inset)
+                looks += Layer(f, null, track.mirror, "{{$state}}", null, LayerContent.Shape("capsule", "@accent", null, null, null))
+                looks += Layer(knob, null, track.mirror, "{{$state}}", null, LayerContent.Shape("circle", "#FFFFFF", null, null, null))
+                log("switch look", state)
+            }
+            insertDrawn(looks)
         }
 
         fun labels(frame: Frame, wide: Boolean = false): String {

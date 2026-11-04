@@ -158,12 +158,16 @@ class CapabilityCatalogTest {
             val name = vector.getValue("name").jsonPrimitive.content
             val spec = SpecParser.spec(vector.getValue("spec").jsonObject)
             val inventory = (vector["inventory"] as? JsonArray)?.map { it.jsonPrimitive.content } ?: emptyList()
-            val outcome = AutoWire.apply(spec, inventory)
+            val wiring = (vector["wiring"] as? JsonArray)?.map { line ->
+                val entry = line.jsonObject
+                AutoWire.WiringEntry(entry.getValue("element").jsonPrimitive.content, entry["shows"]?.jsonPrimitive?.content)
+            } ?: emptyList()
+            val outcome = AutoWire.apply(spec, inventory, wiring)
             val ids = WiringScore.ids(outcome.spec)
             for (id in vector.getValue("wired").jsonArray) assertTrue("$name: ${id.jsonPrimitive.content} missing; got $ids; log ${outcome.changes}", id.jsonPrimitive.content in ids)
             for (id in (vector["notWired"] as? JsonArray) ?: emptyList()) assertTrue("$name: ${id.jsonPrimitive.content} must not be wired; log ${outcome.changes}", id.jsonPrimitive.content !in ids)
             assertEquals(name, emptyList<String>(), SpecValidator(ai = true, checksTextOverlaps = false).validate(outcome.spec))
-            assertEquals("$name: not idempotent", outcome.spec, AutoWire.apply(outcome.spec, inventory).spec)
+            assertEquals("$name: not idempotent", outcome.spec, AutoWire.apply(outcome.spec, inventory, wiring).spec)
         }
     }
 }

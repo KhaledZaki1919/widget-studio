@@ -486,6 +486,33 @@ public enum AIWidgetParser {
         }
     }
 
+    /// Prompt v5's wiring list, for the post-pass.
+    static func wiringEntries(_ wiring: JSONValue?) -> [AutoWire.WiringEntry] {
+        guard case .array(let items)? = wiring else { return [] }
+        return items.compactMap { item in
+            item["element"]?.stringValue.map { AutoWire.WiringEntry(element: $0, shows: item["shows"]?.stringValue, tap: item["tap"]?.stringValue) }
+        }
+    }
+
+    /// Words models write for "no color", which would otherwise fail the whole widget.
+    static func withKnownColors(_ value: JSONValue) -> JSONValue {
+        switch value {
+        case .object(let fields):
+            return .object(fields.reduce(into: [:]) { result, field in
+                if field.key.lowercased().hasSuffix("color") || field.key == "fill", let word = field.value.stringValue?.lowercased(),
+                   ["transparent", "clear", "none"].contains(word) {
+                    result[field.key] = .string("#00000000")
+                } else {
+                    result[field.key] = withKnownColors(field.value)
+                }
+            })
+        case .array(let items):
+            return .array(items.map(withKnownColors))
+        default:
+            return value
+        }
+    }
+
     static func inventory(_ value: JSONValue?) -> [String] {
         guard case .array(let items)? = value else { return [] }
         return items.compactMap(\.stringValue)
@@ -530,13 +557,14 @@ public enum AIWidgetParser {
         if options.mode == .recreate { applyCard(card, to: &object, colors: &colors, wallpaper: options.wallpaperColor) }
         let notes = decorativeNotes(object["wiring"])
         let listed = Self.inventory(object["inventory"])
+        let wiring = wiringEntries(object["wiring"])
         object["card"] = nil
         object["palette"] = nil
         object["category"] = nil
         object["inventory"] = nil
         object["wiring"] = nil
         object["differences"] = nil
-        object["layers"] = object["layers"].map(withoutUnknownIcons).map(withKnownShapeKinds)
+        object["layers"] = object["layers"].map(withoutUnknownIcons).map(withKnownShapeKinds).map(withKnownColors)
         object["fields"] = object["fields"].map(withCleanFieldLabels)
         object["schemaVersion"] = 1
         object["id"] = .string(id)
@@ -558,7 +586,7 @@ public enum AIWidgetParser {
             // The post-pass may only add wiring: its result must still pass the AI rules (ADR-027).
             var autoWired: [String] = []
             if autoWire {
-                let wired = AutoWire.apply(spec, inventory: listed)
+                let wired = AutoWire.apply(spec, inventory: listed, wiring: wiring)
                 if case .success(let checked) = SpecValidator(mode: .ai, checksTextOverlaps: false).validate(wired.spec) {
                     spec = checked
                     autoWired = wired.changes

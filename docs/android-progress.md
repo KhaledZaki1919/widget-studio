@@ -45,3 +45,13 @@ Handoff note for this run: the owner asked for A2, A3, A4 and A5 in one go, with
 | AI | Gemini only; the iOS review round is not ported |
 | Detector | pixel regions instead of Vision |
 | Tinted/Clear | not applicable (Android themes the icon only) |
+
+## Interactive widgets (ADR-027)
+| Area | Android |
+|---|---|
+| Media | Any player: NotificationListener + MediaSession, redrawn on change and every 15 s while playing |
+| Volume | Direct, media and ringer |
+| Switches | Torch, silent, rotation and Do Not Disturb direct (the last three after a one-time grant); Wi-Fi, Bluetooth, airplane, mobile data, dark mode and battery saver open their panel |
+| Compass | One sensor reading per minute while the screen is on, only when a placed widget shows it |
+| Reminders | Unsupported: Android has no shared store; a tap shows a hint |
+| Sizes | Small, Medium, Large receivers; the original receiver is hidden from the picker and keeps placed widgets working |

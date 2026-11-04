@@ -7,15 +7,30 @@ import Foundation
 /// level bar with up/down tap zones. Every change is logged in `changes`. It never touches a
 /// layer that is already wired. The Kotlin port (`design/AutoWire.kt`) must behave the same: both
 /// run the vectors in `Tests/WidgetKitCoreTests/Fixtures/AutoWire`.
+// swiftlint:disable:next type_body_length
 public enum AutoWire {
     public struct Outcome: Sendable, Equatable {
         public var spec: WidgetSpec
         public var changes: [String]
     }
 
-    public static func apply(_ spec: WidgetSpec, inventory: [String] = []) -> Outcome {
+    /// One line of the model's wiring list: what it said an element shows.
+    public struct WiringEntry: Decodable, Sendable, Equatable {
+        public let element: String
+        public let shows: String?
+        public let tap: String?
+
+        public init(element: String, shows: String?, tap: String? = nil) {
+            self.element = element
+            self.shows = shows
+            self.tap = tap
+        }
+    }
+
+    public static func apply(_ spec: WidgetSpec, inventory: [String] = [], wiring: [WiringEntry] = []) -> Outcome {
         var run = Run(spec: spec, inventory: inventory)
         run.sliders()
+        run.modelWiring(wiring)
         run.texts()
         run.mediaTitles()
         run.symbols()
@@ -23,6 +38,7 @@ public enum AutoWire {
         run.toggles()
         run.controls()
         run.sliderZones()
+        run.stateLooks()
         run.card()
         run.dropUnusedFields()
         return Outcome(spec: run.spec, changes: run.changes)
@@ -226,6 +242,7 @@ public enum AutoWire {
         let element: String
     }
 
+    // swiftlint:disable:next type_body_length
     struct Run {
         var spec: WidgetSpec
         var changes: [String] = []
@@ -296,14 +313,46 @@ public enum AutoWire {
             log("text \"\(was)\"", id)
         }
 
+        // MARK: The model's own list
+
+        /// The model said what an element shows but left the layer static: "'12:30'" → {{timer.remaining}}.
+        mutating func modelWiring(_ wiring: [WiringEntry]) {
+            for entry in wiring {
+                guard let shows = entry.shows, !shows.isEmpty, !Bindings.names(in: shows).isEmpty,
+                      Bindings.names(in: shows).allSatisfy({ Capabilities.binding($0) != nil }) else { continue }
+                let element = entry.element.lowercased()
+                for item in AutoWire.walk(spec.layers) {
+                    guard case .text(let text) = item.layer.content, text.live == nil else { continue }
+                    let english = text.value.resolved(language: "en").trimmingCharacters(in: .whitespaces)
+                    guard english.count >= 2, Bindings.names(in: english).isEmpty, element.contains(english.lowercased()) else { continue }
+                    setText(item.path, en: shows, ar: shows, was: english, id: Bindings.names(in: shows).first ?? shows)
+                    break
+                }
+            }
+        }
+
         // MARK: Texts
 
         /// Binds static text that looks live, and field-bound text whose field names a live value.
         mutating func texts() {
             var clocks = 0
             for item in AutoWire.walk(spec.layers) {
-                guard case .text(let text) = item.layer.content, text.live == nil else { continue }
+                guard case .text(let text) = item.layer.content else { continue }
                 let english = text.value.resolved(language: "en").trimmingCharacters(in: .whitespacesAndNewlines)
+                // A countdown on a card called a timer follows the timer a tap starts, not a fixed date.
+                if text.live?.kind == .timer, let target = text.live?.target, let raw = Bindings.soleBinding(target),
+                   case .field(let key)? = Bindings.Name(raw), topics.has("timer") {
+                    update(item.path) { layer in
+                        guard case .text(var changed) = layer.content else { return }
+                        changed.value = "{{timer.remaining}}"
+                        changed.live = nil
+                        layer.content = .text(changed)
+                    }
+                    replacedFields.insert(key)
+                    log("countdown {{field.\(key)}}", "timer.remaining")
+                    continue
+                }
+                guard text.live == nil else { continue }
                 if let sole = Bindings.soleBinding(english), case .field(let key)? = Bindings.Name(sole) {
                     if let id = fieldBinding(key), Capabilities.binding(id) != nil {
                         let template = "{{\(id)}}"
@@ -342,7 +391,7 @@ public enum AutoWire {
 
         /// On a media card "1:42" and "4:23" are positions; on a timer the time left; else the clock.
         func clockBinding(index: Int) -> String {
-            if topics.value("media") >= 2 { return index == 1 && !uses("media.duration") ? "media.elapsed" : "media.duration" }
+            if hasControls { return index == 1 && !uses("media.duration") ? "media.elapsed" : "media.duration" }
             if topics.has("timer") { return "timer.remaining" }
             return "time.hh"
         }
@@ -370,7 +419,7 @@ public enum AutoWire {
         /// A media card names its song in plain text: the biggest text becomes the title, the
         /// next one the artist.
         mutating func mediaTitles() {
-            guard topics.value("media") >= 2, hasControls || uses("media.progress"), !uses("media.title") else { return }
+            guard hasControls || uses("media.progress"), !uses("media.title") else { return }
             let generic = ["music", "player", "now playing", "playing", "موسيقى", "مشغل", "مشغّل"]
             let texts = AutoWire.walk(spec.layers).filter { item in
                 guard case .text(let text) = item.layer.content else { return false }
@@ -484,7 +533,8 @@ public enum AutoWire {
             var removed = Set<Int>()
             var level = 0
             for (index, layer) in spec.layers.enumerated() where !taken.contains(index) {
-                guard Self.isSliderPiece(layer) else { continue }
+                // A badge holds a text; a slider holds none.
+                guard Self.isSliderPiece(layer), labels(in: layer.frame).isEmpty else { continue }
                 let vertical = layer.frame.h > layer.frame.w
                 var parts = [index]
                 var union = layer.frame
@@ -524,7 +574,7 @@ public enum AutoWire {
                   shape.fill != nil else { return false }
             let long = max(layer.frame.w, layer.frame.h)
             let short = min(layer.frame.w, layer.frame.h)
-            return short > 1.5 && short <= 44 && long >= 3 * short && long >= 60
+            return short > 1.5 && short <= 44 && long >= 4 * short && long >= 60
         }
 
         static func isDotTrack(_ layer: Layer) -> Bool {
@@ -612,21 +662,48 @@ public enum AutoWire {
                 guard let state = action.state else { continue }
                 let knob = layers[knobIndex]
                 let isOffLook = knob.frame.x + knob.frame.w / 2 < layer.frame.x + layer.frame.w / 2
-                let gap = knob.frame.x - layer.frame.x
-                let other = layer.frame.x + layer.frame.w - gap - knob.frame.w
-                let shift = isOffLook ? other - knob.frame.x : knob.frame.x - (layer.frame.x + gap)
+                // The knob's other end, the same distance from the track's edge.
+                let shift = isOffLook ? (layer.frame.x + layer.frame.w - (knob.frame.x + knob.frame.w)) - (knob.frame.x - layer.frame.x)
+                    : (layer.frame.x - knob.frame.x) + (layer.frame.x + layer.frame.w - (knob.frame.x + knob.frame.w))
                 var pieces = [knobIndex]
                 pieces += layers.indices.filter { if case .icon = layers[$0].content { Self.inside(layers[$0].frame, knob.frame) } else { false } }
                 for piece in pieces {
                     var moved = layers[piece]
-                    moved.frame.x += isOffLook ? shift : -abs(shift)
+                    moved.frame.x += shift
                     moved.when = isOffLook ? "{{\(state)}}" : "!{{\(state)}}"
                     extra.append(moved)
                     update([piece]) { $0.when = isOffLook ? "!{{\(state)}}" : "{{\(state)}}" }
                 }
             }
-            spec.layers += extra
+            insertDrawn(extra)
             add(planned)
+        }
+
+        /// Drawn layers go under the tap areas: anything on top of a button takes its taps.
+        mutating func insertDrawn(_ layers: [Layer]) {
+            let index = spec.layers.firstIndex { if case .button = $0.content { true } else { false } } ?? spec.layers.count
+            spec.layers.insert(contentsOf: layers, at: index)
+        }
+
+        /// A switch drawn inside a stack can't be moved, so its on look is laid over it: an accent
+        /// track with its knob at the end, shown only while the state is on.
+        mutating func stateLooks() {
+            var looks: [Layer] = []
+            for button in buttons {
+                guard let state = Capabilities.action(button.action)?.state, !uses(state) else { continue }
+                let track = AutoWire.walk(spec.layers).first { item in
+                    guard case .shape(let shape) = item.layer.content, shape.kind == .capsule || shape.kind == .roundedRect else { return false }
+                    return Self.inside(item.frame, button.frame) && item.frame.w >= 1.4 * item.frame.h && item.frame.h > 8
+                }
+                guard let track else { continue }
+                let frame = track.frame
+                let inset = frame.h * 0.1
+                let knob = Frame(x: frame.x + frame.w - frame.h + inset, y: frame.y + inset, w: frame.h - 2 * inset, h: frame.h - 2 * inset)
+                looks.append(Layer(frame: frame, mirror: track.mirror, when: "{{\(state)}}", content: .shape(ShapeLayer(kind: .capsule, fill: "@accent"))))
+                looks.append(Layer(frame: knob, mirror: track.mirror, when: "{{\(state)}}", content: .shape(ShapeLayer(kind: .circle, fill: "#FFFFFF"))))
+                log("switch look", state)
+            }
+            insertDrawn(looks)
         }
 
         static func inside(_ inner: Frame, _ outer: Frame) -> Bool {

@@ -84,6 +84,8 @@ struct MyWidgetsView: View {
                     Label("mywidgets.importClipboard", systemImage: "doc.on.clipboard")
                 }
                 .accessibilityIdentifier("ax.mywidgets.importClipboard")
+            } footer: {
+                Text("bulk.pick.hint")
             }
             ForEach(designs.designs) { design in
                 row(design)

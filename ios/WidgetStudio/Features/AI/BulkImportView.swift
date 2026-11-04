@@ -43,6 +43,10 @@ enum DocumentPicker {
             ? UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
             : UIDocumentPickerViewController(forOpeningContentTypes: [.item], asCopy: true)
         picker.allowsMultipleSelection = !folder
+        #if DEBUG
+        // The import bug's control (ADR-027): this picker in single selection, as fileImporter was.
+        if ProcessInfo.processInfo.environment["WS_UITEST_SINGLE_PICK"] != nil { picker.allowsMultipleSelection = false }
+        #endif
         let delegate = Delegate(onPick: onPick)
         picker.delegate = delegate
         objc_setAssociatedObject(picker, &key, delegate, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
@@ -135,8 +139,6 @@ struct BulkImportView: View {
                     Label("bulk.failed \(failed.count)", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                 }
             }
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("ax.bulk.summary")
             if !summary.added.isEmpty {
                 Section("bulk.addedList") {
                     ForEach(summary.added) { item in

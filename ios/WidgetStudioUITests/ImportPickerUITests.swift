@@ -89,6 +89,11 @@ final class ImportPickerUITests: XCTestCase {
         cell.tap()
         sleep(3)
         attach(apps.map(\.debugDescription).joined(separator: "\n\n"), name: "after tapping \(file)")
+        // Multi-selection: a tap selects the file, Open confirms it.
+        if let confirm = element(named: "Open", in: apps, timeout: 1) {
+            confirm.tap()
+            sleep(2)
+        }
         return element(named: (file as NSString).deletingPathExtension, in: apps, timeout: 1) == nil
     }
 
@@ -140,6 +145,21 @@ final class ImportPickerUITests: XCTestCase {
         XCTAssertTrue(try pick("probe-zip.zip", app: app), "the picker stayed open after tapping a .zip file")
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "ax.bulk.added").firstMatch.waitForExistence(timeout: 15),
                       "the zip was picked but nothing was imported")
+    }
+
+    /// The control for the import bug: single selection, like the old `fileImporter`, but presented
+    /// from UIKit. In single selection a tap alone must return the file; there is no Open button.
+    @MainActor
+    func testSingleSelectionReturnsOnTheTap() throws {
+        let storage = try localStorage()
+        try Self.widget.write(to: storage.appendingPathComponent("probe-single.json"), atomically: true, encoding: .utf8)
+        let app = XCUIApplication()
+        app.launchArguments = ["-uiTesting", "-uiTestingStubAI", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launchEnvironment["WS_UITEST_SINGLE_PICK"] = "1"
+        app.launch()
+        XCTAssertTrue(try pick("probe-single.json", app: app), "the single-selection picker stayed open after the tap")
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "ax.bulk.added").firstMatch.waitForExistence(timeout: 15),
+                      "the file was picked but nothing was imported")
     }
 
     /// A plain `.json` file: the case that must work.

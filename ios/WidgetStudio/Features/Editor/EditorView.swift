@@ -32,7 +32,6 @@ struct EditorView: View {
             Form {
                 previewSection
                 layoutSection
-                InteractiveSection(model: model)
                 if let onRegenerate {
                     Section {
                         Button(action: onRegenerate) {
@@ -47,6 +46,7 @@ struct EditorView: View {
                     TextField("editor.name", text: $model.design.name)
                         .accessibilityIdentifier("ax.editor.name")
                 }
+                InteractiveSection(model: model)
                 if model.hasPhoto { photoSection }
                 appearanceSection
                 layersSection

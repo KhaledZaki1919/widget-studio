@@ -449,6 +449,7 @@ private fun ExternalAIView(
             Text(when (e) {
                 ExternalAI.ImportError.Empty -> tr("There's nothing to import. Copy the AI's whole reply first.", "لا يوجد ما يُستورد. انسخ رد الذكاء الاصطناعي كاملًا أولًا.")
                 ExternalAI.ImportError.NoJSON -> tr("No widget design found in this text. Ask the AI to reply with only the JSON object.", "لم يُعثر على تصميم ويدجت في هذا النص. اطلب من الذكاء الاصطناعي أن يرد بكائن JSON فقط.")
+                ExternalAI.ImportError.Unreadable -> tr("This file can't be read.", "تعذّرت قراءة هذا الملف.")
                 ExternalAI.ImportError.TooLarge -> tr("This reply is too long for a widget. Ask the AI for a simpler design.", "هذا الرد أطول من أن يكون ويدجت. اطلب من الذكاء الاصطناعي تصميمًا أبسط.")
                 is ExternalAI.ImportError.Invalid -> tr("The design doesn't pass Widget Studio's checks (details below). Copy the fix request and send it to the AI.", "التصميم لا يجتاز فحوص ستوديو الويدجت (التفاصيل بالأسفل). انسخ طلب الإصلاح وأرسله إلى الذكاء الاصطناعي.")
             }, color = MaterialTheme.colorScheme.error)

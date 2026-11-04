@@ -20,6 +20,7 @@ struct AutoWireTests {
         let name: String
         let spec: WidgetSpec
         let inventory: [String]?
+        let wiring: [AutoWire.WiringEntry]?
         /// Binding and action ids that must end up in the spec.
         let wired: [String]
         /// Ids that must not appear (wrong guesses).
@@ -35,7 +36,7 @@ struct AutoWireTests {
     @Test func vectorsPass() throws {
         #expect(Self.vectors.count >= 8, "Fixtures/AutoWire/vectors.json did not load")
         for vector in Self.vectors {
-            let outcome = AutoWire.apply(vector.spec, inventory: vector.inventory ?? [])
+            let outcome = AutoWire.apply(vector.spec, inventory: vector.inventory ?? [], wiring: vector.wiring ?? [])
             let ids = WiringScore.ids(in: outcome.spec)
             for id in vector.wired { #expect(ids.contains(id), "\(vector.name): \(id) missing; got \(ids.sorted()); log \(outcome.changes)") }
             for id in vector.notWired ?? [] { #expect(!ids.contains(id), "\(vector.name): \(id) must not be wired; log \(outcome.changes)") }
@@ -47,10 +48,26 @@ struct AutoWireTests {
     /// Running it twice changes nothing: what is wired stays wired.
     @Test func isIdempotent() {
         for vector in Self.vectors {
-            let once = AutoWire.apply(vector.spec, inventory: vector.inventory ?? [])
-            let twice = AutoWire.apply(once.spec, inventory: vector.inventory ?? [])
+            let once = AutoWire.apply(vector.spec, inventory: vector.inventory ?? [], wiring: vector.wiring ?? [])
+            let twice = AutoWire.apply(once.spec, inventory: vector.inventory ?? [], wiring: vector.wiring ?? [])
             #expect(twice.spec == once.spec, "\(vector.name): \(twice.changes)")
         }
+    }
+
+    /// The on-look knob moves to the off end, and drawn layers stay under the tap areas.
+    @Test func switchesMoveTheirKnobAndStayUnderButtons() throws {
+        let vector = try #require(Self.vectors.first { $0.name.hasPrefix("switch drawn on") })
+        let outcome = AutoWire.apply(vector.spec, inventory: [])
+        let knobs = outcome.spec.layers.filter { if case .shape(let shape) = $0.content { shape.kind == .circle } else { false } }
+        #expect(Set(knobs.map(\.frame.x)) == [23, 113])
+        let firstButton = try #require(outcome.spec.layers.firstIndex { if case .button = $0.content { true } else { false } })
+        #expect(outcome.spec.layers[firstButton...].allSatisfy { if case .button = $0.content { true } else { false } })
+    }
+
+    /// Words like "transparent" don't fail a widget.
+    @Test func noColorWordsBecomeTransparent() {
+        let fixed = AIWidgetParser.withKnownColors(.object(["trackColor": "transparent", "color": "#FFFFFF", "layers": .array([.object(["fill": "none"])])]))
+        #expect(fixed["trackColor"]?.stringValue == "#00000000" && fixed["color"]?.stringValue == "#FFFFFF")
     }
 
     /// A plain clock design gains no buttons and loses nothing.
