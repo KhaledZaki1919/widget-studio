@@ -33,6 +33,7 @@ object AutoWire {
         run.sliders()
         run.modelWiring(wiring)
         run.texts()
+        run.listRows()
         run.mediaTitles()
         run.symbols()
         run.progress()
@@ -320,6 +321,41 @@ object AutoWire {
                     TextShape.isDuration(english) -> durationBinding()?.let { id -> setText(item.path, "{{$id}}", "{{$id}}", english, id) }
                     else -> TextShape.dateTemplate(english)?.let { setText(item.path, it, it, english, "date") }
                 }
+            }
+        }
+
+        /** Rows of a list: an agenda's events, open reminders, prayer times. Row N takes item N. */
+        fun listRows() {
+            for (item in walk(spec.layers)) {
+                val list = item.layer.content as? LayerContent.ListL ?: continue
+                val prefix = topics.best("calendar", "reminders")
+                val rows = list.items.toMutableList()
+                var changed = false
+                for ((index, row) in rows.toList().withIndex()) {
+                    val title = row.title.resolved("en")
+                    val detail = row.detail?.resolved("en")?.trim() ?: ""
+                    val lower = (title + " " + row.title.resolved("ar")).lowercase()
+                    val prayer = if (TextShape.isClock(detail)) Capabilities.bindings.firstOrNull { c -> c.type == "date" && c.id.startsWith("prayer.") && c.keywords.any { occurs(it, lower) } } else null
+                    if (prayer != null) {
+                        rows[index] = row.copy(detail = LText.Plain("{{${prayer.id}}}"))
+                        changed = true
+                        log("row $title", prayer.id)
+                        continue
+                    }
+                    if (index >= 4 || prefix == null) continue
+                    val number = index + 1
+                    if (!title.contains("{{")) {
+                        rows[index] = rows[index].copy(title = LText.Plain("{{$prefix.$number.title}}"))
+                        changed = true
+                        log("row $title", "$prefix.$number.title")
+                    }
+                    if (prefix == "calendar" && TextShape.isClock(detail)) {
+                        rows[index] = rows[index].copy(detail = LText.Plain("{{calendar.$number.time}}"))
+                        changed = true
+                        log("row $detail", "calendar.$number.time")
+                    }
+                }
+                if (changed) update(item.path) { it.copy(content = list.copy(items = rows)) }
             }
         }
 
@@ -727,7 +763,8 @@ object AutoWire {
                 "calendar" to "calendar.open", "reminders" to "reminders.open", "timer" to "timer.toggle", "stopwatch" to "stopwatch.toggle",
             )
             if (buttons.any { it.second != "open.app" }) return
-            val prefix = topics.best("compass", "qibla", "timer", "stopwatch", "media", "calendar", "reminders", "weather") ?: return
+            // The card is about what it shows most: a sleep card's temperature doesn't open the weather.
+            val prefix = topics.best("compass", "qibla", "timer", "stopwatch", "media", "calendar", "reminders", "sleep", "steps", "focus", "weather") ?: return
             val action = map[prefix]?.let(Capabilities::action) ?: return
             val kept = spec.layers.filter { (it.content as? LayerContent.Button)?.action != "open.app" }
             spec = spec.copy(layers = kept + Layer(Frame(0.0, 0.0, width, height), null, null, null, null, LayerContent.Button(action.id, null)))

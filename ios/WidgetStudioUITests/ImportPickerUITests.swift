@@ -66,8 +66,24 @@ final class ImportPickerUITests: XCTestCase {
         add(attachment)
     }
 
-    /// Opens Import and taps `file`; true when the picker closed.
-    private func pick(_ file: String, app: XCUIApplication) throws -> Bool {
+    private func launch(environment: [String: String] = [:]) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-uiTesting", "-uiTestingStubAI", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launchEnvironment = environment
+        app.launch()
+        return app
+    }
+
+    private func openFromMyWidgets(_ app: XCUIApplication) {
+        app.tabBars.buttons.element(boundBy: 1).tap()
+        let open = app.buttons["ax.mywidgets.import"]
+        for _ in 0..<6 where !(open.exists && open.isHittable) { app.swipeUp() }
+        XCTAssertTrue(open.waitForExistence(timeout: 10), "Import button missing in My widgets")
+        open.tap()
+    }
+
+    /// The owner's path: inside the Create sheet.
+    private func openFromUseAnotherAI(_ app: XCUIApplication) {
         let create = app.buttons["ax.library.create"]
         XCTAssertTrue(create.waitForExistence(timeout: 15))
         create.tap()
@@ -78,6 +94,11 @@ final class ImportPickerUITests: XCTestCase {
         for _ in 0..<8 where !(open.exists && open.isHittable) { app.swipeUp() }
         XCTAssertTrue(open.waitForExistence(timeout: 10), "Import from file button missing")
         open.tap()
+    }
+
+    /// Finds `file` in the open picker, taps it, confirms with Open when there is one, and says
+    /// whether the app moved on. Skips when this Simulator's picker can't be driven at all.
+    private func pick(_ file: String, app: XCUIApplication) throws {
         sleep(2)
         let apps = picker(app)
         if let browse = element(named: "Browse", in: apps, timeout: 6) { browse.tap() }
@@ -86,15 +107,22 @@ final class ImportPickerUITests: XCTestCase {
             attach(apps.map(\.debugDescription).joined(separator: "\n\n"), name: "picker tree, \(file) not found")
             throw XCTSkip("the picker didn't list \(file) on this Simulator")
         }
-        cell.tap()
+        // Cells live in the picker's remote view: a screen coordinate reaches them.
+        cell.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)).tap()
         sleep(3)
         attach(apps.map(\.debugDescription).joined(separator: "\n\n"), name: "after tapping \(file)")
-        // Multi-selection: a tap selects the file, Open confirms it.
-        if let confirm = element(named: "Open", in: apps, timeout: 1) {
-            confirm.tap()
-            sleep(2)
+        for candidate in apps where candidate.buttons["Open"].exists {
+            candidate.buttons["Open"].firstMatch.tap()
+            break
         }
-        return element(named: (file as NSString).deletingPathExtension, in: apps, timeout: 1) == nil
+    }
+
+    private func expectImported(_ app: XCUIApplication, _ what: String) {
+        let added = app.descendants(matching: .any).matching(identifier: "ax.bulk.added").firstMatch
+        if !added.waitForExistence(timeout: 20) {
+            attach(picker(app).map(\.debugDescription).joined(separator: "\n\n"), name: "no summary: \(what)")
+            XCTFail("\(what): nothing was imported")
+        }
     }
 
     /// A minimal zip with one stored file (the reader doesn't need a checksum).
@@ -109,7 +137,8 @@ final class ImportPickerUITests: XCTestCase {
         return Data(local + central + end)
     }
 
-    /// A .json and a .zip reach My widgets (the files the picker would return).
+    /// A .json and a .zip reach My widgets: the files the picker would return, through the whole
+    /// pipeline, with no system picker in the way.
     @MainActor
     func testImportingAJsonAndAZip() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -118,60 +147,45 @@ final class ImportPickerUITests: XCTestCase {
         try Self.widget.write(to: json, atomically: true, encoding: .utf8)
         let zip = folder.appendingPathComponent("pack.zip")
         try Self.zip(name: "nested/two.json", content: Self.widget.replacingOccurrences(of: "{{time.hh}}", with: "{{time.mm}}")).write(to: zip)
-
-        let app = XCUIApplication()
-        app.launchArguments = ["-uiTesting", "-uiTestingStubAI", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
-        app.launchEnvironment["WS_UITEST_IMPORT"] = [json, zip].map(\.path).joined(separator: ",")
-        app.launch()
-        app.tabBars.buttons.element(boundBy: 1).tap()
-        let open = app.buttons["ax.mywidgets.import"]
-        for _ in 0..<6 where !(open.exists && open.isHittable) { app.swipeUp() }
-        XCTAssertTrue(open.waitForExistence(timeout: 10), "Import button missing in My widgets")
-        open.tap()
+        let app = launch(environment: ["WS_UITEST_IMPORT": [json, zip].map(\.path).joined(separator: ",")])
+        openFromMyWidgets(app)
+        expectImported(app, "json and zip")
         let added = app.descendants(matching: .any).matching(identifier: "ax.bulk.added").firstMatch
-        XCTAssertTrue(added.waitForExistence(timeout: 20), "no summary after importing")
         XCTAssertTrue(added.label.contains("2"), "expected 2 added, the summary says: \(added.label)")
         XCTAssertTrue(app.buttons["ax.bulk.open"].firstMatch.exists, "no Open button for the added designs")
     }
 
-    /// A .zip through the real picker.
+    /// The real picker, multi-selection, from My widgets.
     @MainActor
-    func testTappingAZipFileImportsIt() throws {
-        let storage = try localStorage()
-        try Self.zip(name: "probe.json", content: Self.widget).write(to: storage.appendingPathComponent("probe-zip.zip"))
-        let app = XCUIApplication()
-        app.launchArguments = ["-uiTesting", "-uiTestingStubAI", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
-        app.launch()
-        XCTAssertTrue(try pick("probe-zip.zip", app: app), "the picker stayed open after tapping a .zip file")
-        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "ax.bulk.added").firstMatch.waitForExistence(timeout: 15),
-                      "the zip was picked but nothing was imported")
-    }
-
-    /// The control for the import bug: single selection, like the old `fileImporter`, but presented
-    /// from UIKit. In single selection a tap alone must return the file; there is no Open button.
-    @MainActor
-    func testSingleSelectionReturnsOnTheTap() throws {
-        let storage = try localStorage()
-        try Self.widget.write(to: storage.appendingPathComponent("probe-single.json"), atomically: true, encoding: .utf8)
-        let app = XCUIApplication()
-        app.launchArguments = ["-uiTesting", "-uiTestingStubAI", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
-        app.launchEnvironment["WS_UITEST_SINGLE_PICK"] = "1"
-        app.launch()
-        XCTAssertTrue(try pick("probe-single.json", app: app), "the single-selection picker stayed open after the tap")
-        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "ax.bulk.added").firstMatch.waitForExistence(timeout: 15),
-                      "the file was picked but nothing was imported")
-    }
-
-    /// A plain `.json` file: the case that must work.
-    @MainActor
-    func testTappingAJsonFileImportsIt() throws {
+    func testRealPickerImportsAJson() throws {
         let storage = try localStorage()
         try Self.widget.write(to: storage.appendingPathComponent("probe-json.json"), atomically: true, encoding: .utf8)
-        let app = XCUIApplication()
-        app.launchArguments = ["-uiTesting", "-uiTestingStubAI", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
-        app.launch()
-        XCTAssertTrue(try pick("probe-json.json", app: app), "the picker stayed open after tapping a .json file")
-        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "ax.bulk.added").firstMatch.waitForExistence(timeout: 15),
-                      "the file was picked but nothing was imported")
+        let app = launch()
+        openFromMyWidgets(app)
+        try pick("probe-json.json", app: app)
+        expectImported(app, "real picker, .json")
+    }
+
+    /// A .zip through the real picker: the old importer's types didn't allow it at all.
+    @MainActor
+    func testRealPickerImportsAZip() throws {
+        let storage = try localStorage()
+        try Self.zip(name: "probe.json", content: Self.widget).write(to: storage.appendingPathComponent("probe-zip.zip"))
+        let app = launch()
+        openFromMyWidgets(app)
+        try pick("probe-zip.zip", app: app)
+        expectImported(app, "real picker, .zip")
+    }
+
+    /// The owner's path and the old importer's mode: single selection, inside the Create sheet.
+    /// A tap alone must return the file.
+    @MainActor
+    func testRealPickerSingleSelectionInsideTheSheet() throws {
+        let storage = try localStorage()
+        try Self.widget.write(to: storage.appendingPathComponent("probe-single.json"), atomically: true, encoding: .utf8)
+        let app = launch(environment: ["WS_UITEST_SINGLE_PICK": "1"])
+        openFromUseAnotherAI(app)
+        try pick("probe-single.json", app: app)
+        expectImported(app, "real picker, single selection in the sheet")
     }
 }

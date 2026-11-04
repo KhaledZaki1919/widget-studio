@@ -1513,5 +1513,241 @@
    "system.toggle.wifi",
    "system.wifi"
   ]
+ },
+ {
+  "name": "agenda rows: titles and times",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.agenda",
+   "name": {
+    "en": "Calendar agenda",
+    "ar": "Calendar agenda"
+   },
+   "family": "large",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "fields": [],
+   "layers": [
+    {
+     "type": "list",
+     "items": [
+      {
+       "title": {
+        "en": "Team meeting",
+        "ar": "Team meeting"
+       },
+       "detail": {
+        "en": "10:00",
+        "ar": "10:00"
+       }
+      },
+      {
+       "title": {
+        "en": "{{calendar.2.title}}",
+        "ar": "{{calendar.2.title}}"
+       },
+       "detail": {
+        "en": "13:30",
+        "ar": "13:30"
+       }
+      }
+     ],
+     "font": {
+      "family": "system",
+      "size": 14
+     },
+     "color": "#FFFFFF",
+     "frame": {
+      "x": 20,
+      "y": 40,
+      "w": 320,
+      "h": 200
+     }
+    }
+   ]
+  },
+  "wired": [
+   "calendar.1.title",
+   "calendar.1.time",
+   "calendar.2.title",
+   "calendar.2.time"
+  ],
+  "notWired": [
+   "time.hh"
+  ]
+ },
+ {
+  "name": "reminder rows",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.todo",
+   "name": {
+    "en": "Reminders",
+    "ar": "Reminders"
+   },
+   "family": "large",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "fields": [],
+   "layers": [
+    {
+     "type": "list",
+     "items": [
+      {
+       "title": {
+        "en": "Buy milk",
+        "ar": "Buy milk"
+       }
+      },
+      {
+       "title": {
+        "en": "Call mom",
+        "ar": "Call mom"
+       }
+      }
+     ],
+     "font": {
+      "family": "system",
+      "size": 14
+     },
+     "color": "#FFFFFF",
+     "frame": {
+      "x": 20,
+      "y": 40,
+      "w": 320,
+      "h": 200
+     }
+    }
+   ]
+  },
+  "wired": [
+   "reminders.1.title",
+   "reminders.2.title"
+  ]
+ },
+ {
+  "name": "prayer rows",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.prayer",
+   "name": {
+    "en": "Prayer times",
+    "ar": "Prayer times"
+   },
+   "family": "large",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "fields": [],
+   "layers": [
+    {
+     "type": "list",
+     "items": [
+      {
+       "title": {
+        "en": "Fajr",
+        "ar": "Fajr"
+       },
+       "detail": {
+        "en": "04:32",
+        "ar": "04:32"
+       }
+      },
+      {
+       "title": {
+        "en": "Isha",
+        "ar": "Isha"
+       },
+       "detail": {
+        "en": "18:38",
+        "ar": "18:38"
+       }
+      }
+     ],
+     "font": {
+      "family": "system",
+      "size": 14
+     },
+     "color": "#FFFFFF",
+     "frame": {
+      "x": 20,
+      "y": 40,
+      "w": 320,
+      "h": 200
+     }
+    }
+   ]
+  },
+  "wired": [
+   "prayer.fajr",
+   "prayer.isha"
+  ]
+ },
+ {
+  "name": "a sleep card with a temperature does not open the weather",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.sleepcard",
+   "name": {
+    "en": "Sleep",
+    "ar": "Sleep"
+   },
+   "family": "medium",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "fields": [],
+   "layers": [
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 16,
+      "y": 20,
+      "w": 300,
+      "h": 100
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "7h 20m",
+        "ar": "7h 20m"
+       },
+       "font": {
+        "family": "system",
+        "size": 20
+       },
+       "color": "#FFFFFF"
+      },
+      {
+       "type": "text",
+       "value": {
+        "en": "24°C",
+        "ar": "24°C"
+       },
+       "font": {
+        "family": "system",
+        "size": 14
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    }
+   ]
+  },
+  "wired": [
+   "sleep.lastNight",
+   "weather.temp"
+  ],
+  "notWired": [
+   "weather.open"
+  ]
  }
 ]

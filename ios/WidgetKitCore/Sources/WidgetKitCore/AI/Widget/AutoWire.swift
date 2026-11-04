@@ -32,6 +32,7 @@ public enum AutoWire {
         run.sliders()
         run.modelWiring(wiring)
         run.texts()
+        run.listRows()
         run.mediaTitles()
         run.symbols()
         run.progress()
@@ -385,6 +386,48 @@ public enum AutoWire {
                     }
                 } else if let template = TextShape.dateTemplate(english) {
                     setText(item.path, en: template, ar: template, was: english, id: "date")
+                }
+            }
+        }
+
+        /// Rows of a list: an agenda's events, open reminders, prayer times. Row N takes item N, and
+        /// a row's own title may already name it.
+        mutating func listRows() {
+            for item in AutoWire.walk(spec.layers) {
+                guard case .list(let list) = item.layer.content else { continue }
+                let prefix = topics.best(of: ["calendar", "reminders"])
+                var rows = list.items
+                var changed = false
+                for (index, row) in rows.enumerated() {
+                    let title = row.title.resolved(language: "en")
+                    let detail = row.detail?.resolved(language: "en").trimmingCharacters(in: .whitespaces) ?? ""
+                    let lower = (title + " " + row.title.resolved(language: "ar")).lowercased()
+                    if TextShape.isClock(detail), let prayer = Capabilities.bindings.first(where: { capability in
+                        capability.type == "date" && capability.id.hasPrefix("prayer.") && capability.keywords.contains { Keyword.occurs($0, in: lower) }
+                    }) {
+                        rows[index].detail = .plain("{{\(prayer.id)}}")
+                        changed = true
+                        log("row \(title)", prayer.id)
+                        continue
+                    }
+                    guard index < 4, let prefix else { continue }
+                    let number = index + 1
+                    if Bindings.names(in: title).isEmpty {
+                        rows[index].title = .plain("{{\(prefix).\(number).title}}")
+                        changed = true
+                        log("row \(title)", "\(prefix).\(number).title")
+                    }
+                    if prefix == "calendar", TextShape.isClock(detail) {
+                        rows[index].detail = .plain("{{calendar.\(number).time}}")
+                        changed = true
+                        log("row \(detail)", "calendar.\(number).time")
+                    }
+                }
+                guard changed else { continue }
+                update(item.path) { layer in
+                    guard case .list(var content) = layer.content else { return }
+                    content.items = rows
+                    layer.content = .list(content)
                 }
             }
         }
@@ -856,7 +899,8 @@ public enum AutoWire {
             let map = ["compass": "compass.open", "qibla": "compass.open", "media": "media.open", "weather": "weather.open",
                        "calendar": "calendar.open", "reminders": "reminders.open", "timer": "timer.toggle", "stopwatch": "stopwatch.toggle"]
             guard !buttons.contains(where: { $0.action != "open.app" }),
-                  let prefix = topics.best(of: ["compass", "qibla", "timer", "stopwatch", "media", "calendar", "reminders", "weather"]),
+                  // The card is about what it shows most: a sleep card's temperature doesn't open the weather.
+                  let prefix = topics.best(of: ["compass", "qibla", "timer", "stopwatch", "media", "calendar", "reminders", "sleep", "steps", "focus", "weather"]),
                   let id = map[prefix], let action = Capabilities.action(id) else { return }
             let whole = Frame(x: 0, y: 0, w: canvas.width, h: canvas.height)
             spec.layers.removeAll { if case .button(let button) = $0.content { button.action == .openApp } else { false } }

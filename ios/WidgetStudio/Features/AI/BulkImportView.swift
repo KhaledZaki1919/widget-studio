@@ -32,21 +32,18 @@ enum DocumentPicker {
     private static var key: UInt8 = 0
 
     static func present(folder: Bool = false, onPick: @escaping ([URL]) -> Void) {
-        #if DEBUG
-        // UI tests: the files the picker would return, when the system picker can't be scripted.
-        if let paths = ProcessInfo.processInfo.environment["WS_UITEST_IMPORT"] {
+        // UI tests only (`-uiTesting`): the files the picker would return.
+        let testing = ProcessInfo.processInfo.arguments.contains("-uiTesting")
+        if testing, let paths = ProcessInfo.processInfo.environment["WS_UITEST_IMPORT"] {
             onPick(paths.split(separator: ",").map { URL(fileURLWithPath: String($0)) })
             return
         }
-        #endif
         let picker = folder
             ? UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
             : UIDocumentPickerViewController(forOpeningContentTypes: [.item], asCopy: true)
         picker.allowsMultipleSelection = !folder
-        #if DEBUG
         // The import bug's control (ADR-027): this picker in single selection, as fileImporter was.
-        if ProcessInfo.processInfo.environment["WS_UITEST_SINGLE_PICK"] != nil { picker.allowsMultipleSelection = false }
-        #endif
+        if testing, ProcessInfo.processInfo.environment["WS_UITEST_SINGLE_PICK"] != nil { picker.allowsMultipleSelection = false }
         let delegate = Delegate(onPick: onPick)
         picker.delegate = delegate
         objc_setAssociatedObject(picker, &key, delegate, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
