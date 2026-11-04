@@ -31,10 +31,12 @@ import com.batoulapps.adhan.Qibla
 import com.batoulapps.adhan.data.DateComponents
 import com.khaled.widgetstudio.design.ClockFormat
 import com.khaled.widgetstudio.spec.Bindings
+import com.khaled.widgetstudio.spec.BindingResolver
 import com.khaled.widgetstudio.spec.DataSnapshot
 import com.khaled.widgetstudio.spec.LText
 import com.khaled.widgetstudio.spec.LayerContent
 import com.khaled.widgetstudio.spec.MonthGrid
+import com.khaled.widgetstudio.spec.TimerValues
 import com.khaled.widgetstudio.spec.WidgetSpec
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -103,6 +105,37 @@ data class CounterState(val counts: Map<String, Int> = emptyMap(), val index: In
     }
 }
 
+/** The in-widget timer (Activity.swift): running until [endMillis], or paused with [left] seconds to go. */
+data class TimerState(val endMillis: Long = 0, val left: Double = 0.0, val total: Double = 0.0) : TimerValues {
+    override val end: Instant? get() = endMillis.takeIf { it > 0 }?.let { Instant.ofEpochMilli(it) }
+    override fun isRunning(date: Instant) = endMillis > date.toEpochMilli()
+    override fun remaining(date: Instant) = if (endMillis > 0) maxOf((endMillis - date.toEpochMilli()) / 1000.0, 0.0) else left
+    override fun progress(date: Instant) = if (total > 0) (1 - remaining(date) / total).coerceIn(0.0, 1.0) else 0.0
+
+    /** Starts ([minutes] when idle or finished), pauses, or resumes. */
+    fun toggle(minutes: Int?, now: Instant = Instant.now()): TimerState = when {
+        isRunning(now) -> TimerState(0, remaining(now), total)
+        left > 0 -> TimerState(now.toEpochMilli() + (left * 1000).toLong(), 0.0, total)
+        else -> {
+            val seconds = maxOf(minutes ?: DEFAULT_MINUTES, 1) * 60.0
+            TimerState(now.toEpochMilli() + (seconds * 1000).toLong(), 0.0, seconds)
+        }
+    }
+
+    fun add(minutes: Int, now: Instant = Instant.now()): TimerState {
+        val extra = minutes * 60.0
+        return when {
+            isRunning(now) -> copy(endMillis = endMillis + (extra * 1000).toLong(), total = total + extra)
+            left > 0 -> copy(left = left + extra, total = total + extra)
+            else -> TimerState(now.toEpochMilli() + (extra * 1000).toLong(), 0.0, extra)
+        }
+    }
+
+    fun reset() = TimerState()
+
+    companion object { const val DEFAULT_MINUTES = 25 }
+}
+
 /** A cached location (rounded to ~1 km before it leaves the device, ADR-020). */
 data class StoredLocation(val latitude: Double, val longitude: Double, val altitude: Double?, val city: String?, val time: Long)
 
@@ -147,6 +180,14 @@ class LiveRepository(private val context: Context) {
         get() = prefs.getLong("stopwatch", 0L).takeIf { it > 0 }
         set(value) = prefs.edit().putLong("stopwatch", value ?: 0L).apply()
 
+    var timer: TimerState
+        get() = prefs.getString("timer", null)?.let { raw ->
+            runCatching { JSONObject(raw).let { TimerState(it.getLong("end"), it.getDouble("left"), it.getDouble("total")) } }.getOrNull()
+        } ?: TimerState()
+        set(value) {
+            prefs.edit().putString("timer", JSONObject().put("end", value.endMillis).put("left", value.left).put("total", value.total).toString()).apply()
+        }
+
     private var weatherJson: String?
         get() = prefs.getString("weather", null)
         set(value) = prefs.edit().putString("weather", value).apply()
@@ -162,7 +203,7 @@ class LiveRepository(private val context: Context) {
     // MARK: Snapshots
 
     /** Only real values; missing parts stay null (widgets). */
-    fun snapshot(now: Instant = Instant.now()): DataSnapshot {
+    fun snapshot(now: Instant = Instant.now(), language: String = "ar"): DataSnapshot {
         val zone = ZoneId.systemDefault()
         val location = location
         val prayer = location?.let { prayerDay(it, now.atZone(zone).toLocalDate(), zone) }
@@ -186,12 +227,56 @@ class LiveRepository(private val context: Context) {
             longitude = location?.longitude,
             altitude = location?.altitude,
             batteryLevel = battery(),
+            place = location?.city?.let { LText.Plain(it) },
+            media = MediaHub.playback(context, now),
+            timer = timer,
+            live = DeviceState.read(context, now, language) + weatherExtras(now, zone) + healthExtras(health, now, zone),
         )
+    }
+
+    /** Humidity, wind, felt temperature, sunrise and sunset as catalog bindings (ADR-027). */
+    private fun weatherExtras(now: Instant, zone: ZoneId): Map<String, BindingResolver.Value> {
+        val body = weatherJson?.let { runCatching { JSONObject(it).getJSONObject("body") }.getOrNull() } ?: return emptyMap()
+        val live = mutableMapOf<String, BindingResolver.Value>()
+        val current = body.optJSONObject("current")
+        fun number(key: String, id: String) {
+            val value = current?.optDouble(key, Double.NaN) ?: Double.NaN
+            if (!value.isNaN()) live[id] = BindingResolver.Value.Number(value, Math.round(value).toString())
+        }
+        number("relative_humidity_2m", "weather.humidity")
+        number("wind_speed_10m", "weather.wind")
+        number("apparent_temperature", "weather.feels")
+        val daily = body.optJSONObject("daily")
+        val today = now.atZone(zone).toLocalDate().toString()
+        fun time(key: String, id: String) {
+            val list = daily?.optJSONArray(key) ?: return
+            val text = (0 until list.length()).map { list.getString(it) }.firstOrNull { it.startsWith(today) } ?: return
+            runCatching { live[id] = BindingResolver.Value.Date(LocalDateTime.parse(text).atZone(zone).toInstant()) }
+        }
+        time("sunrise", "weather.sunrise")
+        time("sunset", "weather.sunset")
+        return live
+    }
+
+    private fun healthExtras(health: JSONObject?, now: Instant, zone: ZoneId): Map<String, BindingResolver.Value> {
+        health ?: return emptyMap()
+        val live = mutableMapOf<String, BindingResolver.Value>()
+        val day = now.atZone(zone).toLocalDate()
+        val goal = settings.stepGoal.toDouble()
+        if (goal > 0) {
+            val share = minOf((steps(health, now, zone)[day] ?: 0.0) / goal, 1.0)
+            live["steps.progress"] = BindingResolver.Value.Number(share, Math.round(share * 100).toString())
+        }
+        health.optJSONObject("windows")?.optJSONArray(day.toString())?.let { window ->
+            live["sleep.bedtime"] = BindingResolver.Value.Date(Instant.ofEpochMilli(window.getLong(0)))
+            live["sleep.wake"] = BindingResolver.Value.Date(Instant.ofEpochMilli(window.getLong(1)))
+        }
+        return live
     }
 
     /** Real values where known, sample values for the rest (editor and library previews). */
     fun previewSnapshot(now: Instant = Instant.now()): DataSnapshot {
-        val real = snapshot(now)
+        val real = snapshot(now, if (context.resources.configuration.locales[0].language == "en") "en" else "ar")
         val sample = DataSnapshot.sample(now, ZoneId.systemDefault())
         return DataSnapshot(
             weather = real.weather ?: sample.weather, stepsToday = real.stepsToday ?: sample.stepsToday,
@@ -201,6 +286,7 @@ class LiveRepository(private val context: Context) {
             focusToday = sample.focusToday, focusWeek = sample.focusWeek, prayer = real.prayer ?: sample.prayer,
             qiblaBearing = real.qiblaBearing ?: sample.qiblaBearing, latitude = real.latitude ?: sample.latitude,
             longitude = real.longitude ?: sample.longitude, altitude = real.altitude ?: sample.altitude, batteryLevel = real.batteryLevel ?: sample.batteryLevel,
+            place = real.place, media = real.media, timer = real.timer, live = sample.live + real.live,
         )
     }
 
@@ -246,7 +332,7 @@ class LiveRepository(private val context: Context) {
         val unit = if (settings.fahrenheit) "fahrenheit" else "celsius"
         val url = URL(
             "https://api.open-meteo.com/v1/forecast?latitude=%.2f&longitude=%.2f".format(Locale.US, at.latitude, at.longitude) +
-                "&current=temperature_2m,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=7&temperature_unit=$unit",
+                "&current=temperature_2m,weather_code,is_day,relative_humidity_2m,apparent_temperature,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days=7&temperature_unit=$unit",
         )
         val connection = (url.openConnection() as HttpURLConnection).apply {
             connectTimeout = 15_000
@@ -331,12 +417,15 @@ class LiveRepository(private val context: Context) {
         // Sleep: minutes of each session, counted on the day it ended.
         val sessions = client.readRecords(ReadRecordsRequest(SleepSessionRecord::class, TimeRangeFilter.between(today.minusDays(8).atStartOfDay(), LocalDateTime.now(zone)))).records
         val sleepJson = JSONObject()
+        val windows = JSONObject()
         for (session in sessions) {
             val day = session.endTime.atZone(zone).toLocalDate().toString()
             val minutes = (session.endTime.toEpochMilli() - session.startTime.toEpochMilli()) / 60_000.0
             sleepJson.put(day, sleepJson.optDouble(day, 0.0) + minutes)
+            val known = windows.optJSONArray(day)
+            windows.put(day, org.json.JSONArray().put(minOf(known?.optLong(0) ?: Long.MAX_VALUE, session.startTime.toEpochMilli())).put(maxOf(known?.optLong(1) ?: 0L, session.endTime.toEpochMilli())))
         }
-        healthJson = JSONObject().put("steps", stepJson).put("sleep", sleepJson).put("fetched", System.currentTimeMillis()).toString()
+        healthJson = JSONObject().put("steps", stepJson).put("sleep", sleepJson).put("windows", windows).put("fetched", System.currentTimeMillis()).toString()
         healthIssue = null
     }
 
@@ -445,11 +534,14 @@ object DataRequirements {
                 name.startsWith("prayer.") || name.startsWith("qibla.") -> "prayer"
                 name.startsWith("location.") -> "location"
                 name.startsWith("steps.") || name.startsWith("sleep.") -> "health"
-                name.startsWith("battery.") -> "device"
+                name == "battery.level" -> "device"
                 else -> null
             }
         }.toSet()
     }
+
+    /** The catalog group of every binding a spec reads. */
+    fun bindingGroups(spec: WidgetSpec): Set<String> = com.khaled.widgetstudio.spec.BindingNames.names(spec).mapNotNull { name -> com.khaled.widgetstudio.spec.Capabilities.binding(name)?.group }.toSet()
 
     fun gap(spec: WidgetSpec, live: LiveRepository, data: DataSnapshot): DataGap? {
         val groups = groups(spec)

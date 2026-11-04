@@ -152,7 +152,8 @@ struct StackTests {
              {"type": "shape", "width": null, "height": 1, "kind": "rect", "fill": "@line", "stroke": null, "cornerRadius": null}]}]}
         """
         let (spec, _) = try AIWidgetParser.parse(reply, options: GenerationOptions(), id: "gen.stack")
-        #expect(spec.allLayers.count == 7)
+        // Seven drawn layers, plus the tap the post-pass gives a weather card (ADR-027).
+        #expect(spec.allLayers.count == 8)
         #expect(spec.refresh == .hourly)
     }
 }

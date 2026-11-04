@@ -124,7 +124,7 @@ object SpecWriter {
                 set("font", font(c.font)); set("color", c.color); set("detailColor", c.detailColor); set("marker", c.marker)
                 set("markerColor", c.markerColor); set("dividerColor", c.dividerColor)
             }
-            is LayerContent.ProgressBar -> { set("progress", c.progress); set("color", c.color); set("trackColor", c.trackColor); set("segments", c.segments); set("cornerRadius", c.cornerRadius) }
+            is LayerContent.ProgressBar -> { set("progress", c.progress); set("color", c.color); set("trackColor", c.trackColor); set("segments", c.segments); set("cornerRadius", c.cornerRadius); set("vertical", c.vertical) }
             is LayerContent.Stack -> {
                 set("axis", c.axis); set("spacing", c.spacing); set("padding", c.padding); set("alignItems", c.alignItems)
                 set("justify", c.justify); set("columns", c.columns); set("children", JsonArray(c.children.map { layer(it, child = true) }))

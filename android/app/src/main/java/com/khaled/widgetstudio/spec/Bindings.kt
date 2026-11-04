@@ -32,6 +32,13 @@ data class DataSnapshot(
     val longitude: Double? = null,
     val altitude: Double? = null,
     val batteryLevel: Double? = null,
+    /** The place name of the last location fix (`location.city`). */
+    val place: LText? = null,
+    /** What is playing, with its position (ADR-027). */
+    val media: MediaPlayback? = null,
+    val timer: TimerValues? = null,
+    /** Every other catalog binding by id: a provider fills this, so a new capability needs no field here and no case in the resolver. */
+    val live: Map<String, BindingResolver.Value> = emptyMap(),
 ) {
     data class DayForecast(val date: LocalDate, val symbol: String, val high: Double, val low: Double)
     data class Weather(
@@ -66,10 +73,58 @@ data class DataSnapshot(
                 counter = 33.0, dhikr = "سبحان الله", stopwatchStart = now.minusSeconds(754),
                 focusToday = LText.Localized("6h 20m", "6س 20د"), focusWeek = listOf(0.4, 0.8, 0.6, 1.0, 0.3, 0.0, 0.5),
                 prayer = Prayer(times, next.second, next.first, nextTime), qiblaBearing = 136.0, latitude = 30.04, longitude = 31.24,
-                altitude = 23.0, batteryLevel = 0.87,
+                altitude = 23.0, batteryLevel = 0.87, live = sampleLive(today, zone),
             )
         }
+
+        /** The catalog's examples for bindings without a field above: previews show every capability. */
+        fun sampleLive(today: LocalDate, zone: ZoneId): Map<String, BindingResolver.Value> {
+            val live = mutableMapOf<String, BindingResolver.Value>()
+            for (binding in Capabilities.bindings) {
+                val example = binding.example?.takeIf { it.isNotEmpty() } ?: continue
+                if (binding.parametric) continue
+                live[binding.id] = when (binding.type) {
+                    "number" -> {
+                        val value = example.replace(",", "").toDoubleOrNull() ?: 0.0
+                        val share = example.startsWith("0.") || "ring" in binding.layers
+                        BindingResolver.Value.Number(value, if (share) Math.round(value * 100).toString() else example)
+                    }
+                    "date" -> {
+                        val parts = example.split(":").mapNotNull { it.toIntOrNull() }
+                        BindingResolver.Value.Date((if (parts.size == 2) today.atTime(parts[0], parts[1]) else today.atStartOfDay()).atZone(zone).toInstant())
+                    }
+                    "levels" -> BindingResolver.Value.Levels(example.split(",").mapNotNull { it.trim().toDoubleOrNull() })
+                    else -> BindingResolver.Value.Text(example)
+                }
+            }
+            return live
+        }
     }
+}
+
+/** What is playing and where (Activity.swift). */
+data class MediaPlayback(val elapsed: Double, val duration: Double, val playing: Boolean, val at: Instant) {
+    fun position(date: Instant): Double {
+        val moved = if (playing) maxOf(java.time.Duration.between(at, date).toMillis() / 1000.0, 0.0) else 0.0
+        return if (duration > 0) minOf(elapsed + moved, duration) else elapsed + moved
+    }
+
+    companion object {
+        /** "4:23" or "1:02:03". */
+        fun clock(seconds: Double): String {
+            val total = Math.round(maxOf(seconds, 0.0)).toInt()
+            val hours = total / 3600
+            return if (hours > 0) "%d:%02d:%02d".format(Locale.US, hours, total % 3600 / 60, total % 60) else "%d:%02d".format(Locale.US, total / 60, total % 60)
+        }
+    }
+}
+
+/** The timer as the resolver reads it; the state itself is `TimerState` in LiveData.kt. */
+interface TimerValues {
+    val end: Instant?
+    fun isRunning(date: Instant): Boolean
+    fun remaining(date: Instant): Double
+    fun progress(date: Instant): Double
 }
 
 /** Per-day values laid out as a month for dotGrid (MonthGrid.swift): -1 pads before day 1 and after the last day. */
@@ -94,6 +149,8 @@ data class RenderContext(
     val fieldValues: Map<String, LText> = emptyMap(),
     val data: DataSnapshot = DataSnapshot(),
     val userImage: android.graphics.Bitmap? = null,
+    /** The album art of what is playing (`{{media.artwork}}`). */
+    val mediaArtwork: android.graphics.Bitmap? = null,
     /** Live texts (relative, timer) as fixed text measured from [now]: snapshots and previews. */
     val freezesLiveText: Boolean = true,
     /** 24-hour (true) or 12-hour (false); null keeps "HH". */
@@ -198,6 +255,15 @@ class BindingResolver(val spec: WidgetSpec, val context: RenderContext) {
         return emptyList()
     }
 
+    /** `dotGrid` values: levels, or a number 0…1 that lights that share of the cells. */
+    fun gridLevels(text: String, cells: Int): List<Double> {
+        (soleValue(text) as? Value.Number)?.let { share ->
+            val lit = Math.round(share.value.coerceIn(0.0, 1.0) * cells).toInt()
+            return List(maxOf(cells, 0)) { if (it < lit) 1.0 else 0.0 }
+        }
+        return levels(text)
+    }
+
     fun date(text: String): Instant? = (soleValue(text) as? Value.Date)?.instant
 
     fun fieldValue(key: String): String? = (context.fieldValues[key] ?: spec.field(key)?.default)?.resolved(context.language)
@@ -267,6 +333,12 @@ class BindingResolver(val spec: WidgetSpec, val context: RenderContext) {
             "date.d" -> Value.Text(format("d"))
             "date.EEEE" -> Value.Text(localized("EEEE"))
             "date.MMM" -> Value.Text(localized("MMM"))
+            "date.dd" -> Value.Text(format("dd"))
+            "date.EEE" -> Value.Text(localized("EEE"))
+            "date.MMMM" -> Value.Text(localized("MMMM"))
+            "date.M" -> Value.Text(format("M"))
+            "date.yyyy" -> Value.Text(format("yyyy"))
+            "date.hijri" -> Value.Text(hijri())
             "tz.offset" -> Value.Text(offset())
             "weather.temp" -> data.weather?.let { number(it.temperature, 0) }
             "weather.hi" -> data.weather?.let { number(it.high, 0) }
@@ -295,12 +367,43 @@ class BindingResolver(val spec: WidgetSpec, val context: RenderContext) {
             "prayer.next.time" -> data.prayer?.let { Value.Date(it.nextTime) }
             "prayer.next.key" -> data.prayer?.let { Value.Text(it.nextKey) }
             "qibla.bearing" -> data.qiblaBearing?.let { number(it, 0) }
+            "location.city" -> data.place?.let { Value.Text(it.resolved(language)) } ?: data.live[name]
+            "media.playing", "media.symbol", "media.elapsed", "media.duration", "media.remaining", "media.progress" -> data.media?.let { media(name, it) } ?: data.live[name]
+            "timer.running", "timer.remaining", "timer.progress", "timer.end" -> data.timer?.let { timer(name, it) } ?: data.live[name]
             "location.lat" -> data.latitude?.let { number(it, 2) }
             "location.lon" -> data.longitude?.let { number(it, 2) }
             "location.alt" -> data.altitude?.let { number(it, 0) }
             "battery.level" -> data.batteryLevel?.let { Value.Number(it, Math.round(it * 100).toString()) }
-            else -> if (name.startsWith("prayer.")) data.prayer?.times?.get(name.removePrefix("prayer."))?.let { Value.Date(it) } else null
+            else -> data.live[name] ?: if (name.startsWith("prayer.")) data.prayer?.times?.get(name.removePrefix("prayer."))?.let { Value.Date(it) } else null
         }
+    }
+
+    /** Playback values at this render's date. */
+    private fun media(name: String, playback: MediaPlayback): Value {
+        val position = playback.position(context.now)
+        return when (name) {
+            "media.playing" -> Value.Text(if (playback.playing) "1" else "0")
+            "media.symbol" -> Value.Text(if (playback.playing) "pause.fill" else "play.fill")
+            "media.elapsed" -> Value.Text(MediaPlayback.clock(position))
+            "media.duration" -> Value.Text(MediaPlayback.clock(playback.duration))
+            "media.remaining" -> Value.Text("-" + MediaPlayback.clock(playback.duration - position))
+            else -> share(if (playback.duration > 0) minOf(position / playback.duration, 1.0) else 0.0)
+        }
+    }
+
+    private fun timer(name: String, timer: TimerValues): Value? = when (name) {
+        "timer.running" -> Value.Text(if (timer.isRunning(context.now)) "1" else "0")
+        "timer.remaining" -> Value.Text(MediaPlayback.clock(timer.remaining(context.now)))
+        "timer.end" -> timer.end?.let { Value.Date(it) }
+        else -> share(timer.progress(context.now))
+    }
+
+    private fun share(value: Double) = Value.Number(value, Math.round(value * 100).toString())
+
+    /** "23 Jumada I 1448" in the render language, digits Latin (Umm al-Qura). */
+    private fun hijri(): String {
+        val date = java.time.chrono.HijrahDate.from(zoned)
+        return DateTimeFormatter.ofPattern("d MMMM yyyy", context.locale).withChronology(java.time.chrono.HijrahChronology.INSTANCE).format(date)
     }
 
     private fun number(value: Double, digits: Int, grouped: Boolean = false): Value {

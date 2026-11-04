@@ -31,6 +31,10 @@ object SpecParser {
         fields = o.arr("fields")?.map { field(it.jsonObject) } ?: emptyList(),
         layers = o.arr("layers")?.map { layer(it.jsonObject, child = false) } ?: throw SpecException("missing layers"),
         category = o.str("category"),
+        decorative = o.arr("decorative")?.mapNotNull { item ->
+            val note = item as? JsonObject ?: return@mapNotNull null
+            DecorativeNote(note.str("element") ?: return@mapNotNull null, note.str("reason") ?: "")
+        } ?: emptyList(),
     )
 
     private fun background(o: JsonObject) = Background(
@@ -104,7 +108,7 @@ object SpecParser {
             font(o.obj("font")) ?: FontSpec("system", 13.0, null), o.str("color") ?: "#FFFFFF", o.str("detailColor"), o.str("marker"),
             o.str("markerColor"), o.str("dividerColor"),
         )
-        "progressBar" -> LayerContent.ProgressBar(o.str("progress") ?: "0", o.str("color") ?: "#FFFFFF", o.str("trackColor"), o.int("segments"), o.num("cornerRadius"))
+        "progressBar" -> LayerContent.ProgressBar(o.str("progress") ?: "0", o.str("color") ?: "#FFFFFF", o.str("trackColor"), o.int("segments"), o.num("cornerRadius"), o.bool("vertical"))
         "stack" -> LayerContent.Stack(
             o.str("axis") ?: "vertical", o.num("spacing"), o.num("padding"), o.str("alignItems"), o.str("justify"), o.int("columns"),
             o.arr("children")?.map { layer(it.jsonObject, child = true) } ?: emptyList(),

@@ -229,6 +229,8 @@ public enum AutoWire {
     struct Run {
         var spec: WidgetSpec
         var changes: [String] = []
+        /// Text fields a live value replaced.
+        var replacedFields = Set<String>()
         let topics: Topics
         let canvas: CGSizeLike
 
@@ -254,6 +256,14 @@ public enum AutoWire {
                 words += [field.key] + field.label.allValues + (field.default?.allValues ?? [])
             }
             topics = Topics(corpus: words.joined(separator: "\n").lowercased(), icons: icons)
+        }
+
+        /// Switch-like icons on the card.
+        var systemIcons: Int {
+            spec.allLayers.filter { layer in
+                guard case .icon(let icon) = layer.content else { return false }
+                return Capabilities.actions.contains { $0.id.hasPrefix("system.toggle") && $0.icons.contains(icon.symbol) }
+            }.count
         }
 
         var hasControls: Bool {
@@ -297,6 +307,7 @@ public enum AutoWire {
                 if let sole = Bindings.soleBinding(english), case .field(let key)? = Bindings.Name(sole) {
                     if let id = fieldBinding(key), Capabilities.binding(id) != nil {
                         let template = "{{\(id)}}"
+                        replacedFields.insert(key)
                         setText(item.path, en: template, ar: template, was: "{{field.\(key)}}", id: id)
                     }
                     continue
@@ -373,6 +384,7 @@ public enum AutoWire {
                 return a.font.size > b.font.size
             }
             for (item, id) in zip(sorted, ["media.title", "media.artist"]) where !uses(id) {
+                if let raw = Bindings.soleBinding(text(item)), case .field(let key)? = Bindings.Name(raw) { replacedFields.insert(key) }
                 setText(item.path, en: "{{\(id)}}", ar: "{{\(id)}}", was: text(item), id: id)
             }
         }
@@ -591,7 +603,7 @@ public enum AutoWire {
                 guard let knobIndex = layers.indices.first(where: { other in
                     guard other != index, case .shape(let shape) = layers[other].content, shape.kind == .circle else { return false }
                     return Self.inside(layers[other].frame, layer.frame) && layers[other].frame.h >= 0.5 * layer.frame.h
-                }) else { continue }
+                }), layers[knobIndex].when == nil else { continue }
                 let label = labels(in: layer.frame, wide: true)
                 let icons = iconSymbols(in: layer.frame)
                 guard let action = actionFor(icons: icons, label: label, isTile: true, requireSystem: true) else { continue }
@@ -650,7 +662,8 @@ public enum AutoWire {
                 let wordHit = !label.isEmpty && capability.keywords.contains { Keyword.occurs($0, in: label) }
                 guard iconHit || (wordHit && isTile) else { continue }
                 let topic = topics.value(prefix)
-                let allowed = topic > 0 || isTile
+                // A lone status icon on a plain card is not a switch; a row of them is.
+                let allowed = isTile || (prefix == "system" ? systemIcons >= 3 : topic > 0)
                 guard allowed else { continue }
                 let score = (wordHit ? 100 : 0) + (iconHit ? 10 : 0) + min(topic, 9)
                 if score > (best?.1 ?? 0) { best = (capability, score) }
@@ -691,8 +704,8 @@ public enum AutoWire {
                         Capabilities.binding(raw)?.icons.first { icon in Capabilities.actions.contains { $0.icons.contains(icon) } }
                     } ?? icon.symbol
                 case .text(let text):
-                    let value = text.value.resolved(language: "en").filter { $0 != "\u{FE0E}" && $0 != "\u{FE0F}" }
-                        .trimmingCharacters(in: .whitespaces)
+                    let scalars = text.value.resolved(language: "en").unicodeScalars.filter { $0 != "\u{FE0E}" && $0 != "\u{FE0F}" }
+                    let value = String(String.UnicodeScalarView(scalars)).trimmingCharacters(in: .whitespaces)
                     glyphAction = Capabilities.actions.first { $0.glyphs.contains(value) }
                     if glyphAction == nil, let tile = tile(around: item.frame), Bindings.names(in: value).isEmpty, !value.isEmpty,
                        !seen.contains(where: { Self.inside(tile, $0) && Self.inside($0, tile) }),
@@ -774,14 +787,10 @@ public enum AutoWire {
             log("whole card", action.id)
         }
 
-        /// Fields no layer reads any more would only clutter the editor.
+        /// A field whose text became a live value would only clutter the editor.
         mutating func dropUnusedFields() {
             let used = Set(DataRequirements.bindingNames(in: spec).map { $0.trimmingCharacters(in: .whitespaces) })
-            let targetKeys = ["target"]
-            spec.fields.removeAll { field in
-                guard field.type == .text || field.type == .number else { return false }
-                return !used.contains("field.\(field.key)") && !targetKeys.contains(field.key)
-            }
+            spec.fields.removeAll { replacedFields.contains($0.key) && !used.contains("field.\($0.key)") }
         }
     }
 }

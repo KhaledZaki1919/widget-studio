@@ -2,6 +2,7 @@ package com.khaled.widgetstudio.design
 
 import com.khaled.widgetstudio.render.Drawing
 import com.khaled.widgetstudio.spec.Bindings
+import com.khaled.widgetstudio.spec.Capabilities
 import com.khaled.widgetstudio.spec.Family
 import com.khaled.widgetstudio.spec.Frame
 import com.khaled.widgetstudio.spec.Layer
@@ -20,25 +21,20 @@ object IconWhitelist {
 
 /** Binding names and what they yield (Bindings.swift catalog). */
 object BindingCatalog {
-    enum class Kind { TEXT, NUMBER, LEVELS, DATE, SYMBOL }
+    enum class Kind { TEXT, NUMBER, LEVELS, DATE, SYMBOL, IMAGE }
 
-    val catalog: Map<String, Pair<Kind, String>> = mapOf(
-        "time.h" to (Kind.TEXT to "time"), "time.hh" to (Kind.TEXT to "time"), "time.mm" to (Kind.TEXT to "time"),
-        "time.ampm" to (Kind.TEXT to "time"), "date.d" to (Kind.TEXT to "time"), "date.EEEE" to (Kind.TEXT to "time"),
-        "date.MMM" to (Kind.TEXT to "time"), "tz.offset" to (Kind.TEXT to "time"),
-        "weather.temp" to (Kind.NUMBER to "weather"), "weather.hi" to (Kind.NUMBER to "weather"), "weather.lo" to (Kind.NUMBER to "weather"),
-        "weather.cond" to (Kind.TEXT to "weather"), "weather.symbol" to (Kind.SYMBOL to "weather"), "weather.city" to (Kind.TEXT to "weather"),
-        "steps.today" to (Kind.NUMBER to "health"), "steps.streak" to (Kind.NUMBER to "health"), "steps.monthGrid" to (Kind.LEVELS to "health"),
-        "steps.month" to (Kind.NUMBER to "health"), "sleep.lastNight" to (Kind.TEXT to "health"), "sleep.week" to (Kind.LEVELS to "health"),
-        "counter.value" to (Kind.NUMBER to "app"), "stopwatch.running" to (Kind.TEXT to "app"), "stopwatch.start" to (Kind.DATE to "app"),
-        "counter.progress" to (Kind.NUMBER to "app"), "counter.dhikr" to (Kind.TEXT to "app"),
-        "focus.today" to (Kind.TEXT to "app"), "focus.week" to (Kind.LEVELS to "app"),
-        "prayer.next.name" to (Kind.TEXT to "prayer"), "prayer.next.time" to (Kind.DATE to "prayer"), "prayer.next.key" to (Kind.TEXT to "prayer"),
-        "prayer.fajr" to (Kind.DATE to "prayer"), "prayer.dhuhr" to (Kind.DATE to "prayer"), "prayer.asr" to (Kind.DATE to "prayer"),
-        "prayer.maghrib" to (Kind.DATE to "prayer"), "prayer.isha" to (Kind.DATE to "prayer"), "qibla.bearing" to (Kind.NUMBER to "prayer"),
-        "location.lat" to (Kind.NUMBER to "location"), "location.lon" to (Kind.NUMBER to "location"), "location.alt" to (Kind.NUMBER to "location"),
-        "battery.level" to (Kind.NUMBER to "device"),
-    )
+    /** Built from `capabilities.json` (ADR-027); never list bindings by hand. */
+    val catalog: Map<String, Pair<Kind, String>>
+        get() = Capabilities.bindings.filter { !it.parametric }.associate { it.id to (kind(it.type) to it.group) }
+
+    fun kind(type: String?) = when (type) {
+        "number" -> Kind.NUMBER
+        "levels" -> Kind.LEVELS
+        "date" -> Kind.DATE
+        "symbol" -> Kind.SYMBOL
+        "image" -> Kind.IMAGE
+        else -> Kind.TEXT
+    }
 
     fun isValidKey(key: String) = key.isNotEmpty() && key[0].isLetter() && key.all { it.code < 128 && (it.isLetterOrDigit() || it == '_') }
 
@@ -61,16 +57,10 @@ object BindingCatalog {
         }
     }
 
-    /** Bindings AI output may use: time, weather, battery, prayer (not next.key), steps, fields, days. */
+    /** Bindings AI output may use: the catalog's, plus fields, days left and world clocks. */
     fun allowedInAI(name: Name): Boolean = when (name) {
-        is Name.Builtin -> when (catalog[name.name]?.second) {
-            "time", "weather", "device" -> true
-            "prayer" -> name.name != "prayer.next.key"
-            "health" -> name.name.startsWith("steps.")
-            else -> false
-        }
-        is Name.Field, is Name.DaysUntil -> true
-        is Name.TimezoneTime -> false
+        is Name.Builtin -> Capabilities.binding(name.name)?.ai ?: false
+        is Name.Field, is Name.DaysUntil, is Name.TimezoneTime -> true
     }
 }
 
@@ -151,7 +141,7 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
         val FONT_SIZES = 6.0..200.0
         const val MIN_AI_FONT_SIZE = 11.0
         val families = listOf("system", "system-rounded", "system-serif", "system-mono", "dot", "arabic", "hand", "serif-display", "condensed")
-        val aiFieldTypes = setOf("text", "date", "image")
+        val aiFieldTypes = setOf("text", "date", "image", "url", "shortcut", "timezone")
         val weekdayKeys = listOf("sun", "mon", "tue", "wed", "thu", "fri", "sat")
 
         fun isValidId(id: String) = id.isNotEmpty() && id.length <= 64 && id.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' || it == '.' || it == '-' || it == '_' }
@@ -171,8 +161,9 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
         checkBackground()
         checkFields()
         if (spec.layers.isEmpty()) fail("layers", "needs at least one layer")
-        if (spec.layers.size > MAX_LAYERS) fail("layers", "at most $MAX_LAYERS layers")
-        if (spec.layers.sumOf { it.flattened.size } > MAX_TOTAL_LAYERS) fail("layers", "at most $MAX_TOTAL_LAYERS layers counting the children of stacks")
+        // Tap areas don't count: every control needs one (ADR-027).
+        if (spec.layers.count { it.content !is LayerContent.Button } > MAX_LAYERS) fail("layers", "at most $MAX_LAYERS layers")
+        if (spec.layers.flatMap { it.flattened }.count { it.content !is LayerContent.Button } > MAX_TOTAL_LAYERS) fail("layers", "at most $MAX_TOTAL_LAYERS layers counting the children of stacks")
         spec.layers.forEachIndexed { index, layer -> checkLayer(layer, "layers[$index]", 0) }
         if (ai && checksTextOverlaps) {
             val drawn = spec.layers.map { it.copy(frame = clamped(it.frame, spec.family)) }
@@ -241,7 +232,7 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
             }
             is BindingCatalog.Name.Field -> {
                 val field = spec.field(name.key) ?: return fail(path, "{{$raw}} refers to a missing field")
-                if (ai && field.type != "text" && field.type != "date") fail(path, "AI output may only bind text and date fields")
+                if (ai && (field.type == "image" || field.type !in aiFieldTypes)) fail(path, "AI output may only bind text, date, link and Shortcut fields")
                 when (field.type) {
                     "date" -> BindingCatalog.Kind.DATE
                     "number" -> BindingCatalog.Kind.NUMBER
@@ -283,7 +274,7 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
             val path = "fields[$index]"
             if (!BindingCatalog.isValidKey(field.key)) fail("$path.key", "letters, digits and underscores, starting with a letter")
             if (!keys.add(field.key)) fail("$path.key", "duplicate key \"${field.key}\"")
-            if (ai && field.type !in aiFieldTypes) fail("$path.type", "AI output may only use text and image fields")
+            if (ai && field.type !in aiFieldTypes) fail("$path.type", "AI output may only use text, date, url, shortcut, timezone and image fields")
             field.label.allValues.forEach { text("$path.label", it, allowBindings = false) }
             field.default?.allValues?.forEach { value ->
                 val p = "$path.default"
@@ -337,10 +328,15 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
                 }
             }
             is LayerContent.Image -> {
-                val asset = c.source.startsWith("asset:") && isValidId(c.source.removePrefix("asset:"))
-                if (c.source != "user_image" && !asset) fail("$path.source", "must be \"user_image\" or \"asset:<id>\"")
-                else if (ai && c.source != "user_image") fail("$path.source", "AI output may only use \"user_image\"")
-                number("$path.cornerRadius", c.cornerRadius, 0.0..200.0)
+                val raw = Bindings.soleBinding(c.source)
+                if (raw != null) {
+                    binding("$path.source", raw, setOf(BindingCatalog.Kind.IMAGE))
+                } else {
+                    val asset = c.source.startsWith("asset:") && isValidId(c.source.removePrefix("asset:"))
+                    if (c.source != "user_image" && !asset) fail("$path.source", "must be \"user_image\" or \"asset:<id>\"")
+                    else if (ai && c.source != "user_image") fail("$path.source", "AI output may only use \"user_image\"")
+                    number("$path.cornerRadius", c.cornerRadius, 0.0..200.0)
+                }
             }
             is LayerContent.Shape -> {
                 if (c.fill == null && c.stroke == null) fail(path, "a shape needs a fill or a stroke")
@@ -371,7 +367,7 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
                 number("$path.dotSize", c.dotSize, 0.5..60.0)
                 number("$path.gap", c.gap, 0.0..60.0)
                 color("$path.onColor", c.onColor); color("$path.offColor", c.offColor); color("$path.highlightColor", c.highlightColor)
-                bindingOrLiteral("$path.values", c.values, setOf(BindingCatalog.Kind.LEVELS)) { v -> v.filter { it != ' ' }.let { d -> d.isNotEmpty() && d.length <= 600 && d.all { it == '0' || it == '1' } } }
+                bindingOrLiteral("$path.values", c.values, setOf(BindingCatalog.Kind.LEVELS, BindingCatalog.Kind.NUMBER)) { v -> v.filter { it != ' ' }.let { d -> d.isNotEmpty() && d.length <= 600 && d.all { it == '0' || it == '1' } } }
             }
             is LayerContent.DotBars -> {
                 count("$path.bars", c.bars, 1..31)
@@ -414,16 +410,15 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
                 number("$path.cornerRadius", c.cornerRadius, 0.0..200.0)
             }
             is LayerContent.Button -> {
-                if (ai && c.action != "open.app") return fail("$path.action", "only open.app is allowed in AI output")
-                when (c.action) {
-                    "open.url", "shortcut.run" -> {
-                        val required = if (c.action == "open.url") "url" else "shortcut"
-                        val raw = c.arg?.let(Bindings::soleBinding)
-                        val key = (raw?.let(BindingCatalog::parse) as? BindingCatalog.Name.Field)?.key
-                        if (key == null || spec.field(key)?.type != required) fail("$path.arg", "must be {{field.<key>}} of a $required field")
-                    }
-                    "counter.increment", "counter.reset", "counter.next", "stopwatch.toggle", "open.app" -> c.arg?.takeIf { it.isNotEmpty() }?.let { text("$path.arg", it) }
-                    else -> fail("$path.action", "unknown value")
+                val capability = Capabilities.action(c.action) ?: return fail("$path.action", "unknown action \"${c.action}\"; use an id from the allowed list")
+                if (ai && !capability.ai) return fail("$path.action", "${capability.id} is not allowed in AI output")
+                val required = capability.argFieldType
+                if (required == null) {
+                    c.arg?.takeIf { it.isNotEmpty() }?.let { text("$path.arg", it) }
+                } else {
+                    val raw = c.arg?.let(Bindings::soleBinding)
+                    val key = (raw?.let(BindingCatalog::parse) as? BindingCatalog.Name.Field)?.key
+                    if (key == null || spec.field(key)?.type != required) fail("$path.arg", "must be {{field.<key>}} of a $required field")
                 }
             }
             is LayerContent.Stack -> checkStack(c, path, depth + 1)

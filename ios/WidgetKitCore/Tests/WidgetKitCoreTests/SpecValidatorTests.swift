@@ -293,15 +293,15 @@ struct SpecValidatorTests {
         // ADR-018: battery, prayer and steps too.
         #expect(try issues(layers: [text("{{battery.level}} {{prayer.next.name}} {{qibla.bearing}} {{steps.today}}")], fields: [], mode: .ai).isEmpty)
         #expect(try issues(layers: [layer("button", ["action": "wifi.toggle"])], mode: .ai).contains { $0.path == "layers[0].action" })
-        #expect(try issues(layers: [layer("button", ["action": "media.next"])], mode: .ai).isEmpty)
-        for binding in ["sleep.lastNight", "location.lat", "counter.value", "focus.today"] {
+        #expect(try issues(layers: [layer("button", ["action": "media.next"])], fields: [], mode: .ai).isEmpty)
+        for binding in ["prayer.next.key", "battery.devices"] {
             #expect(try issues(layers: [text("{{\(binding)}}")], fields: [], mode: .ai).contains { $0.message.contains("AI output") }, "\(binding)")
         }
     }
 
     @Test func aiModeAllowsOnlyTextAndImageFields() throws {
-        let shortcut: [[String: Any]] = [["key": "torch", "type": "shortcut", "label": ["en": "Shortcut", "ar": "اختصار"]]]
-        #expect(try issues(layers: [text("hi")], fields: shortcut, mode: .ai).contains { $0.path == "fields[0].type" })
+        let color: [[String: Any]] = [["key": "tint", "type": "color", "label": ["en": "Tint", "ar": "اللون"]]]
+        #expect(try issues(layers: [text("hi")], fields: color, mode: .ai).contains { $0.path == "fields[0].type" })
         let title: [[String: Any]] = [["key": "title", "type": "text", "label": ["en": "Title", "ar": "العنوان"]]]
         #expect(try issues(layers: [text("{{field.title}}")], fields: title, mode: .ai).isEmpty)
         // ADR-019: countdowns to a date field.

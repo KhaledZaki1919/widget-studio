@@ -74,7 +74,7 @@ internal class ChartDrawer(private val d: Drawing) {
     // MARK: Dots
 
     fun dotGrid(canvas: Canvas, grid: LayerContent.DotGrid, rect: RectF, scale: Float, mirrored: Boolean) {
-        val levels = d.resolver.levels(grid.values)
+        val levels = d.resolver.gridLevels(grid.values, grid.rows * grid.cols)
         val on = d.color(grid.onColor)
         val off = d.color(grid.offColor)
         val highlight = d.color(grid.highlightColor ?: grid.onColor)
@@ -145,11 +145,27 @@ internal class ChartDrawer(private val d: Drawing) {
 
     fun progress(canvas: Canvas, bar: LayerContent.ProgressBar, rect: RectF, scale: Float, mirrored: Boolean) {
         val value = (d.resolver.number(bar.progress) ?: 0.0).coerceIn(0.0, 1.0)
-        val radius = bar.cornerRadius?.let { (it * scale).toFloat() } ?: (rect.height() / 2)
+        val vertical = bar.vertical == true
+        val radius = bar.cornerRadius?.let { (it * scale).toFloat() } ?: ((if (vertical) rect.width() else rect.height()) / 2)
         val fill = d.color(bar.color)
         val track = d.color(bar.trackColor ?: "#8080804D")
         val segments = bar.segments ?: 1
-        if (segments > 1) {
+        if (vertical) {
+            if (segments > 1) {
+                val lit = (value * segments).roundToInt()
+                val gap = maxOf(1f, 2 * scale)
+                val height = (rect.height() - gap * (segments - 1)) / segments
+                val r = min(radius, rect.width() / 2)
+                for (index in 0 until segments) {
+                    val y = rect.top + index * (height + gap)
+                    canvas.drawRoundRect(RectF(rect.left, y, rect.right, y + height), r, r, d.paint(if (index >= segments - lit) fill else track))
+                }
+            } else {
+                canvas.drawRoundRect(rect, radius, radius, d.paint(track))
+                val h = (rect.height() * value).toFloat()
+                canvas.drawRoundRect(RectF(rect.left, rect.bottom - h, rect.right, rect.bottom), radius, radius, d.paint(fill))
+            }
+        } else if (segments > 1) {
             val lit = (value * segments).roundToInt()
             val gap = maxOf(1f, 2 * scale)
             val width = (rect.width() - gap * (segments - 1)) / segments

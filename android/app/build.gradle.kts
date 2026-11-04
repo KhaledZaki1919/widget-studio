@@ -45,6 +45,14 @@ val copySharedFonts by tasks.registering(Sync::class) {
         into("font")
         rename { name -> name.substringBeforeLast('.').replace(Regex("([a-z])([A-Z])"), "$1_$2").replace('-', '_').lowercase() + ".ttf" }
     }
+    // Picker previews for the three sizes (ADR-027): the iOS snapshots of one design each, never duplicated.
+    from(File(repoRoot, "ios/WidgetStudioTests/Snapshots")) {
+        include("mono.clock.dotAnalog.ar.png", "mono.weather.forecast.ar.png", "mono.prayer.day.ar.png")
+        into("drawable-nodpi")
+        rename("mono.clock.dotAnalog.ar.png", "preview_small.png")
+        rename("mono.weather.forecast.ar.png", "preview_medium.png")
+        rename("mono.prayer.day.ar.png", "preview_large.png")
+    }
 }
 
 android {
@@ -116,6 +124,7 @@ dependencies {
     implementation("com.batoulapps.adhan:adhan:1.2.1")
     implementation("androidx.health.connect:connect-client:1.1.0")
     implementation("androidx.work:work-runtime-ktx:2.11.2")
+    implementation("androidx.documentfile:documentfile:1.1.0")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.15.1")

@@ -118,8 +118,10 @@ struct WidgetGenerationTests {
                 return values.first?.stringValue
             }
         }
-        #expect(!types(.recreate).contains("image"))
-        #expect(types(.photo).contains("image"))
+        // Recreated designs may use album art, never the user's photo (ADR-027).
+        #expect(AIWidgetSchema.schema(mode: .recreate).jsonString().contains("{{media.artwork}}"))
+        #expect(!AIWidgetSchema.schema(mode: .recreate).jsonString().contains("user_image"))
+        #expect(AIWidgetSchema.schema(mode: .photo).jsonString().contains("user_image"))
         #expect(types(.recreate).contains("button") && types(.recreate).contains("forecastRow"))
     }
 
@@ -224,7 +226,7 @@ struct WidgetGenerationTests {
             all[3]["symbol"] = "quote.opening"
             object["layers"] = all
         }
-        #expect(try AIWidgetParser.parse(invented, options: GenerationOptions(), id: "gen.icon").spec.layers.count == 5)
+        #expect(try AIWidgetParser.parse(inventedIcon, options: GenerationOptions(), id: "gen.icon").spec.layers.count == 5)
 
         // M6.1: text frames that cover each other are a validator error in AI mode.
         let overlapping = try editedReply { object in

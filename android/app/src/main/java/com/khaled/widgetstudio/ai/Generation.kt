@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import com.khaled.widgetstudio.design.AILayoutFix
+import com.khaled.widgetstudio.design.AutoWire
 import com.khaled.widgetstudio.design.IconWhitelist
 import com.khaled.widgetstudio.design.LayoutRepair
 import com.khaled.widgetstudio.design.SavedDesign
@@ -12,6 +13,7 @@ import com.khaled.widgetstudio.design.SpecLayout
 import com.khaled.widgetstudio.design.SpecValidator
 import com.khaled.widgetstudio.render.Drawing
 import com.khaled.widgetstudio.spec.Bindings
+import com.khaled.widgetstudio.spec.DecorativeNote
 import com.khaled.widgetstudio.spec.LayerContent
 import com.khaled.widgetstudio.spec.SpecParser
 import com.khaled.widgetstudio.spec.WidgetSpec
@@ -56,7 +58,11 @@ data class GenerationOptions(
     companion object { const val MAX_INSTRUCTIONS = 300 }
 }
 
-data class GeneratedWidget(val spec: WidgetSpec, val colors: Map<String, String>, val model: String, val attempts: Int, val layout: LayoutRepair = LayoutRepair.Clean) {
+data class GeneratedWidget(
+    val spec: WidgetSpec, val colors: Map<String, String>, val model: String, val attempts: Int, val layout: LayoutRepair = LayoutRepair.Clean,
+    /** What the post-pass wired (ADR-027). */
+    val autoWired: List<String> = emptyList(),
+) {
     fun design(language: String): SavedDesign {
         val name = spec.name.resolved(language).take(SavedDesign.MAX_NAME_LENGTH)
         return SavedDesign(name = name.ifEmpty { spec.id }, templateId = spec.id, spec = spec, colors = colors)
@@ -100,7 +106,8 @@ class WidgetPrompt(assets: AssetManager) {
                 lines += "Task: the image shows a widget design or a screenshot of widgets. Recreate the main widget as closely as " +
                     "possible with the layer types, fonts and bindings above: start with the inventory, then map every element. " +
                     "Do not use image layers: draw everything with text, calendars, lists, shapes, icons and the other layers. " +
-                    "Replace sample values (times, dates, temperatures, step counts) with the matching live bindings."
+                    "Replace sample values (times, dates, temperatures, step counts, song names, levels, states) with the matching live " +
+                    "bindings, and give every control its action: fill `wiring` first."
                 if (options.cropped) lines += "The image was cropped to the widget; a little wallpaper may still show at the edges. Ignore it."
                 options.detectedCard?.let { card ->
                     val name = when (card) {
@@ -153,7 +160,7 @@ object AIWidgetParser {
     private const val MIN_CONTRAST = 3.0
     private val json = Json { ignoreUnknownKeys = true }
 
-    data class Parsed(val spec: WidgetSpec, val colors: Map<String, String>, val layout: LayoutRepair)
+    data class Parsed(val spec: WidgetSpec, val colors: Map<String, String>, val layout: LayoutRepair, val autoWired: List<String> = emptyList())
 
     fun extractJSON(text: String): String? {
         var trimmed = text.trim()
@@ -186,7 +193,9 @@ object AIWidgetParser {
         }
         val card = CardShape.of(obj["card"]["shape"].str()) ?: options.detectedCard
         if (options.mode == GenerationMode.RECREATE) applyCard(card, obj, colors, options.wallpaperColor)
-        listOf("card", "palette", "category", "inventory", "differences").forEach { obj.remove(it) }
+        val notes = decorativeNotes(obj["wiring"])
+        val inventory = (obj["inventory"] as? JsonArray)?.mapNotNull { it.str() } ?: emptyList()
+        listOf("card", "palette", "category", "inventory", "wiring", "differences").forEach { obj.remove(it) }
         obj["layers"]?.let { obj["layers"] = withKnownShapeKinds(withoutUnknownIcons(it)) }
         obj["fields"]?.let { obj["fields"] = withCleanFieldLabels(it) }
         obj["schemaVersion"] = JsonPrimitive(1)
@@ -211,8 +220,24 @@ object AIWidgetParser {
         var result = spec.copy(layers = spec.layers.map { it.copy(frame = validator.clamped(it.frame, spec.family)) })
         var layout: LayoutRepair = LayoutRepair.Clean
         if (!enforceLayout) repaired(result).let { (s, l) -> result = s; layout = l }
-        return Parsed(result.copy(refresh = refresh(result)), colors, layout)
+        if (notes.isNotEmpty()) result = result.copy(decorative = notes)
+        // The post-pass may only add wiring: its result must still pass the AI rules (ADR-027).
+        val wired = AutoWire.apply(result, inventory)
+        var autoWired = emptyList<String>()
+        if (SpecValidator(ai = true, checksTextOverlaps = false).validate(wired.spec).isEmpty()) {
+            result = wired.spec
+            autoWired = wired.changes
+        }
+        return Parsed(result.copy(refresh = refresh(result)), colors, layout, autoWired)
     }
+
+    /** Prompt v5's `decorative` entries. */
+    private fun decorativeNotes(wiring: JsonElement?): List<DecorativeNote> =
+        (wiring as? JsonArray)?.take(30)?.mapNotNull { item ->
+            val reason = item["decorative"].str()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            val element = item["element"].str() ?: return@mapNotNull null
+            DecorativeNote(element.take(80), reason.take(120))
+        } ?: emptyList()
 
     private fun repaired(spec: WidgetSpec): Pair<WidgetSpec, LayoutRepair> {
         fun problems(s: WidgetSpec) = SpecLayout.textOverlaps(s.layers).map { "layers[${it.second}]: its text overlaps layers[${it.first}]" } + overlappingTexts(s)
@@ -359,7 +384,7 @@ object AIWidgetParser {
     // MARK: Rules
 
     private fun modeProblems(spec: WidgetSpec, mode: GenerationMode): List<String> {
-        val images = spec.layers.indices.filter { spec.layers[it].content is LayerContent.Image }
+        val images = spec.layers.indices.filter { index -> (spec.layers[index].content as? LayerContent.Image)?.let { Bindings.soleBinding(it.source) == null } ?: false }
         return if (mode == GenerationMode.RECREATE) images.map { "layers[$it]: image layers are not allowed when recreating a design; draw it with shapes, text and icons" }
         else if (images.isEmpty()) listOf("layers: add one image layer with \"source\": \"user_image\" for the user's photo") else emptyList()
     }
@@ -394,7 +419,7 @@ object AIWidgetParser {
         val clock = all.any { it.content is LayerContent.AnalogClock || (it.content as? LayerContent.Text)?.liveKind == "time" }
         val calendar = spec.layers.any { it.content is LayerContent.CalendarMonth }
         return when {
-            clock || names.any { it.startsWith("time.") } -> "minute"
+            clock || names.any { n -> listOf("time.", "media.", "timer.", "stopwatch.").any { n.startsWith(it) } } -> "minute"
             names.any { !it.startsWith("date.") && !it.startsWith("field.") } -> "hourly"
             calendar || names.any { it.startsWith("date.") } -> "daily"
             else -> "none"
@@ -495,7 +520,7 @@ object ExternalAI {
         val id = "ai." + UUID.randomUUID().toString().take(8).lowercase()
         return try {
             val parsed = AIWidgetParser.parseWidget(trimmed, GenerationOptions(size = size), id, enforceLayout = false)
-            GeneratedWidget(parsed.spec, parsed.colors, "external", 1, parsed.layout)
+            GeneratedWidget(parsed.spec, parsed.colors, "external", 1, parsed.layout, parsed.autoWired)
         } catch (error: AIValidationError) {
             if (error.message?.contains("no JSON object found") == true) throw ImportError.NoJSON
             throw ImportError.Invalid(error.message ?: "")

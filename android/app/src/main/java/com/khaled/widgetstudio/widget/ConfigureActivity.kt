@@ -69,7 +69,7 @@ class ConfigureActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             StudioTheme {
-                Picker { choice, theme ->
+                Picker(Widgets.family(this, appWidgetId)) { choice, theme ->
                     WidgetStore(this).set(appWidgetId, choice, theme)
                     lifecycleScope.launch {
                         SpecGlanceWidget().update(this@ConfigureActivity, GlanceAppWidgetManager(this@ConfigureActivity).getGlanceIdBy(appWidgetId))
@@ -92,7 +92,7 @@ class ConfigureActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Picker(onPick: (String, Theme?) -> Unit) {
+private fun Picker(family: String?, onPick: (String, Theme?) -> Unit) {
     val context = LocalContext.current
     val language = appLanguage()
     val designs by DesignStore.get(context).designs.collectAsState()
@@ -100,8 +100,10 @@ private fun Picker(onPick: (String, Theme?) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
     var theme by rememberSaveable { mutableStateOf<String?>(null) }
     fun matches(vararg names: String) = query.isBlank() || names.any { it.contains(query.trim(), ignoreCase = true) }
-    val shownDesigns = designs.filter { matches(it.name) }
-    val shownTemplates = templates.filter { matches(it.name.resolved("en"), it.name.resolved("ar")) }
+    /** A size widget lists only that size (ADR-027); the original widget lists everything. */
+    fun fits(spec: com.khaled.widgetstudio.spec.WidgetSpec) = family == null || spec.family.name.lowercase() == family
+    val shownDesigns = designs.filter { matches(it.name) && fits(it.spec) }
+    val shownTemplates = templates.filter { matches(it.name.resolved("en"), it.name.resolved("ar")) && fits(it) }
     Scaffold(topBar = { TopAppBar(title = { Text(tr("Choose a design", "اختر تصميمًا للويدجت")) }) }) { padding ->
         LazyVerticalGrid(
             columns = GridCells.Adaptive(160.dp),

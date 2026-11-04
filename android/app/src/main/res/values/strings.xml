@@ -9,4 +9,10 @@
     <string name="library_add_hint">لإضافة ويدجت: اضغط مطولًا على الشاشة الرئيسية ← الأدوات ← ستوديو الويدجت، ثم اختر تصميمًا. غيّر حجمه كما تريد.</string>
     <string name="configure_title">اختر تصميمًا للويدجت</string>
     <string name="widget_missing">اختفى هذا التصميم. اضغط لاختيار غيره.</string>
+    <string name="widget_small">صغير</string>
+    <string name="widget_medium">متوسط</string>
+    <string name="widget_large">كبير</string>
+    <string name="widget_small_description">مربع 2×2: تصاميمك والقوالب الصغيرة</string>
+    <string name="widget_medium_description">عريض 4×2: تصاميمك والقوالب المتوسطة</string>
+    <string name="widget_large_description">كبير 4×4: تصاميمك والقوالب الكبيرة</string>
 </resources>

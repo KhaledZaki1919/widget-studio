@@ -75,6 +75,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         WidgetEnvironment.renderer(this)   // loads the fonts and the icon whitelist
         RefreshWorker.schedule(this)
+        com.khaled.widgetstudio.widget.WidgetPreviews.publish(this)
         setContent { StudioTheme { AppRoot(opening(intent)) } }
     }
 

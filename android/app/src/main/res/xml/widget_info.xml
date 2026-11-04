@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Resizable on both axes; the spec is re-rendered at the new size (ADR-025). -->
+<!-- The original widget (ADR-025): resizable, re-rendered at the new size. Hidden from the picker since
+     the three size widgets replaced it; widgets already placed keep working (ADR-027). -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:configure="com.khaled.widgetstudio.widget.ConfigureActivity"
     android:description="@string/widget_description"
@@ -13,4 +14,4 @@
     android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
     android:widgetCategory="home_screen"
-    android:widgetFeatures="reconfigurable" />
+    android:widgetFeatures="reconfigurable|hide_from_picker" />

@@ -15,9 +15,13 @@ data class WidgetSpec(
     val fields: List<FieldSpec>,
     val layers: List<Layer>,
     val category: String?,
+    /** Elements that look live but aren't, with why (prompt v5's wiring list, ADR-027). */
+    val decorative: List<DecorativeNote> = emptyList(),
 ) {
     fun field(key: String): FieldSpec? = fields.firstOrNull { it.key == key }
 }
+
+data class DecorativeNote(val element: String, val reason: String)
 
 enum class Family(val width: Double, val height: Double) {
     SMALL(170.0, 170.0), MEDIUM(364.0, 170.0), LARGE(364.0, 382.0);
@@ -134,7 +138,8 @@ sealed class LayerContent {
         val markerColor: String?, val dividerColor: String?,
     ) : LayerContent()
 
-    data class ProgressBar(val progress: String, val color: String, val trackColor: String?, val segments: Int?, val cornerRadius: Double?) :
+    /** [vertical] fills from the bottom up: a volume or brightness slider (ADR-027). */
+    data class ProgressBar(val progress: String, val color: String, val trackColor: String?, val segments: Int?, val cornerRadius: Double?, val vertical: Boolean? = null) :
         LayerContent()
 
     data class Stack(

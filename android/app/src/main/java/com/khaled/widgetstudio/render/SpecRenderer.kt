@@ -239,7 +239,7 @@ internal class Drawing(val renderer: SpecRenderer, val spec: WidgetSpec, val con
         }
         canvas.save()
         canvas.clipPath(path)
-        val photo = if (image.source == "user_image") context.userImage else null
+        val photo = if (image.source == "user_image") context.userImage else if (Bindings.soleBinding(image.source) != null) context.mediaArtwork else null
         if (photo != null) {
             val fit = image.fit == "fit"
             val ratio = if (fit) min(rect.width() / photo.width, rect.height() / photo.height) else maxOf(rect.width() / photo.width, rect.height() / photo.height)

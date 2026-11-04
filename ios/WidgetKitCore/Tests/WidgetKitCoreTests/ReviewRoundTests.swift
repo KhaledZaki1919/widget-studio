@@ -33,7 +33,7 @@ struct ReviewRoundTests {
         #expect(WidgetPrompt.system.contains("Never give a text its own absolute frame"))
         #expect(WidgetPrompt.system.contains("`spacer`") && WidgetPrompt.system.contains("`alignItems`"))
         let system = WidgetPrompt.system
-        #expect(system.contains("Inventory first"))
+        #expect(system.contains("function first") && system.contains("**Wiring.**") && system.contains("**Inventory.**"))
         #expect(system.contains("Never replace visible text or numbers with dots"))
         #expect(system.contains("calendarMonth") && system.contains("progressBar") && system.contains("`list`"))
         #expect(system.contains("{{date.MMM}}"))
