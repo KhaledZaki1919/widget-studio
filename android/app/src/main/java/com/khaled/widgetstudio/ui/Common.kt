@@ -91,11 +91,11 @@ fun SpecPreview(spec: WidgetSpec, key: Any, modifier: Modifier = Modifier, conte
 
 /** A saved design previewed with live data and its photo. */
 @Composable
-fun DesignPreview(design: SavedDesign, language: String, photo: Bitmap?, modifier: Modifier = Modifier) {
+fun DesignPreview(design: SavedDesign, language: String, photo: Bitmap?, modifier: Modifier = Modifier, forced: Map<String, String> = emptyMap(), overrides: Map<String, String> = emptyMap()) {
     val app = LocalContext.current
-    SpecPreview(design.spec, Triple(design, language, photo), modifier) {
+    SpecPreview(design.spec, listOf(design, language, photo, forced, overrides), modifier) {
         val live = WidgetEnvironment.live(app)
-        design.renderContext(app, java.time.Instant.now(), language, live.previewSnapshot(), photo, live.settings.clockFormat)
+        design.renderContext(app, java.time.Instant.now(), language, live.previewSnapshot(), photo, live.settings.clockFormat).copy(forcedStates = forced, overrides = overrides)
     }
 }
 

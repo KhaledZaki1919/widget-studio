@@ -12,7 +12,7 @@ public struct StatesLayer: Codable, Sendable, Equatable {
         public var when: String?
         public var layers: [Layer]
         /// Binding values that put the widget in this state, for the editor's preview and the
-        /// renders; `$value` stands for the layer's `value`.
+        /// renders; in a set, `$value` stands for the layer's `value`.
         public var sample: [String: String]?
 
         public init(id: String, title: LocalizedText? = nil, when: String? = nil, layers: [Layer], sample: [String: String]? = nil) {
@@ -160,15 +160,12 @@ extension BindingResolver {
         return variants.first { variant in variant.when.map(isSatisfied) ?? true }
     }
 
-    /// The overrides that put a layer's widget in `variant`; `$value` becomes the layer's binding.
+    /// The overrides that put a layer's widget in `variant`.
     public static func overrides(for variant: StatesLayer.Variant, of states: StatesLayer) -> [String: String] {
         var result: [String: String] = [:]
         for (key, value) in variant.sample ?? [:] {
-            if key == "$value" {
-                if let raw = states.value.flatMap(Bindings.soleBinding) { result[raw.trimmingCharacters(in: .whitespaces)] = value }
-            } else {
-                result[key] = value
-            }
+            // A set's `$value` key arrives as the layer's own binding.
+            result[(Bindings.soleBinding(key) ?? key).trimmingCharacters(in: .whitespaces)] = value
         }
         return result
     }

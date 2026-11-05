@@ -347,6 +347,9 @@ class BindingResolver(val spec: WidgetSpec, val context: RenderContext) {
         return variants.firstOrNull { variant -> variant.condition?.let(::isSatisfied) ?: true }
     }
 
+    /** The overrides that put a widget in [variant]; a set's `$value` key arrives as the layer's own binding. */
+    fun overrides(variant: StateVariant): Map<String, String> = (variant.sample ?: emptyMap()).mapKeys { (key, _) -> (Bindings.soleBinding(key) ?: key).trim() }
+
     /** A value forced by `RenderContext.overrides`, typed by the catalog. */
     private fun overridden(name: String): Value? {
         val raw = context.overrides[name] ?: return null

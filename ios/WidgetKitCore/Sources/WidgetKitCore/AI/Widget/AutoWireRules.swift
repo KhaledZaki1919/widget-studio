@@ -95,6 +95,11 @@ extension AutoWire.Run {
         return shares(kind: kind).first { AutoWire.Topics.prefix($0.id) == prefix }?.id
     }
 
+    /// Whether the design shows any value of this topic.
+    func showsTopic(_ prefix: String) -> Bool {
+        DataRequirements.bindingNames(in: spec).contains { AutoWire.Topics.prefix($0.trimmingCharacters(in: .whitespaces)) == prefix }
+    }
+
     /// Whether anything near the layer speaks of this capability.
     func isNamed(_ capability: Capability, near item: AutoWire.Found, own: String = "") -> Bool {
         if capability.keywords.contains(where: { AutoWire.Keyword.occurs($0, in: own.lowercased()) }) { return true }

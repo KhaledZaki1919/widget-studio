@@ -75,6 +75,10 @@ internal fun AutoWire.Run.shareBinding(item: AutoWire.Found, kind: String, own: 
     return shares(kind).firstOrNull { it.prefix == prefix }?.id
 }
 
+/** Whether the design shows any value of this topic. */
+internal fun AutoWire.Run.showsTopic(prefix: String): Boolean =
+    com.khaled.widgetstudio.spec.BindingNames.names(spec).any { it.trim().substringBefore('.') == prefix }
+
 /** Whether anything near the layer speaks of this capability. */
 internal fun AutoWire.Run.isNamed(capability: Capability, item: AutoWire.Found, own: String = ""): Boolean {
     if (capability.keywords.any { AutoWire.occurs(it, own.lowercase()) }) return true

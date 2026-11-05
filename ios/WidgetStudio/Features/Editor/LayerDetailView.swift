@@ -136,6 +136,8 @@ struct LayerDetailView: View {
                 }
                 .accessibilityIdentifier("ax.editor.layer.items")
             }
+        case .states(let states):
+            StatesSettings(states: Binding(get: { states }, set: { layer.wrappedValue.content = .states($0) }), model: model)
         default:
             EmptyView()
         }
@@ -255,7 +257,7 @@ private struct StackSettings: View {
 }
 
 /// A theme color (so the design's color pickers keep reaching it) or a custom one.
-private struct ColorTokenPicker: View {
+struct ColorTokenPicker: View {
     let title: LocalizedStringKey
     @Binding var value: String
     let model: EditorModel

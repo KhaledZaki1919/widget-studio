@@ -33,11 +33,15 @@ import com.khaled.widgetstudio.design.AILayoutFix
 import com.khaled.widgetstudio.design.LayerEditing
 import com.khaled.widgetstudio.design.SpecLayout
 import com.khaled.widgetstudio.design.SpecValidator
+import com.khaled.widgetstudio.spec.Bindings
+import com.khaled.widgetstudio.spec.Capabilities
 import com.khaled.widgetstudio.spec.FontSpec
 import com.khaled.widgetstudio.spec.LText
 import com.khaled.widgetstudio.spec.Layer
 import com.khaled.widgetstudio.spec.LayerContent
+import com.khaled.widgetstudio.spec.SpecExpression
 import com.khaled.widgetstudio.spec.SpecTokens
+import com.khaled.widgetstudio.spec.StateVariant
 
 private fun EditorState.layers() = design.spec.layers
 private fun EditorState.setLayers(key: String? = null, change: (List<Layer>) -> List<Layer>) =
@@ -149,6 +153,7 @@ fun LayerDetail(state: EditorState, path: List<Int>, onOpenItems: (List<Int>) ->
     }
     when (val c = layer.content) {
         is LayerContent.Text -> TextSettings(c) { field, change -> edit(field) { it.copy(content = change(it.content as? LayerContent.Text ?: c)) } }
+        is LayerContent.States -> StatesSettings(state, c) { change -> edit("states") { l -> l.copy(content = change(l.content as LayerContent.States)) } }
         is LayerContent.Icon -> SectionCard {
             NumberField(tr("Size", "الحجم"), c.size) { v -> edit("size") { it.copy(content = (it.content as LayerContent.Icon).copy(size = v)) } }
             TokenColor(tr("Color", "اللون"), c.color) { v -> edit("color") { it.copy(content = (it.content as LayerContent.Icon).copy(color = v)) } }
@@ -237,5 +242,80 @@ private fun NumberField(label: String, value: Double, modifier: Modifier = Modif
             TextButton(onClick = { onChange(value + 1) }, modifier = Modifier.width(44.dp)) { Text("+") }
             TextButton(onClick = { onChange(value - 1) }, modifier = Modifier.width(44.dp)) { Text("−") }
         }
+    }
+}
+
+/**
+ * The States panel (ADR-028): preview each state with a picker or a level slider, choose a built-in
+ * set and its colors, and edit each variant. Editing a variant writes the set's variants into the
+ * design, so the catalog's own set stays as it is.
+ */
+@Composable
+private fun StatesSettings(state: EditorState, states: LayerContent.States, change: ((LayerContent.States) -> LayerContent.States) -> Unit) {
+    val language = appLanguage()
+    var picked by remember { mutableStateOf("") }
+    var level by remember { mutableStateOf(0.5f) }
+    val resolver = remember(state.design) { com.khaled.widgetstudio.spec.BindingResolver(state.design.spec, com.khaled.widgetstudio.spec.RenderContext(now = java.time.Instant.now())) }
+    val variants = states.expanded
+    fun title(variant: StateVariant) = variant.title?.resolved(language) ?: variant.id
+    fun clearPreview() {
+        picked = ""
+        state.previewForced = emptyMap()
+        state.previewOverrides = emptyMap()
+    }
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { state.previewForced = emptyMap(); state.previewOverrides = emptyMap() } }
+    val followed = listOfNotNull(states.value?.let(Bindings::soleBinding)) + (states.set?.let { Capabilities.stateSet(it)?.needs } ?: emptyList())
+    val levelBinding = followed.firstOrNull { Capabilities.binding(it)?.isShare == true }
+    SectionTitle(tr("Preview a state", "معاينة حالة"))
+    SectionCard {
+        Dropdown(tr("Show", "اعرض"), listOf("" to tr("The real state now", "الحالة الحقيقية الآن")) + variants.map { it.id to title(it) }, picked) { id ->
+            picked = id
+            val variant = variants.firstOrNull { it.id == id }
+            state.previewForced = if (variant == null) emptyMap() else mapOf(states.key to id)
+            state.previewOverrides = variant?.let(resolver::overrides) ?: emptyMap()
+        }
+        if (levelBinding != null) {
+            Text(Math.round(level * 100).toString() + "%", style = MaterialTheme.typography.bodySmall)
+            androidx.compose.material3.Slider(value = level, onValueChange = { value ->
+                level = value
+                picked = ""
+                state.previewForced = emptyMap()
+                state.previewOverrides = mapOf(levelBinding to value.toString())
+            })
+        }
+    }
+    SectionTitle(tr("Look", "الشكل"))
+    SectionCard {
+        Dropdown(tr("Set", "المجموعة"), (if (states.set == null) listOf("" to tr("Custom", "مخصصة")) else emptyList()) + Capabilities.stateSets.map { it.id to it.title.resolved(language) }, states.set ?: "") { id ->
+            if (id.isNotEmpty()) {
+                change { it.copy(set = id, variants = null, box = null, value = Capabilities.stateSet(id)?.value) }
+                clearPreview()
+            }
+        }
+        TokenColor(tr("Color", "اللون"), states.color) { value -> change { it.copy(color = value) } }
+        TokenColor(tr("Accent", "لون التمييز"), states.accent) { value -> change { it.copy(accent = value) } }
+    }
+    SectionTitle(tr("States", "الحالات"))
+    SectionCard {
+        /** The first edit turns a built-in set into variants of this design. */
+        fun editVariant(id: String, edit: (StateVariant) -> StateVariant) = change { current ->
+            val box = current.box ?: current.set?.let { Capabilities.stateSet(it)?.box }
+            current.copy(set = null, box = box, variants = current.expanded.map { if (it.id == id) edit(it) else it })
+        }
+        for (variant in variants) {
+            Text(title(variant), style = MaterialTheme.typography.titleSmall)
+            OutlinedTextField(variant.condition ?: "", { text -> editVariant(variant.id) { it.copy(condition = text.ifEmpty { null }) } }, label = { Text(tr("Condition", "الشرط")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            if (variant.condition != null && SpecExpression.parse(variant.condition) == null) Footnote(tr("This condition isn't valid.", "هذا الشرط غير صحيح."))
+            variant.layers.firstOrNull { it.content is LayerContent.Icon }?.let { layer ->
+                val icon = layer.content as LayerContent.Icon
+                OutlinedTextField(icon.symbol, { symbol ->
+                    editVariant(variant.id) { v -> v.copy(layers = v.layers.map { if (it === layer) it.copy(content = icon.copy(symbol = symbol)) else it }) }
+                }, label = { Text(tr("Symbol", "الرمز")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            }
+            if (variants.size > 1) TextButton(onClick = { change { current -> current.copy(set = null, box = current.box ?: current.set?.let { Capabilities.stateSet(it)?.box }, variants = current.expanded.filter { it.id != variant.id }) } }) {
+                Text(tr("Remove this state", "احذف هذه الحالة"), color = MaterialTheme.colorScheme.error)
+            }
+        }
+        Footnote(tr("The first state whose condition holds is shown. Leave a condition empty for the default. Editing a state makes a copy for this design.", "يُعرض أول شكل يتحقق شرطه. اترك الشرط فارغًا ليكون الافتراضي. تعديل أي حالة ينشئ نسخة خاصة بهذا التصميم."))
     }
 }

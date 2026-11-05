@@ -105,7 +105,7 @@ class StatesTest {
             assertEquals(set.id, set.variants.size, states.expanded.size)
             for (variant in states.expanded) {
                 assertTrue("${set.id}.${variant.id} draws nothing", variant.layers.isNotEmpty())
-                val overrides = (variant.sample ?: emptyMap()).mapKeys { (key, _) -> if (key == "\$value") (set.value ?: "").removeSurrounding("{{", "}}") else key }
+                val overrides = resolver().overrides(variant)
                 assertEquals(set.id, variant.id, resolver(overrides = overrides).variant(states)?.id)
             }
             val layer = Layer(Frame(0.0, 0.0, 100.0, 100.0), null, null, null, null, states)

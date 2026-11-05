@@ -86,6 +86,9 @@ class EditorState(initial: SavedDesign, val isNew: Boolean, photo: Bitmap?) {
     private val undoStack = ArrayDeque<SavedDesign>()
     private val redoStack = ArrayDeque<SavedDesign>()
     private var lastKey: String? = null
+    /** The States panel's preview: which state to show, and with what values (ADR-028). */
+    var previewForced by mutableStateOf<Map<String, String>>(emptyMap())
+    var previewOverrides by mutableStateOf<Map<String, String>>(emptyMap())
     var canUndo by mutableStateOf(false)
         private set
     var canRedo by mutableStateOf(false)
@@ -241,7 +244,7 @@ private fun EditorPreview(state: EditorState, language: String, onPick: (List<In
                 if (index != null) onPick(listOf(index))
             }
         }) {
-            DesignPreview(design, language, photo, Modifier.fillMaxWidth())
+            DesignPreview(design, language, photo, Modifier.fillMaxWidth(), state.previewForced, state.previewOverrides)
         }
     }
 }

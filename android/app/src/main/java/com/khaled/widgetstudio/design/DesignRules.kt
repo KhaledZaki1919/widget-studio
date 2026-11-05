@@ -171,7 +171,8 @@ object DesignRules {
         if (bound != null) {
             tally.pass(Rule.ALIVE)
         } else {
-            val state = Capabilities.bindings.firstOrNull { it.type == "symbol" && !it.id.startsWith("forecast.") && icon.symbol in it.icons && run.topics.has(it.prefix) }
+            // Only on a card that shows that topic: a sun beside a prayer time isn't the weather.
+            val state = Capabilities.bindings.firstOrNull { it.type == "symbol" && !it.id.startsWith("forecast.") && icon.symbol in it.icons && run.showsTopic(it.prefix) }
             if (state != null && !(state.id == "volume.symbol" && run.topics.value("media") >= run.topics.value("volume")) && item.frame.w >= 16) {
                 tally.fail(Rule.ALIVE, item, icon.symbol, oneLook)
                 if (state.id == "weather.symbol" && run.uses("weather.cond")) tally.fail(Rule.CORRECT, item, icon.symbol, mismatch)
@@ -182,8 +183,9 @@ object DesignRules {
         val area = tile ?: Frame(item.frame.x - 20, item.frame.y - 20, item.frame.w + 40, item.frame.h + 40)
         val action = run.actionFor(listOf(symbol), run.labels(area), tile != null) ?: return
         if (action.id in setOf("media.open", "calendar.open", "weather.open", "compass.open", "reminders.open")) return
-        if (tile == null && action.id in setOf("volume.up", "volume.down", "brightness.up", "brightness.down")) return
-        if (hasAction(tile ?: item.frame)) tally.pass(Rule.INTERACTIVE) else tally.fail(Rule.INTERACTIVE, item, icon.symbol, noAction)
+        if (tile == null && (action.group == "open" || action.id in setOf("volume.up", "volume.down", "brightness.up", "brightness.down"))) return
+        // The icon's own button, or one over the tile it sits on.
+        if (hasAction(item.frame) || (tile != null && hasAction(tile))) tally.pass(Rule.INTERACTIVE) else tally.fail(Rule.INTERACTIVE, item, icon.symbol, noAction)
     }
 
     /** A pill with a round knob is a switch: it needs a tap, and a look for each state. */
@@ -197,7 +199,11 @@ object DesignRules {
         }
         if (knobs.isEmpty()) return
         if (hasAction(f)) tally.pass(Rule.INTERACTIVE) else tally.fail(Rule.INTERACTIVE, item, "switch", noAction)
-        if (knobs.any { it.condition != null }) tally.pass(Rule.ALIVE) else tally.fail(Rule.ALIVE, item, "switch", oneLook)
+        // A Shortcut has no state to read, so it has only one look to show.
+        val action = run.spec.layers.firstNotNullOfOrNull { layer ->
+            (layer.content as? LayerContent.Button)?.takeIf { AutoWire.inside(f, layer.frame) }?.let { Capabilities.action(it.action) }
+        }
+        if (knobs.any { it.condition != null } || (action != null && action.state == null)) tally.pass(Rule.ALIVE) else tally.fail(Rule.ALIVE, item, "switch", oneLook)
     }
 
     private fun checkList(list: LayerContent.ListL, item: AutoWire.Found, tally: Tally, hasAction: (Frame) -> Boolean) {

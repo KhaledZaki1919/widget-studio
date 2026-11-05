@@ -18,6 +18,9 @@ final class EditorModel {
     /// Set by the PhotosPicker; the view calls `loadPhoto` when it changes.
     var photoItem: PhotosPickerItem?
     var previewLanguage = RenderContext.preferredLanguage
+    /// The States panel's preview: which state to show, and with what values (ADR-028).
+    var previewForced: [String: String] = [:]
+    var previewOverrides: [String: String] = [:]
 
     /// `photo`: an already processed photo (the AI flow's "Build around my photo").
     init(design: SavedDesign, isNew: Bool, photo: CGImage? = nil) {

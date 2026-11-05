@@ -191,8 +191,11 @@ public enum DesignRules {
         let bound = Bindings.soleBinding(icon.symbol)
         if bound != nil {
             tally.pass(.alive)
-        } else if let state = Capabilities.bindings.first(where: { $0.type == "symbol" && !$0.id.hasPrefix("forecast.") && $0.icons.contains(icon.symbol) && run.topics.has(AutoWire.Topics.prefix($0.id)) }),
-                  !(state.id == "volume.symbol" && run.topics.value("media") >= run.topics.value("volume")), item.frame.w >= 16 {
+        } else if let state = Capabilities.bindings.first(where: { capability in
+            // Only on a card that shows that topic: a sun beside a prayer time isn't the weather.
+            capability.type == "symbol" && !capability.id.hasPrefix("forecast.") && capability.icons.contains(icon.symbol)
+                && run.showsTopic(AutoWire.Topics.prefix(capability.id))
+        }), !(state.id == "volume.symbol" && run.topics.value("media") >= run.topics.value("volume")), item.frame.w >= 16 {
             tally.fail(.alive, item, icon.symbol, Say.oneLook)
             if state.id == "weather.symbol", run.uses("weather.cond") { tally.fail(.correct, item, icon.symbol, Say.mismatch) }
         }
@@ -203,8 +206,9 @@ public enum DesignRules {
         let area = tile ?? Frame(x: item.frame.x - 20, y: item.frame.y - 20, w: item.frame.w + 40, h: item.frame.h + 40)
         guard let action = run.actionFor(icons: [symbol], label: run.labels(in: area), isTile: tile != nil),
               !["media.open", "calendar.open", "weather.open", "compass.open", "reminders.open"].contains(action.id),
-              !(tile == nil && ["volume.up", "volume.down", "brightness.up", "brightness.down"].contains(action.id)) else { return }
-        if hasAction(tile ?? item.frame) { tally.pass(.interactive) } else { tally.fail(.interactive, item, icon.symbol, Say.noAction) }
+              !(tile == nil && (action.group == "open" || ["volume.up", "volume.down", "brightness.up", "brightness.down"].contains(action.id))) else { return }
+        // The icon's own button, or one over the tile it sits on.
+        if hasAction(item.frame) || tile.map(hasAction) == true { tally.pass(.interactive) } else { tally.fail(.interactive, item, icon.symbol, Say.noAction) }
     }
 
     /// A pill with a round knob is a switch: it needs a tap, and a look for each state.
@@ -217,7 +221,16 @@ public enum DesignRules {
         }
         guard !knobs.isEmpty else { return }
         if hasAction(item.frame) { tally.pass(.interactive) } else { tally.fail(.interactive, item, "switch", Say.noAction) }
-        if knobs.contains(where: { $0.when != nil }) { tally.pass(.alive) } else { tally.fail(.alive, item, "switch", Say.oneLook) }
+        // A Shortcut has no state to read, so it has only one look to show.
+        let action = run.spec.layers.compactMap { layer -> Capability? in
+            guard case .button(let button) = layer.content, AutoWire.Run.inside(item.frame, layer.frame) else { return nil }
+            return Capabilities.action(button.action.rawValue)
+        }.first
+        if knobs.contains(where: { $0.when != nil }) || (action != nil && action?.state == nil) {
+            tally.pass(.alive)
+        } else {
+            tally.fail(.alive, item, "switch", Say.oneLook)
+        }
     }
 
     private static func checkList(_ list: ListLayer, _ item: AutoWire.Found, _ tally: inout Tally, hasAction: (Frame) -> Bool) {
