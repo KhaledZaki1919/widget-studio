@@ -1749,5 +1749,895 @@
   "notWired": [
    "weather.open"
   ]
+ },
+ {
+  "name": "year dots: the label beats the battery, 15 of 48 lit is a level",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.year",
+   "name": {
+    "en": "Progress",
+    "ar": "Progress"
+   },
+   "family": "small",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "layers": [
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 16,
+      "y": 14,
+      "w": 80,
+      "h": 20
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "Year",
+        "ar": "السنة"
+       },
+       "font": {
+        "family": "system",
+        "size": 13
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    },
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 100,
+      "y": 14,
+      "w": 54,
+      "h": 20
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "53%",
+        "ar": "53%"
+       },
+       "font": {
+        "family": "system",
+        "size": 13
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    },
+    {
+     "type": "dotGrid",
+     "frame": {
+      "x": 16,
+      "y": 50,
+      "w": 138,
+      "h": 104
+     },
+     "rows": 6,
+     "cols": 8,
+     "dotSize": 6,
+     "gap": 4,
+     "onColor": "#FFFFFF",
+     "offColor": "#333333",
+     "values": "111111111111111000000000000000000000000000000000"
+    }
+   ]
+  },
+  "wired": [
+   "year.progress"
+  ],
+  "notWired": [
+   "battery.level",
+   "battery.symbol"
+  ]
+ },
+ {
+  "name": "a percent in one text keeps its label",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.year2",
+   "name": {
+    "en": "Stats",
+    "ar": "Stats"
+   },
+   "family": "small",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "layers": [
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 16,
+      "y": 14,
+      "w": 140,
+      "h": 20
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "Year 53%",
+        "ar": "السنة 53%"
+       },
+       "font": {
+        "family": "system",
+        "size": 13
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    }
+   ]
+  },
+  "wired": [
+   "year.progress"
+  ],
+  "notWired": [
+   "battery.level"
+  ]
+ },
+ {
+  "name": "month and steps labels pick their own share",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.mix",
+   "name": {
+    "en": "Stats",
+    "ar": "Stats"
+   },
+   "family": "medium",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "layers": [
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 16,
+      "y": 14,
+      "w": 70,
+      "h": 20
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "Month",
+        "ar": "الشهر"
+       },
+       "font": {
+        "family": "system",
+        "size": 13
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    },
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 90,
+      "y": 14,
+      "w": 50,
+      "h": 20
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "16%",
+        "ar": "16%"
+       },
+       "font": {
+        "family": "system",
+        "size": 13
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    },
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 200,
+      "y": 14,
+      "w": 70,
+      "h": 20
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "Steps",
+        "ar": "الخطوات"
+       },
+       "font": {
+        "family": "system",
+        "size": 13
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    },
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 280,
+      "y": 14,
+      "w": 50,
+      "h": 20
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "55%",
+        "ar": "55%"
+       },
+       "font": {
+        "family": "system",
+        "size": 13
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    }
+   ]
+  },
+  "wired": [
+   "month.progress",
+   "steps.progress"
+  ],
+  "notWired": [
+   "battery.level"
+  ]
+ },
+ {
+  "name": "a lone percent with nothing near it stays static",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.unsure",
+   "name": {
+    "en": "Card",
+    "ar": "Card"
+   },
+   "family": "small",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "layers": [
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 16,
+      "y": 60,
+      "w": 100,
+      "h": 40
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "42%",
+        "ar": "42%"
+       },
+       "font": {
+        "family": "system",
+        "size": 28
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    }
+   ]
+  },
+  "wired": [],
+  "notWired": [
+   "battery.level",
+   "year.progress"
+  ]
+ },
+ {
+  "name": "a percent beside a battery icon is the battery",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.battery",
+   "name": {
+    "en": "Phone",
+    "ar": "Phone"
+   },
+   "family": "small",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "layers": [
+    {
+     "type": "icon",
+     "frame": {
+      "x": 16,
+      "y": 14,
+      "w": 24,
+      "h": 24
+     },
+     "symbol": "battery.75",
+     "size": 20,
+     "color": "#FFFFFF"
+    },
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 50,
+      "y": 14,
+      "w": 70,
+      "h": 24
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "76%",
+        "ar": "76%"
+       },
+       "font": {
+        "family": "system",
+        "size": 16
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    }
+   ]
+  },
+  "wired": [
+   "battery.level"
+  ],
+  "notWired": [
+   "year.progress"
+  ]
+ },
+ {
+  "name": "the model bound a year label to the battery: the label wins",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.fix",
+   "name": {
+    "en": "Progress",
+    "ar": "Progress"
+   },
+   "family": "small",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "layers": [
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 16,
+      "y": 14,
+      "w": 80,
+      "h": 20
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "Year",
+        "ar": "السنة"
+       },
+       "font": {
+        "family": "system",
+        "size": 13
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    },
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 100,
+      "y": 14,
+      "w": 54,
+      "h": 20
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "{{battery.level}}%",
+        "ar": "{{battery.level}}%"
+       },
+       "font": {
+        "family": "system",
+        "size": 13
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    },
+    {
+     "type": "dotGrid",
+     "frame": {
+      "x": 16,
+      "y": 50,
+      "w": 138,
+      "h": 104
+     },
+     "rows": 6,
+     "cols": 8,
+     "dotSize": 6,
+     "gap": 4,
+     "onColor": "#FFFFFF",
+     "offColor": "#333333",
+     "values": "{{battery.level}}"
+    }
+   ]
+  },
+  "wired": [
+   "year.progress"
+  ],
+  "notWired": [
+   "battery.level"
+  ]
+ },
+ {
+  "name": "a row of weather icons follows each day",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.fc",
+   "name": {
+    "en": "Forecast",
+    "ar": "Forecast"
+   },
+   "family": "medium",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "layers": [
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 16,
+      "y": 14,
+      "w": 50,
+      "h": 18
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "Mon",
+        "ar": "Mon"
+       },
+       "font": {
+        "family": "system",
+        "size": 12
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    },
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 76,
+      "y": 14,
+      "w": 50,
+      "h": 18
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "Tue",
+        "ar": "Tue"
+       },
+       "font": {
+        "family": "system",
+        "size": 12
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    },
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 136,
+      "y": 14,
+      "w": 50,
+      "h": 18
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "Wed",
+        "ar": "Wed"
+       },
+       "font": {
+        "family": "system",
+        "size": 12
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    },
+    {
+     "type": "icon",
+     "frame": {
+      "x": 28,
+      "y": 40,
+      "w": 24,
+      "h": 24
+     },
+     "symbol": "sun.max.fill",
+     "size": 20,
+     "color": "#FFFFFF"
+    },
+    {
+     "type": "icon",
+     "frame": {
+      "x": 88,
+      "y": 40,
+      "w": 24,
+      "h": 24
+     },
+     "symbol": "cloud.fill",
+     "size": 20,
+     "color": "#FFFFFF"
+    },
+    {
+     "type": "icon",
+     "frame": {
+      "x": 148,
+      "y": 40,
+      "w": 24,
+      "h": 24
+     },
+     "symbol": "cloud.rain.fill",
+     "size": 20,
+     "color": "#FFFFFF"
+    },
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 16,
+      "y": 70,
+      "w": 50,
+      "h": 18
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "30°",
+        "ar": "30°"
+       },
+       "font": {
+        "family": "system",
+        "size": 12
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    },
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 76,
+      "y": 70,
+      "w": 50,
+      "h": 18
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "28°",
+        "ar": "28°"
+       },
+       "font": {
+        "family": "system",
+        "size": 12
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    },
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 136,
+      "y": 70,
+      "w": 50,
+      "h": 18
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "24°",
+        "ar": "24°"
+       },
+       "font": {
+        "family": "system",
+        "size": 12
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    }
+   ]
+  },
+  "wired": [
+   "forecast.1.symbol",
+   "forecast.3.symbol",
+   "forecast.2.day",
+   "forecast.1.hi",
+   "forecast.3.hi"
+  ],
+  "notWired": [
+   "weather.temp",
+   "date.EEE"
+  ]
+ },
+ {
+  "name": "an emoji face on a battery card is the mood set",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.mood",
+   "name": {
+    "en": "Battery",
+    "ar": "Battery"
+   },
+   "family": "small",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "layers": [
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 50,
+      "y": 20,
+      "w": 70,
+      "h": 70
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "😀",
+        "ar": "😀"
+       },
+       "font": {
+        "family": "system",
+        "size": 48
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    },
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 16,
+      "y": 110,
+      "w": 120,
+      "h": 20
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "Battery",
+        "ar": "البطارية"
+       },
+       "font": {
+        "family": "system",
+        "size": 13
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    }
+   ]
+  },
+  "wired": [
+   "battery.level",
+   "battery.charging"
+  ],
+  "notWired": []
+ },
+ {
+  "name": "a face drawn from shapes on a battery card is the mood set",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.face",
+   "name": {
+    "en": "Battery",
+    "ar": "Battery"
+   },
+   "family": "small",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "layers": [
+    {
+     "type": "shape",
+     "frame": {
+      "x": 40,
+      "y": 20,
+      "w": 90,
+      "h": 90
+     },
+     "kind": "circle",
+     "stroke": {
+      "color": "#FFFFFF",
+      "width": 3
+     }
+    },
+    {
+     "type": "shape",
+     "frame": {
+      "x": 62,
+      "y": 48,
+      "w": 10,
+      "h": 10
+     },
+     "kind": "circle",
+     "fill": "#FFFFFF"
+    },
+    {
+     "type": "shape",
+     "frame": {
+      "x": 98,
+      "y": 48,
+      "w": 10,
+      "h": 10
+     },
+     "kind": "circle",
+     "fill": "#FFFFFF"
+    },
+    {
+     "type": "shape",
+     "frame": {
+      "x": 66,
+      "y": 80,
+      "w": 38,
+      "h": 5
+     },
+     "kind": "capsule",
+     "fill": "#FFFFFF"
+    },
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 16,
+      "y": 130,
+      "w": 120,
+      "h": 20
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "Battery",
+        "ar": "البطارية"
+       },
+       "font": {
+        "family": "system",
+        "size": 13
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    }
+   ]
+  },
+  "wired": [
+   "battery.level",
+   "battery.charging"
+  ],
+  "notWired": []
+ },
+ {
+  "name": "a dot drawing on a weather card is the weather set",
+  "spec": {
+   "schemaVersion": 1,
+   "id": "v.art",
+   "name": {
+    "en": "Weather",
+    "ar": "Weather"
+   },
+   "family": "small",
+   "background": {
+    "type": "solid",
+    "color": "#111111"
+   },
+   "layers": [
+    {
+     "type": "dotGrid",
+     "frame": {
+      "x": 30,
+      "y": 14,
+      "w": 110,
+      "h": 110
+     },
+     "rows": 8,
+     "cols": 8,
+     "dotSize": 10,
+     "gap": 4,
+     "onColor": "#FFFFFF",
+     "offColor": "#00000000",
+     "values": "0011110000111110110111111110111111110111111110110111110000111100"
+    },
+    {
+     "type": "stack",
+     "axis": "vertical",
+     "frame": {
+      "x": 16,
+      "y": 130,
+      "w": 120,
+      "h": 20
+     },
+     "children": [
+      {
+       "type": "text",
+       "value": {
+        "en": "Sunny",
+        "ar": "مشمس"
+       },
+       "font": {
+        "family": "system",
+        "size": 13
+       },
+       "color": "#FFFFFF"
+      }
+     ]
+    }
+   ]
+  },
+  "wired": [
+   "weather.kind",
+   "time.isDay"
+  ],
+  "notWired": []
  }
 ]

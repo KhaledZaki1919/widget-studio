@@ -86,7 +86,7 @@ public struct SpecCondition: Sendable, Equatable {
             let value = tail.dropFirst(2).trimmingCharacters(in: .whitespaces)
             guard !value.isEmpty else { return nil }
             test = tail.hasPrefix("==") ? .equals(value) : .notEquals(value)
-        } else if let symbol = [">=", "<=", ">", "<"].first(where: tail.hasPrefix) {
+        } else if let symbol = [">=", "<=", ">", "<"].first(where: { tail.hasPrefix($0) }) {
             guard let number = Double(tail.dropFirst(symbol.count).trimmingCharacters(in: .whitespaces)) else { return nil }
             test = .compare(symbol, number)
         } else if tail.hasPrefix("in ") {

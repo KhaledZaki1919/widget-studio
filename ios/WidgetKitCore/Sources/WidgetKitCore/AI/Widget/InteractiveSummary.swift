@@ -76,6 +76,10 @@ public struct InteractiveSummary: Sendable, Equatable {
         for entry in spec.decorative ?? [] {
             decorative.append(Item(path: [], title: entry.element, capability: nil, detail: entry.reason))
         }
+        // What the product rules still find after the post-pass (ADR-028): static when unsure, marked here.
+        for finding in DesignRules.check(spec).findings where !decorative.contains(where: { $0.path == finding.path && !finding.path.isEmpty }) {
+            decorative.append(Item(path: finding.path, title: finding.element, capability: nil, detail: finding.message.resolved(language: language)))
+        }
         return InteractiveSummary(live: live, tappable: tappable, decorative: decorative)
     }
 }

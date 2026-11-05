@@ -124,7 +124,7 @@ public struct BindingResolver {
         case .falsy: return !Self.isTruthy(value)
         case .equals(let expected): return value.map(display) == expected
         case .notEquals(let expected): return value.map(display).map { $0 != expected } ?? false
-        case .anyOf(let items): return value.map(display).map(items.contains) ?? false
+        case .anyOf(let items): return value.map(display).map { items.contains($0) } ?? false
         case .range(let low, let high): return Self.number(of: value).map { $0 >= low && $0 <= high } ?? false
         case .compare(let symbol, let target):
             guard let number = Self.number(of: value) else { return false }

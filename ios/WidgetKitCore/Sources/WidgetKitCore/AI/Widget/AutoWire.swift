@@ -31,11 +31,14 @@ public enum AutoWire {
         var run = Run(spec: spec, inventory: inventory)
         run.sliders()
         run.modelWiring(wiring)
+        run.forecastRows()
         run.texts()
         run.listRows()
         run.mediaTitles()
         run.symbols()
+        run.stateSets()
         run.progress()
+        run.correctShares()
         run.toggles()
         run.controls()
         run.sliderZones()
@@ -257,7 +260,7 @@ public enum AutoWire {
             let height: Double
         }
 
-        init(spec: WidgetSpec, inventory: [String]) {
+        init(spec: WidgetSpec, inventory: [String] = []) {
             self.spec = spec
             canvas = CGSizeLike(width: Double(spec.family.canvas.width), height: Double(spec.family.canvas.height))
             var words = spec.name.allValues + inventory
@@ -292,7 +295,7 @@ public enum AutoWire {
         }
 
         func uses(_ binding: String) -> Bool {
-            DataRequirements.bindingNames(in: spec).contains(binding)
+            DataRequirements.bindingNames(in: spec).map { $0.trimmingCharacters(in: .whitespaces) }.contains(binding)
         }
 
         mutating func log(_ what: String, _ id: String) {
@@ -370,10 +373,15 @@ public enum AutoWire {
                         ? "{{time.hh}}:{{time.mm}}" + (TextShape.hasMeridiem(english) ? " {{time.ampm}}" : "") : "{{\(id)}}"
                     setText(item.path, en: template, ar: template, was: english, id: id)
                 } else if TextShape.isPercent(english) {
-                    let prefix = topics.best(of: ["volume", "brightness", "steps", "timer", "battery"]) ?? "battery"
-                    let id = prefix == "volume" ? "volume.level" : prefix == "brightness" ? "brightness.level"
-                        : prefix == "steps" ? "steps.progress" : prefix == "timer" ? "timer.progress" : "battery.level"
-                    setText(item.path, en: "{{\(id)}}%", ar: "{{\(id)}}%", was: english, id: id)
+                    // Only what a label names (ADR-028); unsure stays static, and DesignRules lists it.
+                    if let id = shareBinding(for: item, kind: "text") {
+                        setText(item.path, en: "{{\(id)}}%", ar: "{{\(id)}}%", was: english, id: id)
+                    }
+                } else if let label = TextShape.percentLabel(english) {
+                    if let id = namedShare(for: item, kind: "text", own: label) {
+                        setText(item.path, en: TextShape.replacingPercent(english, with: id), ar: TextShape.replacingPercent(text.value.resolved(language: "ar"), with: id),
+                                was: english, id: id)
+                    }
                 } else if TextShape.isTemperature(english) {
                     let unit = english.hasSuffix("C") ? "C" : english.hasSuffix("F") ? "F" : ""
                     setText(item.path, en: "{{weather.temp}}°\(unit)", ar: "{{weather.temp}}°\(unit == "C" ? "م" : unit == "F" ? "ف" : "")",
@@ -513,19 +521,11 @@ public enum AutoWire {
 
         // MARK: Progress
 
-        /// The binding for a level drawn on `kind` (`progressBar`, `ring`, `dotGrid`) on this card.
-        func levelBinding(kind: String) -> String? {
-            guard let prefix = topics.best(of: ["media", "volume", "brightness", "battery", "steps", "timer"]) else { return nil }
-            return Capabilities.bindings.first {
-                Topics.prefix($0.id) == prefix && $0.layers.contains(kind) && $0.type == "number"
-            }?.id
-        }
-
         mutating func progress() {
             for item in AutoWire.walk(spec.layers) {
                 switch item.layer.content {
                 case .progressBar(let bar) where Bindings.soleBinding(bar.progress) == nil:
-                    guard let id = levelBinding(kind: "progressBar") else { continue }
+                    guard let id = shareBinding(for: item, kind: "progressBar") else { continue }
                     update(item.path) { layer in
                         guard case .progressBar(var changed) = layer.content else { return }
                         changed.progress = "{{\(id)}}"
@@ -533,7 +533,7 @@ public enum AutoWire {
                     }
                     log("progress bar \(bar.progress)", id)
                 case .ring(let ring) where Bindings.soleBinding(ring.progress) == nil:
-                    guard let id = levelBinding(kind: "ring") else { continue }
+                    guard let id = shareBinding(for: item, kind: "ring") else { continue }
                     update(item.path) { layer in
                         guard case .ring(var changed) = layer.content else { return }
                         changed.progress = "{{\(id)}}"
@@ -541,7 +541,9 @@ public enum AutoWire {
                     }
                     log("ring \(ring.progress)", id)
                 case .dotGrid(let grid) where Bindings.soleBinding(grid.values) == nil:
-                    guard Self.isFillPattern(grid), let id = levelBinding(kind: "dotGrid") else { continue }
+                    // A label that names a share binds dots of any pattern: 15 of 48 lit is still a level.
+                    let named = namedShare(for: item, kind: "dotGrid")
+                    guard named != nil || Self.isFillPattern(grid), let id = named ?? shareBinding(for: item, kind: "dotGrid") else { continue }
                     update(item.path) { layer in
                         guard case .dotGrid(var changed) = layer.content else { return }
                         changed.values = "{{\(id)}}"

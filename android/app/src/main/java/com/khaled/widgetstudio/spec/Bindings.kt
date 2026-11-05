@@ -512,7 +512,7 @@ class BindingResolver(val spec: WidgetSpec, val context: RenderContext) {
             "symbol" -> Value.Text(item.symbol)
             "hi" -> number(item.high, 0)
             "lo" -> number(item.low, 0)
-            else -> Value.Text(DateTimeFormatter.ofPattern("EEE", context.locale).format(item.date.atZone(zoned.zone)))
+            else -> Value.Text(DateTimeFormatter.ofPattern("EEE", context.locale).format(item.date))
         }
     }
 

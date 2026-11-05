@@ -32,11 +32,14 @@ object AutoWire {
         val run = Run(spec, inventory)
         run.sliders()
         run.modelWiring(wiring)
+        run.forecastRows()
         run.texts()
         run.listRows()
         run.mediaTitles()
         run.symbols()
+        run.stateSets()
         run.progress()
+        run.correctShares()
         run.toggles()
         run.controls()
         run.sliderZones()
@@ -45,6 +48,9 @@ object AutoWire {
         run.dropUnusedFields()
         return Outcome(run.spec, run.changes.toList())
     }
+
+    /** The binding names in a text. */
+    fun names(text: String): List<String> = Bindings.tokenize(text).filterIsInstance<Bindings.Token.Binding>().map { it.name.trim() }
 
     /** Whole-word match for Latin keywords, substring for Arabic. [corpus] is lowercased. */
     fun occurs(keyword: String, corpus: String): Boolean {
@@ -95,6 +101,19 @@ object AutoWire {
         private val hours = Regex("^[0-9]{1,3}\\s*([hH]|hr|hrs|س)\\s*([0-9]{1,2}\\s*([mM]|min|mins|د))?$")
         private val minutes = Regex("^[0-9]{1,3}\\s*(min|mins|m|د)$")
         private val stepCount = Regex("^[0-9]{1,3}(,[0-9]{3})+$")
+
+        private val labelled = Regex("^.*[^0-9٠-٩\\s]\\s*[0-9٠-٩]{1,3}\\s*[%٪]$")
+        private val tail = Regex("\\s*[0-9٠-٩]{1,3}\\s*[%٪]$")
+        private val tailNumber = Regex("[0-9٠-٩]{1,3}(?=\\s*[%٪]$)")
+
+        /** `Year 53%` → `Year`; null unless a label comes before the percent. */
+        fun percentLabel(text: String): String? = if (labelled.containsMatchIn(text)) text.replace(tail, "") else null
+
+        /** The number of a percent replaced by a binding, in either language's digits. */
+        fun replacingPercent(text: String, id: String) = text.replace(tailNumber) { "{{$id}}" }
+
+        fun isDayName(text: String) = text.lowercase().let { it in shortDays || it in weekdays }
+        fun isToday(text: String) = text.lowercase() in listOf("today", "now", "اليوم", "الآن")
 
         fun isClock(text: String) = clock.containsMatchIn(text)
         fun hasMeridiem(text: String) = meridiem.containsMatchIn(text)
@@ -189,9 +208,9 @@ object AutoWire {
         return x >= outer.x && x <= outer.x + outer.w && y >= outer.y && y <= outer.y + outer.h
     }
 
-    private data class Planned(val frame: Frame, val action: Capability, val mirror: Boolean?, val element: String)
+    internal data class Planned(val frame: Frame, val action: Capability, val mirror: Boolean?, val element: String)
 
-    private class Run(var spec: WidgetSpec, inventory: List<String>) {
+    internal class Run(var spec: WidgetSpec, inventory: List<String>) {
         val changes = mutableListOf<String>()
         val replacedFields = mutableSetOf<String>()
         val width = spec.family.width
@@ -232,6 +251,8 @@ object AutoWire {
             }
 
         fun uses(binding: String) = binding in BindingNames.names(spec)
+
+        fun text(item: Found) = (item.layer.content as? LayerContent.Text)?.value?.resolved("en") ?: ""
 
         fun log(what: String, id: String) {
             changes += "$what → $id"
@@ -303,15 +324,10 @@ object AutoWire {
                         val template = if (id == "time.hh") "{{time.hh}}:{{time.mm}}" + (if (TextShape.hasMeridiem(english)) " {{time.ampm}}" else "") else "{{$id}}"
                         setText(item.path, template, template, english, id)
                     }
-                    TextShape.isPercent(english) -> {
-                        val id = when (topics.best("volume", "brightness", "steps", "timer", "battery")) {
-                            "volume" -> "volume.level"
-                            "brightness" -> "brightness.level"
-                            "steps" -> "steps.progress"
-                            "timer" -> "timer.progress"
-                            else -> "battery.level"
-                        }
-                        setText(item.path, "{{$id}}%", "{{$id}}%", english, id)
+                    // Only what a label names (ADR-028); unsure stays static, and DesignRules lists it.
+                    TextShape.isPercent(english) -> shareBinding(item, "text")?.let { id -> setText(item.path, "{{$id}}%", "{{$id}}%", english, id) }
+                    TextShape.percentLabel(english) != null -> namedShare(item, "text", TextShape.percentLabel(english) ?: "")?.let { id ->
+                        setText(item.path, TextShape.replacingPercent(english, id), TextShape.replacingPercent(text.value.resolved("ar"), id), english, id)
                     }
                     TextShape.isTemperature(english) -> {
                         val unit = if (english.endsWith("C")) "C" else if (english.endsWith("F")) "F" else ""
@@ -325,6 +341,126 @@ object AutoWire {
         }
 
         /** Rows of a list: an agenda's events, open reminders, prayer times. Row N takes item N. */
+        /** A label that names another share wins: a "Year" percent never shows the battery. */
+        fun correctShares() {
+            for (item in walk(spec.layers)) {
+                val (current, kind) = boundShare(item.layer) ?: continue
+                val own = words(item.layer)
+                val better = namedShare(item, kind, own) ?: continue
+                if (better == current.id || isNamed(current, item, own)) continue
+                val from = "{{${current.id}}}"
+                val to = "{{$better}}"
+                update(item.path) { layer ->
+                    when (val c = layer.content) {
+                        is LayerContent.Text -> {
+                            val values = c.value.allValues.map { it.replace(from, to) }
+                            layer.copy(content = c.copy(value = LText.Localized(values.first(), values.last())))
+                        }
+                        is LayerContent.Ring -> layer.copy(content = c.copy(progress = to))
+                        is LayerContent.ProgressBar -> layer.copy(content = c.copy(progress = to))
+                        is LayerContent.DotGrid -> layer.copy(content = c.copy(values = to))
+                        else -> layer
+                    }
+                }
+                log("${current.id} beside another label", better)
+            }
+        }
+
+        /**
+         * Three or more weather icons in a row are days: each follows its own day, and the labels and
+         * temperatures under it follow too. A first column called Today shows today.
+         */
+        fun forecastRows() {
+            val weather = ((Capabilities.binding("weather.symbol")?.icons ?: emptyList()) + listOf("cloud.drizzle.fill", "cloud.heavyrain.fill", "cloud.bolt.rain.fill", "cloud.snow.fill", "cloud.fog.fill", "moon.fill", "moon.stars.fill")).toSet()
+            val items = walk(spec.layers).filter { (it.layer.content as? LayerContent.Icon)?.symbol in weather }
+            val rows = mutableListOf<MutableList<Found>>()
+            for (item in items) {
+                val row = rows.firstOrNull { abs(it[0].frame.y + it[0].frame.h / 2 - item.frame.y - item.frame.h / 2) <= 12 }
+                if (row != null) row += item else rows += mutableListOf(item)
+            }
+            for (row in rows) {
+                if (row.size < 3) continue
+                val days = row.sortedBy { it.frame.x }.take(7)
+                val step = days[1].frame.x - days[0].frame.x
+                val rowY = days[0].frame.y + days[0].frame.h / 2
+                val texts = walk(spec.layers).filter { item ->
+                    val text = item.layer.content as? LayerContent.Text
+                    text != null && text.liveKind == null && !text.value.resolved("en").contains("{{") && abs(item.frame.y + item.frame.h / 2 - rowY) <= 70
+                }
+                fun column(icon: Found): List<Found> {
+                    val middle = icon.frame.x + icon.frame.w / 2
+                    return texts.filter { abs(it.frame.x + it.frame.w / 2 - middle) < step / 2 }.sortedBy { it.frame.y }
+                }
+                val startsToday = column(days[0]).any { TextShape.isToday(text(it).trim()) }
+                for ((index, icon) in days.withIndex()) {
+                    val day = if (startsToday) index else index + 1
+                    if (day > 6) break
+                    val symbol = if (day == 0) "weather.symbol" else "forecast.$day.symbol"
+                    update(icon.path) { layer -> (layer.content as? LayerContent.Icon)?.let { layer.copy(content = it.copy(symbol = "{{$symbol}}")) } ?: layer }
+                    log("forecast icon", symbol)
+                    var temperatures = 0
+                    for (item in column(icon)) {
+                        val value = text(item).trim()
+                        if (TextShape.isDayName(value) && day > 0) {
+                            setText(item.path, "{{forecast.$day.day}}", "{{forecast.$day.day}}", value, "forecast.$day.day")
+                        } else if (TextShape.isTemperature(value)) {
+                            val part = if (temperatures == 0) "hi" else "lo"
+                            temperatures += 1
+                            val id = if (day == 0) "weather.$part" else "forecast.$day.$part"
+                            setText(item.path, "{{$id}}°", "{{$id}}°", value, id)
+                        }
+                    }
+                }
+            }
+        }
+
+        /** A frozen face or dot drawing on a card about something that changes becomes a state layer. */
+        fun stateSets() {
+            faces()
+            for (item in walk(spec.layers)) {
+                when (val c = item.layer.content) {
+                    is LayerContent.Text -> {
+                        val value = c.value.resolved("en").replace("\uFE0E", "").replace("\uFE0F", "").trim()
+                        val set = Capabilities.stateSets.firstOrNull { value in it.glyphs } ?: continue
+                        if (value.isEmpty() || set.topic == null || !topics.has(set.topic)) continue
+                        swap(item, set.id, set.topic, c.color)
+                    }
+                    is LayerContent.DotGrid -> {
+                        if (c.rows < 8 || c.cols < 8 || Bindings.soleBinding(c.values) != null || isFillPattern(c)) continue
+                        val set = artSet(item) ?: continue
+                        swap(item, set.id, set.topic ?: "", c.onColor)
+                    }
+                    else -> Unit
+                }
+            }
+        }
+
+        private fun swap(item: Found, id: String, topic: String, color: String) {
+            val states = LayerContent.States(id, null, color, "@accent", "@dim", null, null)
+            if (item.path.size == 1) {
+                update(item.path) { it.copy(content = states) }
+            } else {
+                // A stack child: keep its space, and draw the set at the top level over it.
+                update(item.path) { it.copy(content = LayerContent.Spacer(null)) }
+                insertDrawn(listOf(Layer(item.frame, null, item.mirror, null, null, states)))
+            }
+            log("frozen $topic", id)
+        }
+
+        /** A round head with small round eyes, drawn from shapes, on a battery card. */
+        private fun faces() {
+            if (!topics.has("battery") || Capabilities.stateSet("battery.mood") == null) return
+            for ((index, layer) in spec.layers.withIndex()) {
+                val parts = faceParts(index, spec.layers) ?: continue
+                val shape = layer.content as? LayerContent.Shape
+                val color = shape?.stroke?.color ?: shape?.fill ?: "@fg"
+                val head = layer.copy(content = LayerContent.States("battery.mood", null, color, "@accent", "@dim", null, null))
+                spec = spec.copy(layers = spec.layers.mapIndexed { position, other -> if (position == index) head else other }.filterIndexed { position, _ -> position !in parts })
+                log("frozen face", "battery.mood")
+                return
+            }
+        }
+
         fun listRows() {
             for (item in walk(spec.layers)) {
                 val list = item.layer.content as? LayerContent.ListL ?: continue
@@ -418,26 +554,24 @@ object AutoWire {
 
         // Progress
 
-        fun levelBinding(kind: String): String? {
-            val prefix = topics.best("media", "volume", "brightness", "battery", "steps", "timer") ?: return null
-            return Capabilities.bindings.firstOrNull { it.prefix == prefix && kind in it.layers && it.type == "number" }?.id
-        }
-
         fun progress() {
             for (item in walk(spec.layers)) {
                 when (val c = item.layer.content) {
                     is LayerContent.ProgressBar -> if (Bindings.soleBinding(c.progress) == null) {
-                        val id = levelBinding("progressBar") ?: continue
+                        val id = shareBinding(item, "progressBar") ?: continue
                         update(item.path) { it.copy(content = c.copy(progress = "{{$id}}")) }
                         log("progress bar ${c.progress}", id)
                     }
                     is LayerContent.Ring -> if (Bindings.soleBinding(c.progress) == null) {
-                        val id = levelBinding("ring") ?: continue
+                        val id = shareBinding(item, "ring") ?: continue
                         update(item.path) { it.copy(content = c.copy(progress = "{{$id}}")) }
                         log("ring ${c.progress}", id)
                     }
-                    is LayerContent.DotGrid -> if (Bindings.soleBinding(c.values) == null && isFillPattern(c)) {
-                        val id = levelBinding("dotGrid") ?: continue
+                    is LayerContent.DotGrid -> if (Bindings.soleBinding(c.values) == null) {
+                        // A label that names a share binds dots of any pattern: 15 of 48 lit is still a level.
+                        val named = namedShare(item, "dotGrid")
+                        if (named == null && !isFillPattern(c)) continue
+                        val id = named ?: shareBinding(item, "dotGrid") ?: continue
                         update(item.path) { it.copy(content = c.copy(values = "{{$id}}")) }
                         log("dots ${c.values}", id)
                     }
@@ -904,6 +1038,10 @@ data class InteractiveSummary(val live: List<Item>, val tappable: List<Item>, va
                 }
             }
             for (entry in spec.decorative) decorative += Item(emptyList(), entry.element, null, entry.reason)
+            // What the product rules still find after the post-pass (ADR-028): static when unsure, marked here.
+            for (finding in DesignRules.check(spec).findings) {
+                if (decorative.none { it.path == finding.path && finding.path.isNotEmpty() }) decorative += Item(finding.path, finding.element, null, finding.message.resolved(language))
+            }
             return InteractiveSummary(live, tappable, decorative)
         }
     }
