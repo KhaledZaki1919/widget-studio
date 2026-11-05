@@ -172,6 +172,7 @@ struct LayerRow: View {
             case .grid: "editor.layer.kind.grid"
             }
         case .spacer: "editor.layer.kind.spacer"
+        case .states: "editor.layer.kind.states"
         case .unknown: "editor.layer.kind.unknown"
         }
     }
@@ -197,6 +198,7 @@ struct LayerRow: View {
             case .grid: "square.grid.2x2"
             }
         case .spacer: "arrow.up.and.down"
+        case .states: "circle.lefthalf.filled"
         case .unknown: "questionmark.square"
         }
     }

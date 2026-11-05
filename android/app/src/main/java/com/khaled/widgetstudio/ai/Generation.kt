@@ -423,6 +423,7 @@ object AIWidgetParser {
                 is LayerContent.DotGrid -> listOf(c.values)
                 is LayerContent.ListL -> c.items.flatMap { it.title.allValues + (it.detail?.allValues ?: emptyList()) }
                 is LayerContent.ForecastRow -> listOf("{{weather.temp}}")
+                is LayerContent.States -> c.expanded.mapNotNull { it.condition } + listOfNotNull(c.value)
                 else -> emptyList()
             }
             texts.flatMap { t -> Bindings.tokenize(t).filterIsInstance<Bindings.Token.Binding>().map { it.name.trim() } }

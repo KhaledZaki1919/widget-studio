@@ -36,6 +36,9 @@ data class Capability(
 ) {
     val prefix: String get() = id.substringBefore('.')
 
+    /** A share 0…1 that reads as a whole percent in text: what a level, ring or dots can show. */
+    val isShare: Boolean get() = type == "number" && "ring" in layers
+
     /** The field type an action's `arg` must point to; null when it needs no field. */
     val argFieldType: String? get() = arg?.takeIf { it == "url" || it == "shortcut" || it == "text" }
 
@@ -49,15 +52,56 @@ data class Capability(
 
 data class Named(val id: String, val title: LText)
 
-object Capabilities {
-    private class Catalog(val bindings: List<Capability>, val actions: List<Capability>, val groups: List<Named>, val permissions: List<Named>)
+/** One built-in state set of the catalog (ADR-028). */
+data class StateSet(
+    val id: String, val title: LText, val description: String, val box: List<Double>, val value: String?, val topic: String?,
+    val needs: List<String>, val keywords: List<String>, val glyphs: List<String>, val variantsJson: String,
+) {
+    val variants: List<StateVariant> by lazy { StateSets.parse(variantsJson) }
+}
 
-    @Volatile private var catalog = Catalog(emptyList(), emptyList(), emptyList(), emptyList())
+object StateSets {
+    private val cache = java.util.concurrent.ConcurrentHashMap<String, List<StateVariant>>()
+
+    fun parse(json: String): List<StateVariant> = Json.parseToJsonElement(json).jsonArray.map { SpecParser.variant(it.jsonObject) }
+
+    /** A set's variants with its placeholders filled in; cached, like StateSets.swift. */
+    fun variants(id: String, value: String, color: String, accent: String, dim: String): List<StateVariant> = cache.getOrPut(listOf(id, value, color, accent, dim).joinToString("|")) {
+        val set = Capabilities.stateSet(id) ?: return emptyList()
+        parse(
+            set.variantsJson.replace("\"\$color\"", "\"$color\"").replace("\"\$accent\"", "\"$accent\"").replace("\"\$dim\"", "\"$dim\"")
+                .replace("\$value", value),
+        )
+    }
+}
+
+/** What kind of weather a condition icon shows (`{{weather.kind}}`), so conditions never compare translated text. */
+object WeatherKind {
+    fun of(symbol: String): String = when (symbol) {
+        "sun.max.fill", "moon.fill", "moon.stars.fill" -> "clear"
+        "cloud.sun.fill", "cloud.moon.fill" -> "partlyCloudy"
+        "cloud.fog.fill" -> "fog"
+        "cloud.drizzle.fill", "cloud.rain.fill", "cloud.heavyrain.fill" -> "rain"
+        "cloud.snow.fill" -> "snow"
+        "cloud.bolt.rain.fill" -> "storm"
+        else -> "cloudy"
+    }
+}
+
+object Capabilities {
+    private class Catalog(val bindings: List<Capability>, val actions: List<Capability>, val groups: List<Named>, val permissions: List<Named>, val stateSets: List<StateSet>)
+
+    @Volatile private var catalog = Catalog(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
 
     val bindings: List<Capability> get() = catalog.bindings
     val actions: List<Capability> get() = catalog.actions
     val groups: List<Named> get() = catalog.groups
     val permissions: List<Named> get() = catalog.permissions
+
+    /** Built-in state sets (ADR-028): the AI, the post-pass and the editor reuse them. */
+    val stateSets: List<StateSet> get() = catalog.stateSets
+
+    fun stateSet(id: String): StateSet? = catalog.stateSets.firstOrNull { it.id == id }
 
     /** Reads the catalog once (the Application, or a test's setup). */
     fun load(assets: AssetManager) {
@@ -71,7 +115,15 @@ object Capabilities {
             Named(o.str("id") ?: "", o.ltext("title") ?: LText.Plain(""))
         } ?: emptyList()
         fun capabilities(key: String) = (root[key] as? JsonArray)?.map { capability(it.jsonObject) } ?: emptyList()
-        catalog = Catalog(capabilities("bindings"), capabilities("actions"), named("groups"), named("permissions"))
+        val sets = (root["stateSets"] as? JsonArray)?.map { item ->
+            val o = item.jsonObject
+            StateSet(
+                o.str("id") ?: "", o.ltext("title") ?: LText.Plain(""), o.str("description") ?: "",
+                (o["box"] as? JsonArray)?.mapNotNull { it.jsonPrimitive.content.toDoubleOrNull() } ?: emptyList(),
+                o.str("value"), o.str("topic"), o.list("needs"), o.list("keywords"), o.list("glyphs"), o["variants"].toString(),
+            )
+        } ?: emptyList()
+        catalog = Catalog(capabilities("bindings"), capabilities("actions"), named("groups"), named("permissions"), sets)
     }
 
     private fun capability(o: JsonObject) = Capability(
@@ -143,6 +195,7 @@ object BindingNames {
             is LayerContent.Button -> listOfNotNull(c.arg)
             is LayerContent.AnalogClock -> listOfNotNull(c.timezone)
             is LayerContent.Image -> listOf(c.source)
+            is LayerContent.States -> c.expanded.mapNotNull { it.condition } + listOfNotNull(c.value)
             else -> emptyList()
         } + listOfNotNull(layer.condition, layer.rotation)
         texts.flatMap { text -> Bindings.tokenize(text).filterIsInstance<Bindings.Token.Binding>().map { it.name.trim() } }

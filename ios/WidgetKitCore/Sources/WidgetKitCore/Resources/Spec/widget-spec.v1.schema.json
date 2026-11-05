@@ -80,7 +80,7 @@
       "required": ["type"],
       "description": "Top-level layers need a frame; children of a stack give only width/height (M6.1).",
       "properties": {
-        "type": { "type": "string", "enum": ["text", "image", "shape", "icon", "analogClock", "dotGrid", "dotBars", "ring", "forecastRow", "button", "calendarMonth", "list", "progressBar", "stack", "spacer"] },
+        "type": { "type": "string", "enum": ["text", "image", "shape", "icon", "analogClock", "dotGrid", "dotBars", "ring", "forecastRow", "button", "calendarMonth", "list", "progressBar", "stack", "spacer", "states"] },
         "frame": { "$ref": "#/$defs/frame" },
         "width": { "type": "number", "minimum": 0, "description": "Stack children: width in canvas units (absent = natural)" },
         "height": { "type": "number", "minimum": 0, "description": "Stack children: height in canvas units (absent = natural)" },

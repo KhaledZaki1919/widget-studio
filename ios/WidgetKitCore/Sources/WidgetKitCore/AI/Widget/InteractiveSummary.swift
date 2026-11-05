@@ -51,6 +51,7 @@ public struct InteractiveSummary: Sendable, Equatable {
             case .list(let list): names = list.items.flatMap { Bindings.names(in: $0.title.resolved(language: "en")) }
             case .analogClock: names = ["time.hh"]
             case .forecastRow: names = ["weather.temp"]
+            case .states(let states): names = states.expanded.compactMap(\.when).flatMap(Bindings.names(in:)) + Bindings.names(in: states.value ?? "")
             case .button(let button):
                 if let capability = Capabilities.action(button.action.rawValue) {
                     tappable.append(Item(path: item.path, title: title(capability), capability: capability.id, detail: note(capability)))

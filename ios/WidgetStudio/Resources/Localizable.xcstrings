@@ -5135,6 +5135,23 @@
         }
       }
     },
+    "editor.layer.kind.states": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الحالات"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "States"
+          }
+        }
+      }
+    },
     "editor.layer.kind.spacer": {
       "extractionState": "manual",
       "localizations": {

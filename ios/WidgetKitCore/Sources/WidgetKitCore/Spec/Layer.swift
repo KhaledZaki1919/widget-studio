@@ -7,8 +7,7 @@ public struct Layer: Codable, Sendable, Equatable {
     /// In Arabic, the layer moves to the mirrored frame and swaps its alignment and item order;
     /// its content is never flipped (ADR-010).
     public var mirror: Bool?
-    /// Draws the layer only when the condition holds (ADR-011): `"{{binding}}"` (truthy),
-    /// `"!{{binding}}"` (falsy) or `"{{binding}} == value"`.
+    /// Draws the layer only when the condition holds (ADR-011, ADR-028): see `SpecExpression`.
     public var when: String?
     /// Degrees clockwise: a number literal or a number binding (`{{qibla.bearing}}`).
     public var rotation: String?
@@ -58,6 +57,7 @@ public struct Layer: Codable, Sendable, Equatable {
         case "progressBar": content = .progressBar(try ProgressBarLayer(from: decoder))
         case "stack": content = .stack(try StackLayer(from: decoder))
         case "spacer": content = .spacer(try SpacerLayer(from: decoder))
+        case "states": content = .states(try StatesLayer(from: decoder))
         default: content = .unknown(type)
         }
     }
@@ -96,6 +96,7 @@ public struct Layer: Codable, Sendable, Equatable {
         case .progressBar(let layer): try layer.encode(to: encoder)
         case .stack(let layer): try layer.encode(to: encoder)
         case .spacer(let layer): try layer.encode(to: encoder)
+        case .states(let layer): try layer.encode(to: encoder)
         case .unknown: break
         }
     }
@@ -129,13 +130,15 @@ public enum LayerContent: Sendable, Equatable {
     /// M6.1: a vertical, horizontal or grid container laid out natively, and flexible space in one.
     case stack(StackLayer)
     case spacer(SpacerLayer)
+    /// ADR-028: one look per state, chosen by real data.
+    case states(StatesLayer)
     /// A `type` this app doesn't know; always a validation error.
     case unknown(String)
 
     /// The layer types of schema v1, as written in JSON.
     public static let knownTypes = [
         "text", "image", "shape", "icon", "analogClock", "dotGrid", "dotBars", "ring", "forecastRow", "button",
-        "calendarMonth", "list", "progressBar", "stack", "spacer",
+        "calendarMonth", "list", "progressBar", "stack", "spacer", "states",
     ]
 
     public var typeName: String {
@@ -155,6 +158,7 @@ public enum LayerContent: Sendable, Equatable {
         case .progressBar: "progressBar"
         case .stack: "stack"
         case .spacer: "spacer"
+        case .states: "states"
         case .unknown(let type): type
         }
     }

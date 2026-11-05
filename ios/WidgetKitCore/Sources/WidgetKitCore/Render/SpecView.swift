@@ -174,6 +174,7 @@ struct LayerView: View {
         case .progressBar(let bar):
             ProgressBarView(layer: bar, progress: resolver.number(bar.progress) ?? 0, scale: scale, mirrored: mirrored)
         case .stack(let stack): StackLayerView(layer: stack, resolver: resolver, scale: scale, mirrored: mirrored)
+        case .states(let states): StatesLayerView(layer: states, frame: layer.frame, resolver: resolver)
         case .spacer, .unknown: Color.clear
         }
     }

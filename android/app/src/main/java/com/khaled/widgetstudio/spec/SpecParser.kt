@@ -114,8 +114,17 @@ object SpecParser {
             o.arr("children")?.map { layer(it.jsonObject, child = true) } ?: emptyList(),
         )
         "spacer" -> LayerContent.Spacer(o.num("minLength"))
+        "states" -> LayerContent.States(
+            o.str("set"), o.str("value"), o.str("color") ?: "@fg", o.str("accent") ?: "@accent", o.str("dim") ?: "@dim",
+            o.arr("box")?.mapNotNull { it.jsonPrimitive.doubleOrNull }, o.arr("variants")?.map { variant(it.jsonObject) },
+        )
         else -> LayerContent.Unknown(type ?: "")
     }
+
+    fun variant(o: JsonObject) = StateVariant(
+        o.str("id") ?: "", o.ltext("title"), o.str("when"), o.arr("layers")?.map { layer(it.jsonObject, child = false) } ?: emptyList(),
+        o.obj("sample")?.mapValues { (_, value) -> value.jsonPrimitive.content },
+    )
 
     // MARK: JSON helpers (null values count as absent, like the Swift decoder after removingNulls)
 

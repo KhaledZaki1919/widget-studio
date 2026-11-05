@@ -70,7 +70,7 @@ class CapabilityCatalogTest {
 
     @Test
     fun everyNativeBindingHasAProvider() {
-        val core = listOf("time.", "date.", "tz.", "weather.", "steps.", "sleep.", "counter.", "stopwatch.", "focus.", "timer.", "prayer.", "qibla.", "location.", "field.", "days.", "media.", "battery.level")
+        val core = listOf("time.", "date.", "tz.", "year.", "month.", "week.", "day.", "forecast.", "tasks.", "weather.", "steps.", "sleep.", "counter.", "stopwatch.", "focus.", "timer.", "prayer.", "qibla.", "location.", "field.", "days.", "media.", "battery.level")
         for (binding in Capabilities.bindings) {
             if (binding.supportAndroid == "unsupported") continue
             assertTrue("${binding.id} has no provider", binding.id in DeviceState.provided || core.any { binding.id.startsWith(it) })

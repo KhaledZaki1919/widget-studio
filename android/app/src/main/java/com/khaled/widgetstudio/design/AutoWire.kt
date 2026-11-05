@@ -887,6 +887,7 @@ data class InteractiveSummary(val live: List<Item>, val tappable: List<Item>, va
                     is LayerContent.ListL -> c.items.flatMap { names(it.title.resolved("en")) }
                     is LayerContent.AnalogClock -> listOf("time.hh")
                     is LayerContent.ForecastRow -> listOf("weather.temp")
+                    is LayerContent.States -> c.expanded.mapNotNull { it.condition }.flatMap(::names) + (c.value?.let(::names) ?: emptyList())
                     is LayerContent.Button -> {
                         Capabilities.action(c.action)?.let { tappable += Item(item.path, it.title.resolved(language), it.id, note(it)) }
                         continue

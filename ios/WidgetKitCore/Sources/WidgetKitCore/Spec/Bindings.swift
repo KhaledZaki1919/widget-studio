@@ -18,7 +18,7 @@ public enum Bindings {
     }
 
     public enum Group: String, Sendable, CaseIterable {
-        case time, weather, health, app, prayer, location, device, field, calendar, reminders, media, audio, system
+        case time, weather, health, app, prayer, location, device, field, calendar, reminders, tasks, media, audio, system
     }
 
     /// Built from `capabilities.json` (ADR-027); never list bindings by hand. Parametric entries

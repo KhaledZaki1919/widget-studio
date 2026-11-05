@@ -63,6 +63,7 @@ private fun kindName(content: LayerContent): String = when (content) {
         else -> tr("Column", "عمود")
     }
     is LayerContent.Spacer -> tr("Space", "مسافة")
+    is LayerContent.States -> tr("States", "الحالات")
     is LayerContent.Unknown -> tr("Unknown layer", "طبقة غير معروفة")
 }
 

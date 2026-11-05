@@ -171,9 +171,25 @@ internal class Drawing(val renderer: SpecRenderer, val spec: WidgetSpec, val con
             is LayerContent.ListL -> charts.list(canvas, content, rect, scale, mirrored)
             is LayerContent.ProgressBar -> charts.progress(canvas, content, rect, scale, mirrored)
             is LayerContent.Stack -> StackLayout(this).draw(canvas, content, rect, scale, mirrored)
+            is LayerContent.States -> states(canvas, content, layer, rect)
             is LayerContent.Button, is LayerContent.Spacer, is LayerContent.Unknown -> Unit
         }
         canvas.restoreToCount(saved)
+    }
+
+    /** A state layer (ADR-028): the variant real data picks, fitted into [rect] by the same layer code. */
+    private fun states(canvas: Canvas, states: LayerContent.States, layer: Layer, rect: RectF) {
+        val variant = resolver.variant(states) ?: return
+        val (boxWidth, boxHeight) = states.boxSize(layer.frame)
+        val fitted = min(rect.width() / boxWidth.toFloat(), rect.height() / boxHeight.toFloat())
+        val left = rect.left + (rect.width() - boxWidth.toFloat() * fitted) / 2
+        val top = rect.top + (rect.height() - boxHeight.toFloat() * fitted) / 2
+        for (child in variant.layers) {
+            if (child.condition != null && !resolver.isSatisfied(child.condition)) continue
+            val frame = child.frame
+            val area = RectF(left + frame.x.toFloat() * fitted, top + frame.y.toFloat() * fitted, left + (frame.x + frame.w).toFloat() * fitted, top + (frame.y + frame.h).toFloat() * fitted)
+            layer(canvas, child, area, fitted, false)
+        }
     }
 
     fun shapePath(kind: String, rect: RectF, cornerRadius: Float): Path = Path().apply {

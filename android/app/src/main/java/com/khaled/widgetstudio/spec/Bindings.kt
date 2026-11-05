@@ -3,6 +3,7 @@ package com.khaled.widgetstudio.spec
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.time.DayOfWeek
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -10,6 +11,8 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalAdjusters
+import java.time.temporal.WeekFields
 import java.util.Locale
 
 /** Data the bindings read (brief §4.5); every part optional, a missing value renders "--". */
@@ -159,6 +162,10 @@ data class RenderContext(
     val tokenOverrides: Map<String, String> = emptyMap(),
     /** Tinted/Clear home screens: Android has no accented mode, kept for parity with iOS. */
     val accented: Boolean = false,
+    /** Which variant a state layer shows, by its key: the editor's preview and the renders of every state (ADR-028). */
+    val forcedStates: Map<String, String> = emptyMap(),
+    /** Binding values that replace the real ones, as a state's `sample` writes them. */
+    val overrides: Map<String, String> = emptyMap(),
 ) {
     val isArabic get() = language.startsWith("ar")
     /** Words in the render language, digits Latin (ar-EG with Latin numbers). */
@@ -192,8 +199,14 @@ object Bindings {
     fun soleBinding(text: String): String? = tokenize(text.trim()).singleOrNull()?.let { (it as? Token.Binding)?.name }
 }
 
-/** A parsed `when` condition: `{{b}}`, `!{{b}}` or `{{b}} == value` (ADR-011). */
-data class SpecCondition(val binding: String, val negated: Boolean, val equals: String?) {
+/**
+ * One condition of a `when` (ADR-011, ADR-028): `{{b}}`, `!{{b}}`, `{{b}} == value`, `{{b}} != value`,
+ * `{{b}} >= 0.9` (also `<=`, `>`, `<`), `{{b}} in 0.5..0.89` or `{{b}} in rain,storm`.
+ */
+data class SpecCondition(
+    val binding: String, val negated: Boolean, val equals: String?, val notEquals: String? = null, val compare: Pair<String, Double>? = null,
+    val range: Pair<Double, Double>? = null, val anyOf: List<String>? = null,
+) {
     companion object {
         fun parse(text: String): SpecCondition? {
             var rest = text.trim()
@@ -208,11 +221,40 @@ data class SpecCondition(val binding: String, val negated: Boolean, val equals: 
             val tail = rest.substring(close + 2).trim()
             if (binding.isEmpty()) return null
             if (tail.isEmpty()) return SpecCondition(binding, negated, null)
-            if (!negated && tail.startsWith("==")) {
+            if (negated) return null
+            if (tail.startsWith("==") || tail.startsWith("!=")) {
                 val value = tail.drop(2).trim()
-                return if (value.isEmpty()) null else SpecCondition(binding, false, value)
+                if (value.isEmpty()) return null
+                return if (tail.startsWith("==")) SpecCondition(binding, false, value) else SpecCondition(binding, false, null, notEquals = value)
+            }
+            listOf(">=", "<=", ">", "<").firstOrNull { tail.startsWith(it) }?.let { symbol ->
+                val number = tail.drop(symbol.length).trim().toDoubleOrNull() ?: return null
+                return SpecCondition(binding, false, null, compare = symbol to number)
+            }
+            if (tail.startsWith("in ")) {
+                val list = tail.drop(3).trim()
+                val bounds = list.split("..").map { it.trim().toDoubleOrNull() }
+                val low = bounds.getOrNull(0)
+                val high = bounds.getOrNull(1)
+                if (bounds.size == 2 && low != null && high != null) return SpecCondition(binding, false, null, range = low to high)
+                val items = list.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                return if (items.isEmpty()) null else SpecCondition(binding, false, null, anyOf = items)
             }
             return null
+        }
+    }
+}
+
+/** A whole `when`: conditions joined by `&&` and `||` (`&&` binds tighter, no parentheses, ADR-028). */
+data class SpecExpression(val groups: List<List<SpecCondition>>) {
+    val bindings: List<String> get() = groups.flatten().map { it.binding }
+
+    companion object {
+        fun parse(text: String): SpecExpression? {
+            val groups = text.split("||").map { group ->
+                group.split("&&").map { SpecCondition.parse(it) ?: return null }
+            }
+            return SpecExpression(groups)
         }
     }
 }
@@ -268,14 +310,50 @@ class BindingResolver(val spec: WidgetSpec, val context: RenderContext) {
 
     fun fieldValue(key: String): String? = (context.fieldValues[key] ?: spec.field(key)?.default)?.resolved(context.language)
 
+    /** Unknown or missing values are falsy, so no comparison can pass on data that isn't there. */
     fun isSatisfied(text: String): Boolean {
-        val condition = SpecCondition.parse(text) ?: return true
+        val expression = SpecExpression.parse(text) ?: return true
+        return expression.groups.any { group -> group.all(::holds) }
+    }
+
+    private fun holds(condition: SpecCondition): Boolean {
         val value = value(condition.binding)
+        val shown = value?.let(::display)
+        val number = when (value) {
+            is Value.Number -> value.value
+            is Value.Text -> value.text.toDoubleOrNull()
+            else -> null
+        }
         return when {
-            condition.equals != null -> value?.let(::display) == condition.equals
+            condition.equals != null -> shown == condition.equals
+            condition.notEquals != null -> shown != null && shown != condition.notEquals
+            condition.anyOf != null -> shown != null && shown in condition.anyOf
+            condition.range != null -> number != null && number >= condition.range.first && number <= condition.range.second
+            condition.compare != null -> number != null && when (condition.compare.first) {
+                ">=" -> number >= condition.compare.second
+                "<=" -> number <= condition.compare.second
+                ">" -> number > condition.compare.second
+                else -> number < condition.compare.second
+            }
             condition.negated -> !isTruthy(value)
             else -> isTruthy(value)
         }
+    }
+
+    /** The variant to draw now: the one the render forces, else the first whose `when` holds. */
+    fun variant(states: LayerContent.States): StateVariant? {
+        val variants = states.expanded
+        context.forcedStates[states.key]?.let { forced -> variants.firstOrNull { it.id == forced }?.let { return it } }
+        return variants.firstOrNull { variant -> variant.condition?.let(::isSatisfied) ?: true }
+    }
+
+    /** A value forced by `RenderContext.overrides`, typed by the catalog. */
+    private fun overridden(name: String): Value? {
+        val raw = context.overrides[name] ?: return null
+        val capability = Capabilities.binding(name)
+        val number = raw.toDoubleOrNull()
+        if (capability?.type != "number" || number == null) return Value.Text(raw)
+        return Value.Number(number, if (capability.isShare) Math.round(number * 100).toString() else raw)
     }
 
     private fun isTruthy(value: Value?): Boolean = when (value) {
@@ -288,6 +366,7 @@ class BindingResolver(val spec: WidgetSpec, val context: RenderContext) {
 
     fun value(raw: String): Value? {
         val name = raw.trim()
+        if (context.overrides.isNotEmpty()) overridden(name)?.let { return it }
         when {
             name.startsWith("field.") -> {
                 val key = name.removePrefix("field.")
@@ -330,6 +409,16 @@ class BindingResolver(val spec: WidgetSpec, val context: RenderContext) {
             "time.hh" -> Value.Text(format(if (context.uses24Hour == false) "h" else "HH"))
             "time.mm" -> Value.Text(format("mm"))
             "time.ampm" -> Value.Text(localized("a"))
+            "year.progress" -> progress(ChronoUnit.YEARS)
+            "month.progress" -> progress(ChronoUnit.MONTHS)
+            "week.progress" -> progress(ChronoUnit.WEEKS)
+            "day.progress" -> progress(ChronoUnit.DAYS)
+            "year.day" -> number(zoned.dayOfYear.toDouble(), 0)
+            "year.daysLeft" -> daysLeft(ChronoUnit.YEARS)
+            "month.daysLeft" -> daysLeft(ChronoUnit.MONTHS)
+            "week.daysLeft" -> daysLeft(ChronoUnit.WEEKS)
+            "time.isDay" -> Value.Text(if (isDay()) "1" else "0")
+            "weather.kind" -> data.weather?.let { Value.Text(WeatherKind.of(it.symbol)) }
             "date.d" -> Value.Text(format("d"))
             "date.EEEE" -> Value.Text(localized("EEEE"))
             "date.MMM" -> Value.Text(localized("MMM"))
@@ -374,7 +463,56 @@ class BindingResolver(val spec: WidgetSpec, val context: RenderContext) {
             "location.lon" -> data.longitude?.let { number(it, 2) }
             "location.alt" -> data.altitude?.let { number(it, 0) }
             "battery.level" -> data.batteryLevel?.let { Value.Number(it, Math.round(it * 100).toString()) }
-            else -> data.live[name] ?: if (name.startsWith("prayer.")) data.prayer?.times?.get(name.removePrefix("prayer."))?.let { Value.Date(it) } else null
+            else -> if (name.startsWith("forecast.")) forecast(name) else data.live[name] ?: if (name.startsWith("prayer.")) data.prayer?.times?.get(name.removePrefix("prayer."))?.let { Value.Date(it) } else null
+        }
+    }
+
+    // MARK: Time as a share (ADR-028)
+
+    private fun periodStart(unit: ChronoUnit): ZonedDateTime {
+        val day = zoned.toLocalDate()
+        val first = when (unit) {
+            ChronoUnit.YEARS -> day.withDayOfYear(1)
+            ChronoUnit.MONTHS -> day.withDayOfMonth(1)
+            ChronoUnit.WEEKS -> day.with(TemporalAdjusters.previousOrSame(WeekFields.of(context.locale).firstDayOfWeek))
+            else -> day
+        }
+        return first.atStartOfDay(zoned.zone)
+    }
+
+    /** Share of the period gone: value 0…1, whole percent in text, like `battery.level`. */
+    private fun progress(unit: ChronoUnit): Value {
+        val start = periodStart(unit)
+        val end = start.plus(1, unit)
+        val share = (Duration.between(start, zoned).seconds.toDouble() / Duration.between(start, end).seconds.coerceAtLeast(1)).coerceIn(0.0, 1.0)
+        return Value.Number(share, Math.round(share * 100).toString())
+    }
+
+    /** Days after today in the period. */
+    private fun daysLeft(unit: ChronoUnit): Value {
+        val end = periodStart(unit).plus(1, unit).toLocalDate()
+        return number((ChronoUnit.DAYS.between(zoned.toLocalDate(), end) - 1).coerceAtLeast(0).toDouble(), 0)
+    }
+
+    /** Between today's sunrise and sunset when the weather gave them, else 6:00 to 18:00. */
+    private fun isDay(): Boolean {
+        val now = zoned.hour * 60 + zoned.minute
+        fun minutes(value: Value.Date): Int = value.instant.atZone(zoned.zone).let { it.hour * 60 + it.minute }
+        val rise = context.data.live["weather.sunrise"] as? Value.Date
+        val set = context.data.live["weather.sunset"] as? Value.Date
+        return if (rise != null && set != null) now >= minutes(rise) && now < minutes(set) else now >= 6 * 60 && now < 18 * 60
+    }
+
+    /** `forecast.<day>.<part>`: day 1 is tomorrow. */
+    private fun forecast(name: String): Value? {
+        val parts = name.split(".")
+        val day = parts.getOrNull(1)?.toIntOrNull() ?: return null
+        val item = context.data.weather?.forecast?.getOrNull(day) ?: return null
+        return when (parts.getOrNull(2)) {
+            "symbol" -> Value.Text(item.symbol)
+            "hi" -> number(item.high, 0)
+            "lo" -> number(item.low, 0)
+            else -> Value.Text(DateTimeFormatter.ofPattern("EEE", context.locale).format(item.date.atZone(zoned.zone)))
         }
     }
 

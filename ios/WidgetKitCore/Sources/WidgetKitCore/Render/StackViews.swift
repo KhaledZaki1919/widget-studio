@@ -150,3 +150,33 @@ private struct StackChildView: View {
         }
     }
 }
+
+/// A state layer (ADR-028): the variant real data picks, fitted into the frame. The same layer
+/// views draw it, so a variant renders and goes Tinted exactly like any other layer.
+struct StatesLayerView: View {
+    let layer: StatesLayer
+    let frame: Frame
+    let resolver: BindingResolver
+
+    var body: some View {
+        GeometryReader { proxy in
+            if let variant = resolver.variant(of: layer) {
+                let box = layer.boxSize(frame: frame)
+                let scale = min(proxy.size.width / box.w, proxy.size.height / box.h)
+                let left = (proxy.size.width - box.w * scale) / 2
+                let top = (proxy.size.height - box.h * scale) / 2
+                ZStack(alignment: .topLeading) {
+                    ForEach(Array(variant.layers.enumerated()), id: \.offset) { _, child in
+                        if child.when.map(resolver.isSatisfied) ?? true {
+                            LayerView(layer: child, resolver: resolver, scale: scale, mirrored: false)
+                                .frame(width: child.frame.w * scale, height: child.frame.h * scale)
+                                .modifier(LayerRotation(degrees: child.rotation.flatMap(resolver.number)))
+                                .opacity(child.opacity ?? 1)
+                                .position(x: left + (child.frame.x + child.frame.w / 2) * scale, y: top + (child.frame.y + child.frame.h / 2) * scale)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

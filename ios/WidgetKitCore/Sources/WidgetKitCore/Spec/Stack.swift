@@ -82,8 +82,18 @@ public struct SpacerLayer: Codable, Sendable, Equatable {
 extension Layer {
     /// This layer and, for stacks, every layer inside it (depth first).
     public var flattened: [Layer] {
+        switch content {
+        case .stack(let stack): [self] + stack.children.flatMap(\.flattened)
+        // Every look of a state layer: what it reads counts whichever look is showing.
+        case .states(let states): [self] + states.expanded.flatMap { $0.layers.flatMap(\.flattened) }
+        default: [self]
+        }
+    }
+
+    /// This layer and the children of stacks: what is drawn at once, for the layer limits.
+    var flattenedStacks: [Layer] {
         guard case .stack(let stack) = content else { return [self] }
-        return [self] + stack.children.flatMap(\.flattened)
+        return [self] + stack.children.flatMap(\.flattenedStacks)
     }
 
     /// Whether the layer shows text (text, list, calendar, forecast, or a stack holding one).

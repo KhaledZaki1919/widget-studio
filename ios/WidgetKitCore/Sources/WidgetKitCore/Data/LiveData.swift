@@ -35,6 +35,7 @@ public enum DataRequirements {
                 strings += list.items.flatMap { $0.title.allValues + ($0.detail?.allValues ?? []) }
             case .progressBar(let bar): strings.append(bar.progress)
             case .image(let image): strings.append(image.source)
+            case .states(let states): strings += states.expanded.compactMap(\.when) + [states.value].compactMap { $0 }
             case .shape, .calendarMonth, .stack, .spacer, .unknown: break
             }
         }

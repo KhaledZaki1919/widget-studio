@@ -165,7 +165,7 @@ private struct Check {
         // Tap areas don't count: every control needs one (ADR-027).
         func drawn(_ layers: [Layer]) -> Int { layers.filter { if case .button = $0.content { false } else { true } }.count }
         if drawn(spec.layers) > SpecValidator.maxLayers { fail("layers", "at most \(SpecValidator.maxLayers) layers") }
-        if drawn(spec.allLayers) > SpecValidator.maxTotalLayers {
+        if drawn(spec.layers.flatMap(\.flattenedStacks)) > SpecValidator.maxTotalLayers {
             fail("layers", "at most \(SpecValidator.maxTotalLayers) layers counting the children of stacks")
         }
         for (index, layer) in spec.layers.enumerated() {
@@ -319,13 +319,58 @@ private struct Check {
         }
     }
 
-    /// A `when` condition: a known binding, optionally negated or compared with a value.
+    /// A `when`: known bindings, each optionally negated, compared with a value or tested against
+    /// a range or a list, joined by `&&` and `||`.
     mutating func condition(path: String, _ text: String) {
-        guard let condition = SpecCondition(text) else {
-            fail(path, "use \"{{binding}}\", \"!{{binding}}\" or \"{{binding}} == value\"")
+        guard let expression = SpecExpression(text) else {
+            fail(path, "use \"{{binding}}\", \"!{{binding}}\", \"{{binding}} == value\", \">= 0.9\", \"in 0.5..0.8\" or \"in a,b\", joined by && or ||")
             return
         }
-        binding(path: path, condition.binding, expecting: nil)
+        for name in expression.bindings { binding(path: path, name, expecting: nil) }
+    }
+
+    /// A state layer (ADR-028): a built-in set or written-out variants, always at the top level.
+    mutating func checkStates(_ states: StatesLayer, path: String, depth: Int) {
+        if depth > 0 { fail("\(path).type", "a states layer stays at the top level") }
+        color("\(path).color", states.color)
+        color("\(path).accent", states.accent)
+        color("\(path).dim", states.dim)
+        if let box = states.box, box.count != 2 || !box.allSatisfy({ $0 > 0 }) { fail("\(path).box", "needs a positive width and height") }
+        if let id = states.set {
+            guard let set = Capabilities.stateSet(id) else {
+                fail("\(path).set", "unknown state set \"\(id)\"; use an id from the allowed list")
+                return
+            }
+            if set.value != nil {
+                guard let value = states.value, let raw = Bindings.soleBinding(value) else {
+                    fail("\(path).value", "\(id) needs one binding, like \(set.value ?? "")")
+                    return
+                }
+                binding(path: "\(path).value", raw, expecting: nil)
+            }
+        } else if states.variants == nil {
+            fail("\(path).set", "needs a built-in set or variants")
+        }
+        guard let variants = states.variants else { return }
+        if variants.isEmpty || variants.count > 12 { fail("\(path).variants", "needs 1 to 12 variants") }
+        if Set(variants.map(\.id)).count != variants.count { fail("\(path).variants", "ids must differ") }
+        for (index, variant) in variants.enumerated() {
+            let itemPath = "\(path).variants[\(index)]"
+            if let when = variant.when {
+                condition(path: "\(itemPath).when", when)
+            } else if index != variants.count - 1 {
+                fail("\(itemPath).when", "only the last variant can be the default")
+            }
+            if variant.layers.count > 12 { fail("\(itemPath).layers", "at most 12 layers") }
+            for (position, layer) in variant.layers.enumerated() {
+                let layerPath = "\(itemPath).layers[\(position)]"
+                switch layer.content {
+                case .button: fail("\(layerPath).type", "a button stays at the top level, over the state layer")
+                case .states: fail("\(layerPath).type", "states don't nest")
+                default: checkLayer(layer, path: layerPath)
+                }
+            }
+        }
     }
 
     /// A value that must be exactly one binding of an allowed kind, or a literal accepted by `literal`.
@@ -519,6 +564,8 @@ private struct Check {
         case .spacer(let spacer):
             if depth == 0 { fail("\(path).type", "a spacer only goes inside a vertical or horizontal stack") }
             number("\(path).minLength", spacer.minLength, in: 0...200)
+        case .states(let states):
+            checkStates(states, path: path, depth: depth)
         }
     }
 

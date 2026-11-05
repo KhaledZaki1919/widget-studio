@@ -188,6 +188,11 @@ public struct RenderContext {
     /// Color token overrides from a saved design (`accent`, `bg`, `fg` → hex), applied on top of
     /// the theme (M3 editor, ADR-015).
     public var tokenOverrides: [String: String] = [:]
+    /// Which variant a state layer shows, by `StatesLayer.key`: the editor's preview and the
+    /// renders of every state (ADR-028). Real widgets leave it empty.
+    public var forcedStates: [String: String] = [:]
+    /// Binding values that replace the real ones, as a state's `sample` writes them.
+    public var overrides: [String: String] = [:]
 
     public init(date: Date = .now, language: String = "ar", timeZone: TimeZone = .current,
                 fieldValues: [String: LocalizedText] = [:], data: DataSnapshot = DataSnapshot(), userImage: CGImage? = nil) {

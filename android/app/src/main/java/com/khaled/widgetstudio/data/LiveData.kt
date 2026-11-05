@@ -524,13 +524,14 @@ object DataRequirements {
                 is LayerContent.DotBars -> listOf(c.values) + (c.labels?.allValues ?: emptyList())
                 is LayerContent.ListL -> c.items.flatMap { it.title.allValues + (it.detail?.allValues ?: emptyList()) }
                 is LayerContent.ForecastRow -> listOf("{{weather.temp}}")
+                is LayerContent.States -> c.expanded.mapNotNull { it.condition } + listOfNotNull(c.value)
                 else -> emptyList()
             } + listOfNotNull(layer.condition, layer.rotation)
             texts.forEach { text -> Bindings.tokenize(text).filterIsInstance<Bindings.Token.Binding>().forEach { names += it.name.trim() } }
         }
         return names.mapNotNull { name ->
             when {
-                name.startsWith("weather.") -> "weather"
+                name.startsWith("weather.") || name.startsWith("forecast.") -> "weather"
                 name.startsWith("prayer.") || name.startsWith("qibla.") -> "prayer"
                 name.startsWith("location.") -> "location"
                 name.startsWith("steps.") || name.startsWith("sleep.") -> "health"

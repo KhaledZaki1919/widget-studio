@@ -80,10 +80,21 @@ data class Layer(
     val rotation: String?,
     val content: LayerContent,
 ) {
-    /** This layer and, for stacks, every layer inside it. */
+    /** This layer, every layer inside a stack, and every look of a state layer. */
     val flattened: List<Layer>
-        get() = if (content is LayerContent.Stack) listOf(this) + content.children.flatMap { it.flattened } else listOf(this)
+        get() = when (content) {
+            is LayerContent.Stack -> listOf(this) + content.children.flatMap { it.flattened }
+            is LayerContent.States -> listOf(this) + content.expanded.flatMap { variant -> variant.layers.flatMap { it.flattened } }
+            else -> listOf(this)
+        }
+
+    /** This layer and the children of stacks: what is drawn at once, for the layer limits. */
+    val flattenedStacks: List<Layer>
+        get() = if (content is LayerContent.Stack) listOf(this) + content.children.flatMap { it.flattenedStacks } else listOf(this)
 }
+
+/** One look of a state layer (ADR-028); no [condition] = the default. */
+data class StateVariant(val id: String, val title: LText?, val condition: String?, val layers: List<Layer>, val sample: Map<String, String>?)
 
 data class Stroke(val color: String, val width: Double, val dash: List<Double>?)
 
@@ -148,6 +159,26 @@ sealed class LayerContent {
     ) : LayerContent()
 
     data class Spacer(val minLength: Double?) : LayerContent()
+
+    /**
+     * One look per state, chosen by real data (States.swift, ADR-028): [set] is a built-in set of the
+     * catalog, [variants] writes them out. The first variant whose `when` holds is drawn.
+     */
+    data class States(
+        val set: String?, val value: String?, val color: String, val accent: String, val dim: String, val box: List<Double>?, val variants: List<StateVariant>?,
+    ) : LayerContent() {
+        val expanded: List<StateVariant>
+            get() = variants ?: set?.let { StateSets.variants(it, value ?: "", color, accent, dim) } ?: emptyList()
+
+        /** The coordinate space of the variants. */
+        fun boxSize(frame: Frame): Pair<Double, Double> {
+            val own = box ?: set?.let { Capabilities.stateSet(it)?.box }
+            return if (own != null && own.size == 2 && own[0] > 0 && own[1] > 0) own[0] to own[1] else maxOf(frame.w, 1.0) to maxOf(frame.h, 1.0)
+        }
+
+        /** Names this layer's states in a render's forced states (the editor's preview). */
+        val key: String get() = set ?: variants?.firstOrNull()?.id ?: "states"
+    }
 
     data class Unknown(val type: String) : LayerContent()
 }

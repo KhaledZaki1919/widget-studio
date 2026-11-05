@@ -65,6 +65,9 @@ public struct Capability: Decodable, Sendable, Equatable, Identifiable {
     public let glyphs: [String]
     /// Layer kinds it suits: `text`, `ring`, `progressBar`, `dotGrid`, `icon`, `when`, `rotation`…
     public let layers: [String]
+    /// A share 0…1 that reads as a whole percent in text: what a level, ring or dots can show.
+    public var isShare: Bool { type == "number" && layers.contains("ring") }
+
     /// Takes a key (`field.<key>`): resolved by `Bindings.Name`, not listed in `Bindings.catalog`.
     public let parametric: Bool
     public let ai: Bool
@@ -159,6 +162,7 @@ public enum Capabilities {
         var groups: [Named] = []
         var bindings: [Capability] = []
         var actions: [Capability] = []
+        var stateSets: [StateSet] = []
     }
 
     private static let catalog: Catalog = {
@@ -174,6 +178,10 @@ public enum Capabilities {
     public static var actions: [Capability] { catalog.actions }
     public static var groups: [Named] { catalog.groups }
     public static var permissions: [Named] { catalog.permissions }
+    /// Built-in state sets (ADR-028): the AI, the post-pass and the editor reuse them.
+    public static var stateSets: [StateSet] { catalog.stateSets }
+
+    public static func stateSet(_ id: String) -> StateSet? { catalog.stateSets.first { $0.id == id } }
 
     private static let bindingsByID = Dictionary(catalog.bindings.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     private static let actionsByID = Dictionary(catalog.actions.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })

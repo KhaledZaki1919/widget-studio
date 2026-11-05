@@ -163,7 +163,7 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
         if (spec.layers.isEmpty()) fail("layers", "needs at least one layer")
         // Tap areas don't count: every control needs one (ADR-027).
         if (spec.layers.count { it.content !is LayerContent.Button } > MAX_LAYERS) fail("layers", "at most $MAX_LAYERS layers")
-        if (spec.layers.flatMap { it.flattened }.count { it.content !is LayerContent.Button } > MAX_TOTAL_LAYERS) fail("layers", "at most $MAX_TOTAL_LAYERS layers counting the children of stacks")
+        if (spec.layers.flatMap { it.flattenedStacks }.count { it.content !is LayerContent.Button } > MAX_TOTAL_LAYERS) fail("layers", "at most $MAX_TOTAL_LAYERS layers counting the children of stacks")
         spec.layers.forEachIndexed { index, layer -> checkLayer(layer, "layers[$index]", 0) }
         if (ai && checksTextOverlaps) {
             val drawn = spec.layers.map { it.copy(frame = clamped(it.frame, spec.family)) }
@@ -303,14 +303,64 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
         if (ai && font.size < MIN_AI_FONT_SIZE) fail("$path.size", "at least ${MIN_AI_FONT_SIZE.toInt()}")
     }
 
+    /** A `when`: known bindings, each optionally negated, compared or tested, joined by `&&` and `||`. */
+    private fun condition(path: String, text: String) {
+        val expression = com.khaled.widgetstudio.spec.SpecExpression.parse(text)
+        if (expression == null) {
+            fail(path, "use \"{{binding}}\", \"!{{binding}}\", \"{{binding}} == value\", \">= 0.9\", \"in 0.5..0.8\" or \"in a,b\", joined by && or ||")
+            return
+        }
+        expression.bindings.forEach { binding(path, it, null) }
+    }
+
+    /** A state layer (ADR-028): a built-in set or written-out variants, always at the top level. */
+    private fun checkStates(states: LayerContent.States, path: String, depth: Int) {
+        if (depth > 0) fail("$path.type", "a states layer stays at the top level")
+        color("$path.color", states.color)
+        color("$path.accent", states.accent)
+        color("$path.dim", states.dim)
+        states.box?.let { box -> if (box.size != 2 || box.any { it <= 0 }) fail("$path.box", "needs a positive width and height") }
+        if (states.set != null) {
+            val set = com.khaled.widgetstudio.spec.Capabilities.stateSet(states.set)
+            if (set == null) {
+                fail("$path.set", "unknown state set \"${states.set}\"; use an id from the allowed list")
+                return
+            }
+            if (set.value != null) {
+                val raw = states.value?.let(Bindings::soleBinding)
+                if (raw == null) {
+                    fail("$path.value", "${set.id} needs one binding, like ${set.value}")
+                    return
+                }
+                binding("$path.value", raw, null)
+            }
+        } else if (states.variants == null) {
+            fail("$path.set", "needs a built-in set or variants")
+        }
+        val variants = states.variants ?: return
+        if (variants.isEmpty() || variants.size > 12) fail("$path.variants", "needs 1 to 12 variants")
+        if (variants.map { it.id }.toSet().size != variants.size) fail("$path.variants", "ids must differ")
+        variants.forEachIndexed { index, variant ->
+            val itemPath = "$path.variants[$index]"
+            if (variant.condition != null) condition("$itemPath.when", variant.condition)
+            else if (index != variants.size - 1) fail("$itemPath.when", "only the last variant can be the default")
+            if (variant.layers.size > 12) fail("$itemPath.layers", "at most 12 layers")
+            variant.layers.forEachIndexed { position, layer ->
+                val layerPath = "$itemPath.layers[$position]"
+                when (layer.content) {
+                    is LayerContent.Button -> fail("$layerPath.type", "a button stays at the top level, over the state layer")
+                    is LayerContent.States -> fail("$layerPath.type", "states don't nest")
+                    else -> checkLayer(layer, layerPath, 0)
+                }
+            }
+        }
+    }
+
     private fun checkLayer(layer: Layer, path: String, depth: Int) {
         val f = layer.frame
         if (depth == 0 && (listOf(f.x, f.y, f.w, f.h).any { !it.isFinite() } || f.w <= 0 || f.h <= 0)) fail("$path.frame", "w and h must be positive numbers")
         number("$path.opacity", layer.opacity, 0.0..1.0)
-        layer.condition?.let { condition ->
-            val parsed = SpecCondition.parse(condition)
-            if (parsed == null) fail("$path.when", "use \"{{binding}}\", \"!{{binding}}\" or \"{{binding}} == value\"") else binding("$path.when", parsed.binding, null)
-        }
+        layer.condition?.let { condition("$path.when", it) }
         layer.rotation?.let { rotation -> bindingOrLiteral("$path.rotation", rotation, setOf(BindingCatalog.Kind.NUMBER)) { v -> v.toDoubleOrNull()?.let { it in -360.0..360.0 } ?: false } }
         val number1 = setOf(BindingCatalog.Kind.NUMBER)
         val fraction: (String) -> Boolean = { v -> v.toDoubleOrNull()?.let { it in 0.0..1.0 } ?: false }
@@ -422,6 +472,7 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
                 }
             }
             is LayerContent.Stack -> checkStack(c, path, depth + 1)
+            is LayerContent.States -> checkStates(c, path, depth)
             is LayerContent.Spacer -> {
                 if (depth == 0) fail("$path.type", "a spacer only goes inside a vertical or horizontal stack")
                 number("$path.minLength", c.minLength, 0.0..200.0)

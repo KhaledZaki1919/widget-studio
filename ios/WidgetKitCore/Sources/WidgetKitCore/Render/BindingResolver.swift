@@ -86,6 +86,7 @@ public struct BindingResolver {
 
     public func value(of raw: String) -> Value? {
         guard let name = Bindings.Name(raw) else { return nil }
+        if !context.overrides.isEmpty, let forced = overridden(raw.trimmingCharacters(in: .whitespaces)) { return forced }
         switch name {
         case .field(let key):
             guard let field = spec.field(key), let value = fieldValue(key) else { return nil }
@@ -109,14 +110,38 @@ public struct BindingResolver {
         }
     }
 
-    /// Whether a layer's `when` condition holds (ADR-011). Unknown or missing values are falsy.
+    /// Whether a layer's `when` holds (ADR-011, ADR-028). Unknown or missing values are falsy,
+    /// so no comparison can pass on data that isn't there.
     public func isSatisfied(_ text: String) -> Bool {
-        guard let condition = SpecCondition(text) else { return true }
+        guard let expression = SpecExpression(text) else { return true }
+        return expression.groups.contains { $0.allSatisfy(holds) }
+    }
+
+    private func holds(_ condition: SpecCondition) -> Bool {
         let value = value(of: condition.binding)
         switch condition.test {
         case .truthy: return Self.isTruthy(value)
         case .falsy: return !Self.isTruthy(value)
         case .equals(let expected): return value.map(display) == expected
+        case .notEquals(let expected): return value.map(display).map { $0 != expected } ?? false
+        case .anyOf(let items): return value.map(display).map(items.contains) ?? false
+        case .range(let low, let high): return Self.number(of: value).map { $0 >= low && $0 <= high } ?? false
+        case .compare(let symbol, let target):
+            guard let number = Self.number(of: value) else { return false }
+            switch symbol {
+            case ">=": return number >= target
+            case "<=": return number <= target
+            case ">": return number > target
+            default: return number < target
+            }
+        }
+    }
+
+    static func number(of value: Value?) -> Double? {
+        switch value {
+        case .number(let number, _)?: number
+        case .text(let text)?: Double(text)
+        default: nil
         }
     }
 
@@ -149,11 +174,21 @@ public struct BindingResolver {
         case "date.yyyy": return .text(format("yyyy"))
         case "date.hijri": return .text(hijriDate())
         case "tz.offset": return .text(Self.offset(context.timeZone, at: context.date))
+        case "year.progress": return progress(.year)
+        case "month.progress": return progress(.month)
+        case "week.progress": return progress(.weekOfYear)
+        case "day.progress": return progress(.day)
+        case "year.day": return period(.year).map { number(Double(wholeDays(from: $0.start, to: context.date) + 1), digits: 0) }
+        case "year.daysLeft": return daysLeft(.year)
+        case "month.daysLeft": return daysLeft(.month)
+        case "week.daysLeft": return daysLeft(.weekOfYear)
+        case "time.isDay": return .text(isDay ? "1" : "0")
         case "weather.temp": return data.weather.map { number($0.temperature, digits: 0) }
         case "weather.hi": return data.weather.map { number($0.high, digits: 0) }
         case "weather.lo": return data.weather.map { number($0.low, digits: 0) }
         case "weather.cond": return data.weather.map { .text($0.condition.resolved(language: context.language)) }
         case "weather.symbol": return data.weather.map { .text($0.symbol) }
+        case "weather.kind": return data.weather.map { .text(WeatherKind.of(symbol: $0.symbol)) }
         case "weather.city":
             return data.weather.map { .text(fieldValueOfType(.city) ?? $0.city.resolved(language: context.language)) }
         case "steps.today": return data.stepsToday.map { number($0, digits: 0, grouped: true) }
@@ -185,11 +220,69 @@ public struct BindingResolver {
         case "timer.running", "timer.remaining", "timer.progress", "timer.end":
             return data.timer.flatMap { timer(name, $0) } ?? data.live[name]
         default:
+            if name.hasPrefix("forecast.") { return forecast(name) }
             if let value = data.live[name] { return value }
             if name.hasPrefix("prayer."), let time = data.prayer?.times[String(name.dropFirst("prayer.".count))] {
                 return .date(time)
             }
             return nil
+        }
+    }
+
+    // MARK: Time as a share (ADR-028)
+
+    private var gregorian: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = context.timeZone
+        calendar.firstWeekday = Calendar.current.firstWeekday
+        return calendar
+    }
+
+    private func period(_ unit: Calendar.Component) -> DateInterval? {
+        gregorian.dateInterval(of: unit, for: context.date)
+    }
+
+    private func wholeDays(from start: Date, to end: Date) -> Int {
+        let calendar = gregorian
+        return calendar.dateComponents([.day], from: calendar.startOfDay(for: start), to: calendar.startOfDay(for: end)).day ?? 0
+    }
+
+    /// Share of the period gone: value 0…1, whole percent in text, like `battery.level`.
+    private func progress(_ unit: Calendar.Component) -> Value? {
+        period(unit).map { interval in
+            let share = min(max(context.date.timeIntervalSince(interval.start) / max(interval.duration, 1), 0), 1)
+            return .number(share, display: String(Int((share * 100).rounded())))
+        }
+    }
+
+    /// Days after today in the period.
+    private func daysLeft(_ unit: Calendar.Component) -> Value? {
+        period(unit).map { number(Double(max(wholeDays(from: context.date, to: $0.end) - 1, 0)), digits: 0) }
+    }
+
+    /// Between today's sunrise and sunset when the weather gave them, else 6:00 to 18:00.
+    private var isDay: Bool {
+        let calendar = gregorian
+        func minutes(_ date: Date) -> Int {
+            calendar.component(.hour, from: date) * 60 + calendar.component(.minute, from: date)
+        }
+        let now = minutes(context.date)
+        if case .date(let rise)? = context.data.live["weather.sunrise"], case .date(let set)? = context.data.live["weather.sunset"] {
+            return now >= minutes(rise) && now < minutes(set)
+        }
+        return now >= 6 * 60 && now < 18 * 60
+    }
+
+    /// `forecast.<day>.<part>`: day 1 is tomorrow.
+    private func forecast(_ name: String) -> Value? {
+        let parts = name.split(separator: ".")
+        guard parts.count == 3, let day = Int(parts[1]), let days = context.data.weather?.forecast, days.indices.contains(day) else { return nil }
+        let item = days[day]
+        switch parts[2] {
+        case "symbol": return .text(item.symbol)
+        case "hi": return number(item.high, digits: 0)
+        case "lo": return number(item.low, digits: 0)
+        default: return .text(FormatterCache.date("EEE", locale: context.localeIdentifier, zone: context.timeZone).string(from: item.date))
         }
     }
 

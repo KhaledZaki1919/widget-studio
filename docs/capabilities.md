@@ -22,6 +22,15 @@ Generated from `capabilities.json` by `scripts/capabilities-table.mjs`. Do not e
 | `{{tz.offset}}` | Time zone offset | Yes | Yes |  |  |  |
 | `{{tz.<timezoneField>.time}}` | Time in a city | Yes | Yes |  |  |  |
 | `{{days.<dateField>}}` | Days left | Yes | Yes |  |  |  |
+| `{{year.progress}}` | Year progress | Yes | Yes |  |  |  |
+| `{{month.progress}}` | Month progress | Yes | Yes |  |  |  |
+| `{{week.progress}}` | Week progress | Yes | Yes |  |  |  |
+| `{{day.progress}}` | Day progress | Yes | Yes |  |  |  |
+| `{{year.day}}` | Day of the year | Yes | Yes |  |  |  |
+| `{{year.daysLeft}}` | Days left in the year | Yes | Yes |  |  |  |
+| `{{month.daysLeft}}` | Days left in the month | Yes | Yes |  |  |  |
+| `{{week.daysLeft}}` | Days left in the week | Yes | Yes |  |  |  |
+| `{{time.isDay}}` | Daytime | Yes | Yes |  |  |  |
 
 ## Weather
 
@@ -38,6 +47,31 @@ Generated from `capabilities.json` by `scripts/capabilities-table.mjs`. Do not e
 | `{{weather.cond}}` | Condition | Yes | Yes |  |  |  |
 | `{{weather.symbol}}` | Condition icon | Yes | Yes |  |  |  |
 | `{{weather.city}}` | City | Yes | Yes |  |  |  |
+| `{{weather.kind}}` | Condition kind | Yes | Yes |  |  |  |
+| `{{forecast.1.day}}` | Forecast day 1 | Yes | Yes |  |  |  |
+| `{{forecast.1.symbol}}` | Forecast icon 1 | Yes | Yes |  |  |  |
+| `{{forecast.1.hi}}` | Forecast high 1 | Yes | Yes |  |  |  |
+| `{{forecast.1.lo}}` | Forecast low 1 | Yes | Yes |  |  |  |
+| `{{forecast.2.day}}` | Forecast day 2 | Yes | Yes |  |  |  |
+| `{{forecast.2.symbol}}` | Forecast icon 2 | Yes | Yes |  |  |  |
+| `{{forecast.2.hi}}` | Forecast high 2 | Yes | Yes |  |  |  |
+| `{{forecast.2.lo}}` | Forecast low 2 | Yes | Yes |  |  |  |
+| `{{forecast.3.day}}` | Forecast day 3 | Yes | Yes |  |  |  |
+| `{{forecast.3.symbol}}` | Forecast icon 3 | Yes | Yes |  |  |  |
+| `{{forecast.3.hi}}` | Forecast high 3 | Yes | Yes |  |  |  |
+| `{{forecast.3.lo}}` | Forecast low 3 | Yes | Yes |  |  |  |
+| `{{forecast.4.day}}` | Forecast day 4 | Yes | Yes |  |  |  |
+| `{{forecast.4.symbol}}` | Forecast icon 4 | Yes | Yes |  |  |  |
+| `{{forecast.4.hi}}` | Forecast high 4 | Yes | Yes |  |  |  |
+| `{{forecast.4.lo}}` | Forecast low 4 | Yes | Yes |  |  |  |
+| `{{forecast.5.day}}` | Forecast day 5 | Yes | Yes |  |  |  |
+| `{{forecast.5.symbol}}` | Forecast icon 5 | Yes | Yes |  |  |  |
+| `{{forecast.5.hi}}` | Forecast high 5 | Yes | Yes |  |  |  |
+| `{{forecast.5.lo}}` | Forecast low 5 | Yes | Yes |  |  |  |
+| `{{forecast.6.day}}` | Forecast day 6 | Yes | Yes |  |  |  |
+| `{{forecast.6.symbol}}` | Forecast icon 6 | Yes | Yes |  |  |  |
+| `{{forecast.6.hi}}` | Forecast high 6 | Yes | Yes |  |  |  |
+| `{{forecast.6.lo}}` | Forecast low 6 | Yes | Yes |  |  |  |
 
 ## Battery
 
@@ -134,6 +168,45 @@ Generated from `capabilities.json` by `scripts/capabilities-table.mjs`. Do not e
 | `{{reminders.2.title}}` | Reminder 2 | Yes | No | Reminders | Reminders |  |
 | `{{reminders.3.title}}` | Reminder 3 | Yes | No | Reminders | Reminders |  |
 | `{{reminders.4.title}}` | Reminder 4 | Yes | No | Reminders | Reminders |  |
+
+## Tasks
+
+| Id | What | iOS | Android | iOS needs | Android needs | Notes |
+|---|---|---|---|---|---|---|
+| `{{tasks.list}}` | Open tasks | Yes | Yes | Reminders |  |  |
+| `{{tasks.today.count}}` | Tasks today | Yes | Yes | Reminders |  |  |
+| `{{tasks.open.count}}` | Open task count | Yes | Yes | Reminders |  |  |
+| `{{tasks.done.count}}` | Tasks done today | Yes | Yes | Reminders |  |  |
+| `{{tasks.progress}}` | Task progress | Yes | Yes | Reminders |  |  |
+| `{{tasks.next.title}}` | Next task | Yes | Yes | Reminders |  |  |
+| `{{tasks.next.due}}` | Next task due | Yes | Yes | Reminders |  |  |
+| `{{tasks.next.id}}` | Next task id | Yes | Yes | Reminders |  |  |
+| `{{tasks.1.title}}` | Task 1 | Yes | Yes | Reminders |  |  |
+| `{{tasks.1.due}}` | Task 1 due | Yes | Yes | Reminders |  |  |
+| `{{tasks.1.done}}` | Task 1 done | Yes | Yes | Reminders |  |  |
+| `{{tasks.1.id}}` | Task 1 id | Yes | Yes | Reminders |  |  |
+| `{{tasks.2.title}}` | Task 2 | Yes | Yes | Reminders |  |  |
+| `{{tasks.2.due}}` | Task 2 due | Yes | Yes | Reminders |  |  |
+| `{{tasks.2.done}}` | Task 2 done | Yes | Yes | Reminders |  |  |
+| `{{tasks.2.id}}` | Task 2 id | Yes | Yes | Reminders |  |  |
+| `{{tasks.3.title}}` | Task 3 | Yes | Yes | Reminders |  |  |
+| `{{tasks.3.due}}` | Task 3 due | Yes | Yes | Reminders |  |  |
+| `{{tasks.3.done}}` | Task 3 done | Yes | Yes | Reminders |  |  |
+| `{{tasks.3.id}}` | Task 3 id | Yes | Yes | Reminders |  |  |
+| `{{tasks.4.title}}` | Task 4 | Yes | Yes | Reminders |  |  |
+| `{{tasks.4.due}}` | Task 4 due | Yes | Yes | Reminders |  |  |
+| `{{tasks.4.done}}` | Task 4 done | Yes | Yes | Reminders |  |  |
+| `{{tasks.4.id}}` | Task 4 id | Yes | Yes | Reminders |  |  |
+| `{{tasks.5.title}}` | Task 5 | Yes | Yes | Reminders |  |  |
+| `{{tasks.5.due}}` | Task 5 due | Yes | Yes | Reminders |  |  |
+| `{{tasks.5.done}}` | Task 5 done | Yes | Yes | Reminders |  |  |
+| `{{tasks.5.id}}` | Task 5 id | Yes | Yes | Reminders |  |  |
+| `{{tasks.6.title}}` | Task 6 | Yes | Yes | Reminders |  |  |
+| `{{tasks.6.due}}` | Task 6 due | Yes | Yes | Reminders |  |  |
+| `{{tasks.6.done}}` | Task 6 done | Yes | Yes | Reminders |  |  |
+| `{{tasks.6.id}}` | Task 6 id | Yes | Yes | Reminders |  |  |
+| `task.toggle` | Complete task | Yes | Yes | Reminders |  |  |
+| `task.add` | Add a task | Yes | Yes |  |  |  |
 
 ## Now playing
 

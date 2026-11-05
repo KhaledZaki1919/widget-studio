@@ -133,9 +133,22 @@ object SpecWriter {
                 set("justify", c.justify); set("columns", c.columns); set("children", JsonArray(c.children.map { layer(it, child = true) }))
             }
             is LayerContent.Spacer -> set("minLength", c.minLength)
+            is LayerContent.States -> {
+                set("set", c.set); set("value", c.value); set("color", c.color); set("accent", c.accent); set("dim", c.dim)
+                c.box?.let { box -> set("box", JsonArray(box.map(::JsonPrimitive))) }
+                c.variants?.let { variants -> set("variants", JsonArray(variants.map(::variant))) }
+            }
             is LayerContent.Unknown -> Unit
         }
         return JsonObject(fields)
+    }
+
+    private fun variant(v: StateVariant) = buildJsonObject {
+        put("id", v.id)
+        v.title?.let { put("title", ltext(it)) }
+        v.condition?.let { put("when", it) }
+        put("layers", JsonArray(v.layers.map { layer(it, child = false) }))
+        v.sample?.let { sample -> put("sample", JsonObject(sample.mapValues { (_, value) -> JsonPrimitive(value) })) }
     }
 
     fun typeName(content: LayerContent) = when (content) {
@@ -154,6 +167,7 @@ object SpecWriter {
         is LayerContent.ProgressBar -> "progressBar"
         is LayerContent.Stack -> "stack"
         is LayerContent.Spacer -> "spacer"
+        is LayerContent.States -> "states"
         is LayerContent.Unknown -> content.type
     }
 }
