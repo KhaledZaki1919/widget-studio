@@ -186,7 +186,7 @@ extension AutoWire.Run {
                 let middle = icon.frame.x + icon.frame.w / 2
                 return texts.filter { abs($0.frame.x + $0.frame.w / 2 - middle) < step / 2 }.sorted { $0.frame.y < $1.frame.y }
             }
-            let startsToday = column(days[days.startIndex]).contains { TextShape.isToday(text($0).trimmingCharacters(in: .whitespaces)) }
+            let startsToday = column(days[days.startIndex]).contains { AutoWire.TextShape.isToday(text($0).trimmingCharacters(in: .whitespaces)) }
             for (index, icon) in days.enumerated() {
                 let day = startsToday ? index : index + 1
                 guard day <= 6 else { break }
@@ -200,10 +200,10 @@ extension AutoWire.Run {
                 var temperatures = 0
                 for item in column(icon) {
                     let value = text(item).trimmingCharacters(in: .whitespaces)
-                    if TextShape.isDayName(value), day > 0 {
+                    if AutoWire.TextShape.isDayName(value), day > 0 {
                         let id = "forecast.\(day).day"
                         setText(item.path, en: "{{\(id)}}", ar: "{{\(id)}}", was: value, id: id)
-                    } else if TextShape.isTemperature(value) {
+                    } else if AutoWire.TextShape.isTemperature(value) {
                         let part = temperatures == 0 ? "hi" : "lo"
                         temperatures += 1
                         let id = day == 0 ? "weather.\(part)" : "forecast.\(day).\(part)"

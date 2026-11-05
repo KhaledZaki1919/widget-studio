@@ -75,7 +75,7 @@ public struct StatesLayer: Codable, Sendable, Equatable {
     }
 
     /// Names this layer's states in a render's forced states (the editor's preview).
-    public var key: String { set ?? variants?.first?.id ?? "states" }
+    public var key: String { self.set ?? variants?.first?.id ?? "states" }
 }
 
 /// One built-in state set of `capabilities.json` (ADR-028).
