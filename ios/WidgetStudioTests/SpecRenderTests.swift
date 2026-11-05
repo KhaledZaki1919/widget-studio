@@ -83,7 +83,7 @@ final class SpecRenderTests: XCTestCase {
     /// languages and both themes, and the result isn't blank (M2).
     func testEveryTemplateRendersThroughTheWidgetView() throws {
         let templates = TemplateLibrary.all()
-        XCTAssertEqual(templates.count, 31)
+        XCTAssertEqual(templates.count, 37)
         for spec in templates {
             for family in spec.family.supportedFamilies {
                 for language in languages {

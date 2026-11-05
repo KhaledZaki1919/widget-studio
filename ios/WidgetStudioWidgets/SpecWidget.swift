@@ -53,6 +53,7 @@ struct TimeTemplateWidgets: WidgetBundle {
         TemplateWidget<TemplateIDs.ClockDigital>()
         TemplateWidget<TemplateIDs.DateBig>()
         TemplateWidget<TemplateIDs.DateDayZone>()
+        TemplateWidget<TemplateIDs.YearDots>()
     }
 }
 
@@ -61,6 +62,7 @@ struct WeatherTemplateWidgets: WidgetBundle {
         TemplateWidget<TemplateIDs.WeatherHiLo>()
         TemplateWidget<TemplateIDs.WeatherTemp>()
         TemplateWidget<TemplateIDs.WeatherForecast>()
+        TemplateWidget<TemplateIDs.WeatherArt>()
         TemplateWidget<TemplateIDs.LocationCoords>()
     }
 }
@@ -107,6 +109,7 @@ struct TilesTemplateWidgets: WidgetBundle {
         TemplateWidget<TemplateIDs.TilesHero>()
         TemplateWidget<TemplateIDs.MediaPlayer>()
         TemplateWidget<TemplateIDs.ControlCenter>()
+        TemplateWidget<TemplateIDs.BatteryMood>()
     }
 }
 
@@ -114,6 +117,9 @@ struct CounterTemplateWidgets: WidgetBundle {
     var body: some Widget {
         TemplateWidget<TemplateIDs.CounterTasbeeh>()
         TemplateWidget<TemplateIDs.TimerFocus>()
+        TemplateWidget<TemplateIDs.TasksSmall>()
+        TemplateWidget<TemplateIDs.TasksMedium>()
+        TemplateWidget<TemplateIDs.TasksLarge>()
     }
 }
 
@@ -277,6 +283,7 @@ struct DataGapView: View {
         case .noWeather: "cloud"
         case .noHealth: "heart.text.square"
         case .noBattery: "battery.0"
+        case .noTasks: "checklist"
         }
     }
 
@@ -286,6 +293,7 @@ struct DataGapView: View {
         case .noWeather: "widget.gap.noWeather"
         case .noHealth: "widget.gap.noHealth"
         case .noBattery: "widget.gap.noBattery"
+        case .noTasks: "widget.gap.noTasks"
         }
     }
 }

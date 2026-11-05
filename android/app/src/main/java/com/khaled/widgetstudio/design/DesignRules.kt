@@ -72,7 +72,7 @@ object DesignRules {
                 is LayerContent.DotGrid -> checkDots(c, item, run, tally)
                 is LayerContent.Icon -> checkIcon(c, item, run, tally, ::hasAction)
                 is LayerContent.Shape -> checkSwitch(item, run, tally, ::hasAction)
-                is LayerContent.ListL -> checkList(c, item, tally)
+                is LayerContent.ListL -> checkList(c, item, tally, ::hasAction)
                 is LayerContent.States -> tally.pass(Rule.ALIVE)
                 is LayerContent.ForecastRow, is LayerContent.AnalogClock, is LayerContent.CalendarMonth -> tally.pass(Rule.LIVE)
                 else -> Unit
@@ -200,9 +200,15 @@ object DesignRules {
         if (knobs.any { it.condition != null }) tally.pass(Rule.ALIVE) else tally.fail(Rule.ALIVE, item, "switch", oneLook)
     }
 
-    private fun checkList(list: LayerContent.ListL, item: AutoWire.Found, tally: Tally) {
-        for (row in list.items) {
+    private fun checkList(list: LayerContent.ListL, item: AutoWire.Found, tally: Tally, hasAction: (Frame) -> Boolean) {
+        val height = item.frame.h / maxOf(list.items.size, 1)
+        for ((index, row) in list.items.withIndex()) {
             val detail = row.detail?.resolved("en")?.trim() ?: ""
+            if (row.done != null) {
+                val frame = Frame(item.frame.x, item.frame.y + index * height, item.frame.w, height)
+                if (hasAction(frame)) tally.pass(Rule.INTERACTIVE) else tally.fail(Rule.INTERACTIVE, item, "checkbox", noAction)
+                tally.pass(Rule.ALIVE)
+            }
             if (AutoWire.names(row.title.resolved("en")).isNotEmpty() || AutoWire.names(detail).isNotEmpty()) tally.pass(Rule.LIVE)
             else if (AutoWire.TextShape.isClock(detail)) tally.fail(Rule.LIVE, item, detail, frozen)
         }

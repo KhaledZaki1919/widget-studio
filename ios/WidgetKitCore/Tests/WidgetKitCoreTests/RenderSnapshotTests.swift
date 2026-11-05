@@ -15,6 +15,55 @@ import UniformTypeIdentifiers
 @Suite(.serialized)
 @MainActor
 struct RenderSnapshotTests {
+    /// Every state of every set, one PNG each, in `RENDER_OUT/states/` (ADR-028).
+    @Test @MainActor func everyStateOfEverySet() throws {
+        guard let out = ProcessInfo.processInfo.environment["RENDER_OUT"] else { return }
+        let folder = URL(fileURLWithPath: out).appendingPathComponent("states")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        for set in Capabilities.stateSets {
+            let states = StatesLayer(set: set.id, value: set.value)
+            let layer = Layer(frame: Frame(x: 25, y: 25, w: 120, h: 120), content: .states(states))
+            let spec = WidgetSpec(id: "state", name: "state", family: .small, background: .solid("@bg"), layers: [layer])
+            for variant in states.expanded {
+                var context = RenderContext(language: "en", data: .sample())
+                context.overrides = BindingResolver.overrides(for: variant, of: states)
+                #expect(BindingResolver(spec: spec, context: context).variant(of: states)?.id == variant.id)
+                if let image = SpecSnapshot.render(spec, overrides: context.overrides) {
+                    try writePNG(image, to: folder.appendingPathComponent("\(set.id).\(variant.id).png"))
+                }
+            }
+        }
+        // The templates that show them: the same widget in each state, real date for the year.
+        let date = ISO8601DateFormatter().date(from: "2026-11-05T10:00:00Z") ?? .now
+        for id in ["mono.battery.mood", "mono.weather.art"] {
+            guard let spec = TemplateLibrary.template(id: id) else { continue }
+            for layer in spec.layers {
+                guard case .states(let states) = layer.content else { continue }
+                for variant in states.expanded {
+                    var overrides = BindingResolver.overrides(for: variant, of: states)
+                    if overrides["weather.kind"] != nil { overrides["weather.symbol"] = symbol(for: variant.id) }
+                    if let image = SpecSnapshot.render(spec, date: date, overrides: overrides) {
+                        try writePNG(image, to: folder.appendingPathComponent("\(id).\(variant.id).png"))
+                    }
+                }
+            }
+        }
+        if let spec = TemplateLibrary.template(id: "mono.year.dots"), let image = SpecSnapshot.render(spec, date: date) {
+            try writePNG(image, to: folder.appendingPathComponent("mono.year.dots.2026-11-05.png"))
+        }
+    }
+
+    private func symbol(for variant: String) -> String {
+        ["storm": "cloud.bolt.rain.fill", "snow": "cloud.snow.fill", "rain": "cloud.rain.fill", "fog": "cloud.fog.fill", "cloud": "cloud.fill",
+         "partlyDay": "cloud.sun.fill", "partlyNight": "cloud.moon.fill", "sun": "sun.max.fill", "moon": "moon.stars.fill"][variant] ?? "cloud.fill"
+    }
+
+    private func writePNG(_ image: CGImage, to url: URL) throws {
+        guard let destination = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil) else { return }
+        CGImageDestinationAddImage(destination, image, nil)
+        CGImageDestinationFinalize(destination)
+    }
+
     /// The largest share of 8 pt cells that may be solid in the accented variant.
     static let maxSolidShare = 0.08
 

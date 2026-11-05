@@ -8,6 +8,8 @@ struct WiringBest: Codable {
     var model: String
     var prompt: String
     var cases: [String: Double]
+    /// The four product rules over the same replies (ADR-028): live, interactive, alive, correct.
+    var metrics: [String: Double]?
 }
 
 /// Every push replays the best run's recorded model replies through today's parser and post-pass,
@@ -19,6 +21,14 @@ struct WiringGateTests {
         (try? Data(contentsOf: folder.appendingPathComponent("wiring-best.json"))).flatMap { try? JSONDecoder().decode(WiringBest.self, from: $0) }
     }
 
+    static func means(_ rows: [[String: Double]]) -> [String: Double] {
+        var result: [String: Double] = [:]
+        for rule in DesignRules.Rule.allCases.map(\.rawValue) {
+            result[rule] = rows.isEmpty ? 0 : rows.map { $0[rule] ?? 1 }.reduce(0, +) / Double(rows.count)
+        }
+        return result
+    }
+
     @Test func replayedScoreHoldsTheBestRun() throws {
         guard let best = Self.best() else { return }
         struct Case: Decodable {
@@ -28,6 +38,7 @@ struct WiringGateTests {
         }
         let cases = try JSONDecoder().decode([Case].self, from: Data(contentsOf: Self.folder.appendingPathComponent("cases.json")))
         var scores: [Double] = []
+        var rules: [[String: Double]] = []
         for item in cases {
             guard let wiring = item.wiring else { continue }
             let name = (item.file as NSString).deletingPathExtension
@@ -37,6 +48,18 @@ struct WiringGateTests {
             let score = WiringScore.score(parsed.spec, expected: wiring)
             #expect(score + 0.0001 >= (best.cases[name] ?? 0), "\(name) dropped to \(score); missing \(wiring.filter { !WiringScore.hits(parsed.spec, expected: [$0]).contains($0) })")
             scores.append(score)
+            rules.append(DesignRules.check(parsed.spec).scores)
+        }
+        // Each rule's mean must hold its best run: a drop in any one of the four fails CI.
+        let means = Self.means(rules)
+        for (rule, floor) in best.metrics ?? [:] {
+            #expect((means[rule] ?? 0) + 0.0001 >= floor, "\(rule) dropped to \(means[rule] ?? 0), best run \(floor)")
+        }
+        if let out = ProcessInfo.processInfo.environment["RENDER_OUT"] {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            try? FileManager.default.createDirectory(atPath: out, withIntermediateDirectories: true)
+            try encoder.encode(means).write(to: URL(fileURLWithPath: out).appendingPathComponent("rules-replayed.json"))
         }
         #expect(!scores.isEmpty, "wiring-best.json exists but no recorded replies do")
         #expect(scores.reduce(0, +) / Double(max(scores.count, 1)) + 0.0001 >= best.score)

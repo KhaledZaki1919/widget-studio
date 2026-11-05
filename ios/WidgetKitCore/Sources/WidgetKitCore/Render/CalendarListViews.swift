@@ -127,7 +127,8 @@ struct ListLayerView: View {
     private var size: CGFloat { layer.font.size * scale }
 
     @ViewBuilder private func row(_ item: ListLayer.Item, height: CGFloat) -> some View {
-        let title = text(item.title, color: Color(hex: layer.color))
+        let isDone = item.done.map(resolver.isSatisfied) ?? false
+        let title = text(item.title, color: Color(hex: layer.color).opacity(isDone ? 0.5 : 1))
         let detail = item.detail.map { text($0, color: layer.detailColor.map(Color.init(hex:)) ?? Color(hex: layer.color).opacity(0.6)) }
         HStack(spacing: 8 * scale) {
             if mirrored {
@@ -155,7 +156,8 @@ struct ListLayerView: View {
 
     @ViewBuilder private func marker(_ item: ListLayer.Item, height: CGFloat) -> some View {
         let color = Color(hex: item.color ?? layer.markerColor ?? layer.color)
-        switch layer.marker ?? .none {
+        // A row with a done state is a checkbox, whatever the list's marker says.
+        switch item.done.map({ resolver.isSatisfied($0) ? ListLayer.Marker.check : .circle }) ?? layer.marker ?? .none {
         case .none: EmptyView()
         case .dot: Circle().fill(color).frame(width: size * 0.45, height: size * 0.45)
         case .circle: Circle().stroke(color, lineWidth: max(1, 1.5 * scale)).frame(width: size * 0.95, height: size * 0.95)

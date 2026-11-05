@@ -32,7 +32,7 @@ public enum DataRequirements {
             case .analogClock(let clock): strings += [clock.timezone].compactMap { $0 }
             case .button(let button): strings += [button.arg].compactMap { $0 }
             case .list(let list):
-                strings += list.items.flatMap { $0.title.allValues + ($0.detail?.allValues ?? []) }
+                strings += list.items.flatMap { $0.title.allValues + ($0.detail?.allValues ?? []) + [$0.done].compactMap { $0 } }
             case .progressBar(let bar): strings.append(bar.progress)
             case .image(let image): strings.append(image.source)
             case .states(let states): strings += states.expanded.compactMap(\.when) + [states.value].compactMap { $0 }
@@ -52,6 +52,8 @@ public enum DataGap: String, Codable, Sendable {
     /// Steps and sleep can't be read here (`HealthIssue`).
     case noHealth
     case noBattery
+    /// Reminders access isn't granted, and tasks live there on iOS.
+    case noTasks
 }
 
 /// Everything real the renderer can use at one moment (ADR-016).
@@ -138,6 +140,7 @@ public enum LiveData {
             guard case .success? = inputs.health else { return .noHealth }
         }
         if groups.contains(.device), inputs.battery == nil { return .noBattery }
+        if groups.contains(.tasks), inputs.device.noTasks { return .noTasks }
         return nil
     }
 }

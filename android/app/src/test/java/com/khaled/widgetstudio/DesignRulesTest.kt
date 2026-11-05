@@ -55,8 +55,7 @@ class DesignRulesTest {
     /** Every template meets the rules: the audit, kept forever. */
     @Test
     fun everyTemplatePasses() {
-        for (spec in library.all) {
-            assertEquals(spec.id, emptyList<String>(), DesignRules.check(spec).findings.map { it.rule.name + " " + it.element })
-        }
+        val problems = library.all.flatMap { spec -> DesignRules.check(spec).findings.map { spec.id + ": " + it.rule.name + " " + it.element } }
+        assertEquals(emptyList<String>(), problems)
     }
 }

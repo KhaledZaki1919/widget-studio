@@ -39,7 +39,7 @@ class StatesTest {
         Capabilities.install(file.readText())
     }
 
-    private fun spec(layers: List<Layer> = emptyList()) = WidgetSpec(1, "t", LText.Plain("t"), Family.SMALL, Theme.DARK, "none", Background("solid", "#000000", null, null, null, null), emptyList(), layers, null)
+    private fun spec(layers: List<Layer> = emptyList()) = WidgetSpec(1, "t", LText.Localized("t", "t"), Family.SMALL, Theme.DARK, "none", Background("solid", "#000000", null, null, null, null), emptyList(), layers, null)
 
     private fun resolver(now: String = "2026-11-05T10:00:00Z", data: DataSnapshot = DataSnapshot(), overrides: Map<String, String> = emptyMap()) =
         BindingResolver(spec(), RenderContext(now = Instant.parse(now), language = "en", zone = cairo, data = data, overrides = overrides))

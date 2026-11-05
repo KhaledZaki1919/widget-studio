@@ -147,6 +147,22 @@ fun EditorScreen(state: EditorState, onClose: () -> Unit, onSaved: () -> Unit, l
     var screen by remember { mutableStateOf<EditorScreen>(EditorScreen.Main) }
     var language by remember { mutableStateOf(WidgetEnvironment.language(context)) }
     var confirmDiscard by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
+    if (confirmDelete) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(tr("Delete this design?", "هل تحذف هذا التصميم؟")) },
+            text = { Text(tr("Widgets showing it will ask you to choose another design.", "الودجات التي تعرضه ستطلب منك اختيار تصميم آخر.")) },
+            confirmButton = {
+                TextButton(onClick = {
+                    DesignStore.get(context).delete(state.design.id)
+                    scope.launch { Widgets.updateAll(context) }
+                    onClose()
+                }) { Text(tr("Delete", "حذف"), color = androidx.compose.material3.MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(tr("Cancel", "إلغاء")) } },
+        )
+    }
     BackHandler {
         when (val s = screen) {
             is EditorScreen.Main -> confirmDiscard = true
@@ -182,6 +198,7 @@ fun EditorScreen(state: EditorState, onClose: () -> Unit, onSaved: () -> Unit, l
                 is EditorScreen.Main -> {
                     InteractiveCard(state) { screen = EditorScreen.Layer(it) }
                     MainForm(state, layout, onRegenerate) { screen = EditorScreen.Layers(emptyList()) }
+                    if (!state.isNew) TextButton(onClick = { confirmDelete = true }) { Text(tr("Delete design", "حذف التصميم"), color = androidx.compose.material3.MaterialTheme.colorScheme.error) }
                 }
                 is EditorScreen.Layers -> LayersList(state, s.parent, onOpen = { screen = EditorScreen.Layer(it) })
                 is EditorScreen.Layer -> LayerDetail(state, s.path, onOpenItems = { screen = EditorScreen.Layers(it) }, onGone = { screen = EditorScreen.Layers(s.path.dropLast(1)) })

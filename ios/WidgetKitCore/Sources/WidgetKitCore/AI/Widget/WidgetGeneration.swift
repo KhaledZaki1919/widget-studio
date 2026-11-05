@@ -96,11 +96,11 @@ public struct GeneratedWidget: Sendable, Equatable {
 
 // MARK: - Prompt
 
-/// Builds the request: the versioned system prompt (`Prompts/generate_v5.md`, ADR-019, ADR-023, ADR-027), the user
+/// Builds the request: the versioned system prompt (`Prompts/generate_v6.md`, ADR-019, ADR-023, ADR-027, ADR-028), the user
 /// text with mode, size and the user's instructions, the image, and the AI schema. Also the one
 /// self-review request (`Prompts/review_v1.md`).
 public enum WidgetPrompt {
-    public static let version = "generate_v5"
+    public static let version = "generate_v6"
     public static let reviewVersion = "review_v1"
     /// Room for 30 layers with their nulls; thinking providers get extra on top.
     public static let maxOutputTokens = 16000
@@ -141,6 +141,12 @@ public enum WidgetPrompt {
             }
         }
         sections.append("Tap actions:\n" + actions.joined(separator: "\n"))
+        // ADR-028: a new set in the catalog reaches the model with no prompt edit.
+        let sets = Capabilities.stateSets.map { set -> String in
+            let looks = set.variants.map(\.id).joined(separator: ", ")
+            return "- `\(set.id)`: \(set.description) (states: \(looks))" + (set.value.map { "; takes `value`, like \($0)" } ?? "")
+        }
+        sections.append("State sets, for `states` layers:\n" + sets.joined(separator: "\n"))
         return sections.joined(separator: "\n\n")
     }
 
@@ -259,7 +265,8 @@ public enum AIWidgetSchema {
             "inventory": JSONSchema.array(JSONSchema.string),
             // Prompt v5 (ADR-027): what each element shows and does; ids come from the catalog.
             "wiring": JSONSchema.array(JSONSchema.object([
-                "element": JSONSchema.string, "shows": nullableString, "tap": nullableEnum(aiActions), "decorative": nullableString,
+                "element": JSONSchema.string, "shows": nullableString, "tap": nullableEnum(aiActions),
+                "states": nullableEnum(Capabilities.stateSets.map(\.id)), "decorative": nullableString,
             ])),
             "name": localized,
             "family": JSONSchema.enumeration(SpecFamily.allCases.map(\.rawValue)),
@@ -409,6 +416,11 @@ public enum AIWidgetSchema {
             layer("ring", ringProperties),
             layer("forecastRow", ["days": JSONSchema.integer, "color": JSONSchema.string]),
             layer("button", ["action": JSONSchema.enumeration(aiActions), "arg": nullableString]),
+            // ADR-028: built from the catalog, so a new set needs no schema edit.
+            layer("states", [
+                "set": JSONSchema.enumeration(Capabilities.stateSets.map(\.id)), "value": nullableString,
+                "color": nullableString, "accent": nullableString, "dim": nullableString,
+            ]),
             // ADR-019.
             layer("calendarMonth", [
                 "font": font, "color": JSONSchema.string,
@@ -429,7 +441,7 @@ public enum AIWidgetSchema {
                 "items": JSONSchema.array(JSONSchema.object([
                     "title": localized, "detail": JSONSchema.nullable(localized),
                     "icon": JSONSchema.nullable(JSONSchema.enumeration(Icons.whitelist.keys.sorted())),
-                    "color": nullableString,
+                    "color": nullableString, "done": nullableString,
                 ])),
                 "font": font, "color": JSONSchema.string, "detailColor": nullableString,
                 "marker": nullableEnum(ListLayer.Marker.allCases.map(\.rawValue)),

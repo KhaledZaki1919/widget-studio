@@ -451,6 +451,7 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
                     item.detail?.allValues?.forEach { text("$p.detail", it) }
                     if (item.icon != null && !IconWhitelist.isAllowed(item.icon)) fail("$p.icon", "\"${item.icon}\" is not in the icon whitelist")
                     color("$p.color", item.color)
+                    item.done?.let { condition("$path.items.done", it) }
                 }
             }
             is LayerContent.ProgressBar -> {

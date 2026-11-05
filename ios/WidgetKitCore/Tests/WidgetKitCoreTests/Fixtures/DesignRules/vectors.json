@@ -116,6 +116,7 @@
    ]
   },
   "findings": [
+   "alive",
    "interactive"
   ]
  },

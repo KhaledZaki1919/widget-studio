@@ -103,7 +103,7 @@ object SpecParser {
         "list" -> LayerContent.ListL(
             o.arr("items")?.map { item ->
                 val i = item.jsonObject
-                ListItem(i.ltext("title") ?: LText.Plain(""), i.ltext("detail"), i.str("icon"), i.str("color"))
+                ListItem(i.ltext("title") ?: LText.Plain(""), i.ltext("detail"), i.str("icon"), i.str("color"), i.str("done"))
             } ?: emptyList(),
             font(o.obj("font")) ?: FontSpec("system", 13.0, null), o.str("color") ?: "#FFFFFF", o.str("detailColor"), o.str("marker"),
             o.str("markerColor"), o.str("dividerColor"),

@@ -33,6 +33,8 @@ struct AIEvalTests {
         let layout: LayoutRepair?
         var modelScore: Double?
         var finalScore: Double?
+        /// The four product rules on this case (ADR-028).
+        var rules: [String: Double]?
     }
 
     let environment = ProcessInfo.processInfo.environment
@@ -143,12 +145,19 @@ struct AIEvalTests {
         let raw = modelScores.isEmpty ? 0 : modelScores.reduce(0, +) / Double(modelScores.count)
         table.append("")
         table.append("**Wiring \(model):** \(Self.percent(final)) with the post-pass, \(Self.percent(raw)) from the model alone, \(scores.count) cases")
+        let metrics = WiringGateTests.means(outcomes.compactMap(\.rules))
+        table.append("**Rules \(model):** " + DesignRules.Rule.allCases.map { "\($0.rawValue) \(Self.percent(metrics[$0.rawValue] ?? 0))" }.joined(separator: " · "))
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let report = WiringBest(score: final, model: model, prompt: WidgetPrompt.version, cases: scores)
+        let report = WiringBest(score: final, model: model, prompt: WidgetPrompt.version, cases: scores, metrics: metrics)
         try encoder.encode(report).write(to: folder.appendingPathComponent("wiring.json"))
         if environment["AI_EVAL_GATE"] == "1", let best = WiringGateTests.best(), final + 0.0001 < best.score {
             Issue.record("Wiring score \(Self.percent(final)) is below the best run \(Self.percent(best.score))")
+        }
+        if environment["AI_EVAL_GATE"] == "1", let best = WiringGateTests.best()?.metrics {
+            for (rule, floor) in best where (metrics[rule] ?? 0) + 0.0001 < floor {
+                Issue.record("\(rule) \(Self.percent(metrics[rule] ?? 0)) is below the best run \(Self.percent(floor))")
+            }
         }
     }
 
@@ -283,6 +292,8 @@ struct AIEvalTests {
                 let raw = try? AIWidgetParser.parseWidget(result.reply, options: target.options, id: "eval", enforceLayout: false, autoWire: false)
                 outcome.modelScore = raw.map { WiringScore.score($0.spec, expected: wiring) }
                 outcome.finalScore = WiringScore.score(spec, expected: wiring)
+                outcome.rules = DesignRules.check(spec).scores
+                for finding in DesignRules.check(spec).findings { details.append("  - rule \(finding.rule.rawValue): \(finding.element)") }
                 let missing = wiring.filter { !WiringScore.hits(spec, expected: [$0]).contains($0) }
                 details.append("- wiring: \(Self.percent(outcome.finalScore ?? 0)) (model \(Self.percent(outcome.modelScore ?? 0))), missing: "
                     + (missing.isEmpty ? "nothing" : missing.joined(separator: ", ")))

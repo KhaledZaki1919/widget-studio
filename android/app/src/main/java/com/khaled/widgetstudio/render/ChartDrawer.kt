@@ -275,6 +275,7 @@ internal class ChartDrawer(private val d: Drawing) {
         for ((index, item) in list.items.withIndex()) {
             val row = RectF(rect.left, rect.top + index * rowHeight, rect.right, rect.top + (index + 1) * rowHeight)
             val markerColor = d.color(item.color ?: list.markerColor ?: list.color)
+            val isDone = item.done?.let(d.resolver::isSatisfied) ?: false
             val markerWidth = marker(canvas, list, item, row, size, scale, markerColor, mirrored)
             val gap = 8 * scale
             val title = text(item.title)
@@ -283,7 +284,7 @@ internal class ChartDrawer(private val d: Drawing) {
             val detailWidth = detail?.let { minOf(d.text.naturalWidth(it, list.font, null, scale), row.width() * 0.45f) } ?: 0f
             val titleLeft = if (mirrored) row.left + detailWidth + 4 * scale else row.left + (if (markerWidth > 0) markerWidth + gap else 0f)
             val titleRight = if (mirrored) row.right - (if (markerWidth > 0) markerWidth + gap else 0f) else row.right - detailWidth - 4 * scale
-            d.text.drawFitted(canvas, title, list.font, color, if (mirrored) "trailing" else "leading", 1, null, RectF(titleLeft, row.top, titleRight, row.bottom), scale, 0.6f)
+            d.text.drawFitted(canvas, title, list.font, if (isDone) d.withAlpha(color, 0.5) else color, if (mirrored) "trailing" else "leading", 1, null, RectF(titleLeft, row.top, titleRight, row.bottom), scale, 0.6f)
             if (detail != null) {
                 val box = if (mirrored) RectF(row.left, row.top, row.left + detailWidth, row.bottom) else RectF(row.right - detailWidth, row.top, row.right, row.bottom)
                 d.text.drawFitted(canvas, detail, list.font, detailColor, if (mirrored) "leading" else "trailing", 1, null, box, scale, 0.6f)
@@ -299,7 +300,8 @@ internal class ChartDrawer(private val d: Drawing) {
 
     /** Draws the row's marker at its leading (or, mirrored, trailing) edge; returns its width. */
     private fun marker(canvas: Canvas, list: LayerContent.ListL, item: com.khaled.widgetstudio.spec.ListItem, row: RectF, size: Float, scale: Float, color: Int, mirrored: Boolean): Float {
-        val kind = list.marker ?: "none"
+        // A row with a done state is a checkbox, whatever the list's marker says.
+        val kind = item.done?.let { if (d.resolver.isSatisfied(it)) "check" else "circle" } ?: list.marker ?: "none"
         val width = when (kind) {
             "dot" -> size * 0.45f
             "circle" -> size * 0.95f

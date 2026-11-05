@@ -112,6 +112,7 @@ class CapabilityCatalogTest {
         val perCase = best.getValue("cases").jsonObject
         val cases = Json.parseToJsonElement(File(folder, "cases.json").readText()).jsonArray
         val scores = mutableListOf<Double>()
+        val rules = mutableListOf<Map<String, Double>>()
         for (entry in cases) {
             val case = entry.jsonObject
             val wiring = (case["wiring"] as? JsonArray)?.map { it.jsonPrimitive.content } ?: continue
@@ -123,8 +124,15 @@ class CapabilityCatalogTest {
             val floor = perCase[name]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.0
             assertTrue("$name dropped to $score; missing ${wiring - WiringScore.hits(parsed.spec, wiring).toSet()}", score + 0.0001 >= floor)
             scores += score
+            rules += com.khaled.widgetstudio.design.DesignRules.check(parsed.spec).scores
         }
         assertTrue(scores.isNotEmpty())
+        // Each rule's mean must hold its best run (ADR-028): a drop in any one of the four fails CI.
+        val metrics = best["metrics"] as? kotlinx.serialization.json.JsonObject
+        for ((rule, floor) in metrics ?: emptyMap()) {
+            val mean = rules.map { it[rule] ?: 1.0 }.average()
+            assertTrue("$rule dropped to $mean, best run $floor", mean + 0.0001 >= floor.jsonPrimitive.content.toDouble())
+        }
     }
 
     @Test

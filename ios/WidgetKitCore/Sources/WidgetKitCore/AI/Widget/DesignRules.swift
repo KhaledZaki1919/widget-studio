@@ -84,7 +84,7 @@ public enum DesignRules {
             case .dotGrid(let grid): checkDots(grid, item, run, &tally)
             case .icon(let icon): checkIcon(icon, item, run, &tally, hasAction: hasAction)
             case .shape: checkSwitch(item, run, &tally, hasAction: hasAction)
-            case .list(let list): checkList(list, item, &tally)
+            case .list(let list): checkList(list, item, &tally, hasAction: hasAction)
             case .states: tally.pass(.alive)
             case .forecastRow, .analogClock, .calendarMonth: tally.pass(.live)
             default: break
@@ -220,9 +220,15 @@ public enum DesignRules {
         if knobs.contains(where: { $0.when != nil }) { tally.pass(.alive) } else { tally.fail(.alive, item, "switch", Say.oneLook) }
     }
 
-    private static func checkList(_ list: ListLayer, _ item: AutoWire.Found, _ tally: inout Tally) {
-        for row in list.items {
+    private static func checkList(_ list: ListLayer, _ item: AutoWire.Found, _ tally: inout Tally, hasAction: (Frame) -> Bool) {
+        let height = item.frame.h / Double(max(list.items.count, 1))
+        for (index, row) in list.items.enumerated() {
             let detail = row.detail?.resolved(language: "en").trimmingCharacters(in: .whitespaces) ?? ""
+            if row.done != nil {
+                let frame = Frame(x: item.frame.x, y: item.frame.y + Double(index) * height, w: item.frame.w, h: height)
+                if hasAction(frame) { tally.pass(.interactive) } else { tally.fail(.interactive, item, "checkbox", Say.noAction) }
+                tally.pass(.alive)
+            }
             if Bindings.names(in: row.title.resolved(language: "en")).isEmpty == false || Bindings.names(in: detail).isEmpty == false {
                 tally.pass(.live)
             } else if AutoWire.TextShape.isClock(detail) {

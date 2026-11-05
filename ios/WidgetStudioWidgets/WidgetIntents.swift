@@ -155,6 +155,33 @@ struct MediaControlIntent: AppIntent {
     }
 }
 
+/// Ticks a task in the widget itself (ADR-028): Reminders is shared with the app without an App
+/// Group, and WidgetKit redraws after an intent runs.
+struct TaskToggleIntent: AppIntent {
+    static var title: LocalizedStringResource = "widget.intent.task.toggle"
+    static var isDiscoverable = false
+
+    @Parameter(title: "widget.intent.task.id", default: "")
+    var id: String
+
+    init() {}
+
+    init(id: String) {
+        self.id = id
+    }
+
+    func perform() async throws -> some IntentResult {
+        guard !id.isEmpty else { return .result() }
+        do {
+            try TaskStore().toggle(id: id)
+            WidgetLog.add("intent task toggled")
+        } catch {
+            WidgetLog.add("intent task failed: \(error)")
+        }
+        return .result()
+    }
+}
+
 /// Interactive controls for the renderer's button layers (`specActionButton`). Everything else
 /// keeps the default link to the app, which follows the catalog (Shortcut, hint, open…).
 enum WidgetActionButtons {
@@ -164,6 +191,7 @@ enum WidgetActionButtons {
         case "counter.reset": AnyView(button(CounterResetIntent()))
         case "counter.next": AnyView(button(CounterNextIntent()))
         case "stopwatch.toggle": AnyView(button(StopwatchToggleIntent()))
+        case "task.toggle": (arg ?? "").isEmpty ? nil : AnyView(button(TaskToggleIntent(id: arg ?? "")))
         case "timer.toggle": AnyView(button(TimerToggleIntent(minutes: arg.flatMap { Int($0) } ?? 0)))
         case "timer.add": AnyView(button(TimerAddIntent(minutes: arg.flatMap { Int($0) } ?? 5)))
         case "timer.reset": AnyView(button(TimerResetIntent()))

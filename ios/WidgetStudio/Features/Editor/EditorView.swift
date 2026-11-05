@@ -11,6 +11,7 @@ struct EditorView: View {
     @Environment(AppState.self) private var appState
     @Environment(LiveDataModel.self) private var live
     @Environment(\.dismiss) private var dismiss
+    @State private var confirmingDelete = false
     @State private var model: EditorModel
     @State private var saveError: String?
 
@@ -50,6 +51,12 @@ struct EditorView: View {
                 if model.hasPhoto { photoSection }
                 appearanceSection
                 layersSection
+                if !model.isNew {
+                    Section {
+                        Button("mywidgets.delete", role: .destructive) { confirmingDelete = true }
+                            .accessibilityIdentifier("ax.editor.delete")
+                    }
+                }
                 if !model.editableFields.isEmpty {
                     Section("editor.fields") {
                         ForEach(model.editableFields, id: \.key) { field in
@@ -81,6 +88,12 @@ struct EditorView: View {
                     Button("common.save", action: save)
                         .disabled(!model.canSave)
                         .accessibilityIdentifier("ax.editor.save")
+                }
+            }
+            .confirmationDialog("mywidgets.delete.title", isPresented: $confirmingDelete, titleVisibility: .visible) {
+                Button("mywidgets.delete.confirm", role: .destructive) {
+                    designs.delete(model.design)
+                    dismiss()
                 }
             }
             .onChange(of: model.photoItem) { _, item in

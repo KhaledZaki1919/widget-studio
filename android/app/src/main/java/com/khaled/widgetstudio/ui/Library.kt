@@ -7,7 +7,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +29,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,9 +39,16 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -115,6 +125,8 @@ class MainActivity : ComponentActivity() {
         const val OPEN_QIBLA = "qibla"
         const val OPEN_IMPORT = "import"
         const val OPEN_BULK = "bulk"
+        const val OPEN_TASKS = "tasks"
+        const val OPEN_TASK_ADD = "taskAdd"
 
         fun intent(context: Context, open: String?) = Intent(context, MainActivity::class.java)
             .putExtra(EXTRA_OPEN, open).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -133,13 +145,13 @@ sealed class Overlay {
     data class Permissions(val specs: List<com.khaled.widgetstudio.spec.WidgetSpec>) : Overlay()
 }
 
-enum class Tab { LIBRARY, MY_WIDGETS, SETTINGS }
+enum class Tab { LIBRARY, MY_WIDGETS, TASKS, SETTINGS }
 
 @Composable
 fun AppRoot(open: String?) {
     val context = LocalContext.current
     val live = remember { WidgetEnvironment.live(context) }
-    var tab by rememberSaveable { mutableStateOf(if (open == MainActivity.OPEN_SETTINGS) Tab.SETTINGS else Tab.LIBRARY) }
+    var tab by rememberSaveable { mutableStateOf(if (open == MainActivity.OPEN_SETTINGS) Tab.SETTINGS else if (open == MainActivity.OPEN_TASKS || open == MainActivity.OPEN_TASK_ADD) Tab.TASKS else Tab.LIBRARY) }
     var overlay by remember { mutableStateOf<Overlay?>(if (!live.settings.onboardingDone) Overlay.Onboarding else if (open == MainActivity.OPEN_QIBLA) Overlay.Qibla else if (open == MainActivity.OPEN_IMPORT) Overlay.Create else if (open == MainActivity.OPEN_BULK) PendingImport.bulk?.let { Overlay.Bulk(it) } else null) }
     LaunchedEffect(Unit) {
         live.refresh()
@@ -170,6 +182,7 @@ fun AppRoot(open: String?) {
             NavigationBar {
                 NavigationBarItem(selected = tab == Tab.LIBRARY, onClick = { tab = Tab.LIBRARY }, icon = { MaterialSymbol("grid_view") }, label = { Text(tr("Library", "المكتبة")) })
                 NavigationBarItem(selected = tab == Tab.MY_WIDGETS, onClick = { tab = Tab.MY_WIDGETS }, icon = { MaterialSymbol("widgets") }, label = { Text(tr("My widgets", "ودجاتي")) })
+                NavigationBarItem(selected = tab == Tab.TASKS, onClick = { tab = Tab.TASKS }, icon = { MaterialSymbol("checklist") }, label = { Text(tr("Tasks", "المهام")) })
                 NavigationBarItem(selected = tab == Tab.SETTINGS, onClick = { tab = Tab.SETTINGS }, icon = { MaterialSymbol("settings") }, label = { Text(tr("Settings", "الإعدادات")) })
             }
         }) { padding ->
@@ -177,6 +190,7 @@ fun AppRoot(open: String?) {
                 when (tab) {
                     Tab.LIBRARY -> LibraryScreen(onPick = { spec -> edit(SavedDesign.new(spec, language), true) }, onCreate = { overlay = Overlay.Create })
                     Tab.MY_WIDGETS -> MyWidgetsScreen(onEdit = { edit(it, false) }, onBrowse = { tab = Tab.LIBRARY }, onCreate = { overlay = Overlay.Create }, onImport = { overlay = Overlay.Bulk(it) })
+                    Tab.TASKS -> TasksScreen(startAdding = open == MainActivity.OPEN_TASK_ADD)
                     Tab.SETTINGS -> SettingsScreen(onQibla = { overlay = Overlay.Qibla }, onIntroduction = { overlay = Overlay.Onboarding }, onDiagnostics = { overlay = Overlay.Diagnostics })
                 }
             }
@@ -242,7 +256,7 @@ fun LibraryScreen(onPick: (WidgetSpec) -> Unit, onCreate: () -> Unit) {
 }
 
 /** Saved designs: edit, rename, duplicate, delete. */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun MyWidgetsScreen(onEdit: (SavedDesign) -> Unit, onBrowse: () -> Unit, onCreate: () -> Unit, onImport: (BulkRequest) -> Unit) {
     val context = LocalContext.current
@@ -252,10 +266,36 @@ fun MyWidgetsScreen(onEdit: (SavedDesign) -> Unit, onBrowse: () -> Unit, onCreat
     val language = appLanguage()
     val copySuffix = tr(" copy", " (نسخة)")
     var renaming by remember { mutableStateOf<SavedDesign?>(null) }
-    var deleting by remember { mutableStateOf<SavedDesign?>(null) }
-    Scaffold(topBar = {
+    var deleting by remember { mutableStateOf<List<SavedDesign>>(emptyList()) }
+    /** Select mode: delete many at once (ADR-028). */
+    var selecting by remember { mutableStateOf(false) }
+    var selected by remember { mutableStateOf(setOf<String>()) }
+    val snackbar = remember { SnackbarHostState() }
+    val deletedLabel = tr("Deleted", "حُذف")
+    val undoLabel = tr("Undo", "تراجع")
+    /** Removes designs, with a few seconds to bring them back with their photos. */
+    fun remove(list: List<SavedDesign>) {
+        val saved = list.map { it to store.imageBytes(it) }
+        list.forEach { store.delete(it.id) }
+        scope.launch {
+            Widgets.updateAll(context)
+            if (snackbar.showSnackbar(deletedLabel, undoLabel, duration = SnackbarDuration.Short) == SnackbarResult.ActionPerformed) {
+                saved.forEach { (design, image) -> store.restore(design, image) }
+                Widgets.updateAll(context)
+            }
+        }
+    }
+    Scaffold(snackbarHost = { SnackbarHost(snackbar) }, bottomBar = {
+        if (selecting) {
+            Button(enabled = selected.isNotEmpty(), onClick = { deleting = designs.filter { it.id in selected } }, modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                Text(tr("Delete", "حذف") + " (" + selected.size + ")")
+            }
+        }
+    }, topBar = {
         Column {
-            TopAppBar(title = { Text(tr("My widgets", "ودجاتي")) })
+            TopAppBar(title = { Text(tr("My widgets", "ودجاتي")) }, actions = {
+                if (designs.isNotEmpty()) TextButton(onClick = { selecting = !selecting; selected = emptySet() }) { Text(if (selecting) tr("Done", "تم") else tr("Select", "تحديد")) }
+            })
             Box(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)) { ImportButtons(onImport) }
         }
     }) { padding ->
@@ -277,10 +317,23 @@ fun MyWidgetsScreen(onEdit: (SavedDesign) -> Unit, onBrowse: () -> Unit, onCreat
             ) {
                 items(designs, key = { it.id }, span = { GridItemSpan(if (it.spec.family.width > 200) maxLineSpan else 1) }) { design ->
                     var menu by remember { mutableStateOf(false) }
-                    Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.clickable { onEdit(design) }) {
+                    val swipe = rememberSwipeToDismissBoxState(confirmValueChange = { value ->
+                        if (value != SwipeToDismissBoxValue.Settled) deleting = listOf(design)
+                        false
+                    })
+                    SwipeToDismissBox(state = swipe, gesturesEnabled = !selecting, backgroundContent = {
+                        Box(Modifier.fillMaxSize().padding(horizontal = 16.dp), contentAlignment = Alignment.CenterEnd) { Text(tr("Delete", "حذف"), color = MaterialTheme.colorScheme.error) }
+                    }) {
+                    Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.combinedClickable(
+                        onClick = {
+                            if (selecting) selected = if (design.id in selected) selected - design.id else selected + design.id else onEdit(design)
+                        },
+                        onLongClick = { menu = true },
+                    )) {
                         Column(Modifier.padding(10.dp)) {
                             DesignPreview(design, language, store.image(design), Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)))
                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (selecting) Checkbox(checked = design.id in selected, onCheckedChange = { on -> selected = if (on) selected + design.id else selected - design.id })
                                 Text(design.name, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f), maxLines = 1)
                                 Box {
                                     TextButton(onClick = { menu = true }, modifier = Modifier.width(48.dp)) { Text("⋯") }
@@ -288,11 +341,12 @@ fun MyWidgetsScreen(onEdit: (SavedDesign) -> Unit, onBrowse: () -> Unit, onCreat
                                         DropdownMenuItem(text = { Text(tr("Edit", "تعديل")) }, onClick = { menu = false; onEdit(design) })
                                         DropdownMenuItem(text = { Text(tr("Rename", "إعادة التسمية")) }, onClick = { menu = false; renaming = design })
                                         DropdownMenuItem(text = { Text(tr("Duplicate", "تكرار")) }, onClick = { menu = false; store.duplicate(design, copySuffix) })
-                                        DropdownMenuItem(text = { Text(tr("Delete", "حذف"), color = MaterialTheme.colorScheme.error) }, onClick = { menu = false; deleting = design })
+                                        DropdownMenuItem(text = { Text(tr("Delete", "حذف"), color = MaterialTheme.colorScheme.error) }, onClick = { menu = false; deleting = listOf(design) })
                                     }
                                 }
                             }
                         }
+                    }
                     }
                 }
             }
@@ -313,19 +367,21 @@ fun MyWidgetsScreen(onEdit: (SavedDesign) -> Unit, onBrowse: () -> Unit, onCreat
             dismissButton = { TextButton(onClick = { renaming = null }) { Text(tr("Cancel", "إلغاء")) } },
         )
     }
-    deleting?.let { design ->
+    if (deleting.isNotEmpty()) {
+        val first = deleting.first()
         AlertDialog(
-            onDismissRequest = { deleting = null },
-            title = { Text(tr("Delete “${design.name}”?", "حذف «${design.name}»؟")) },
+            onDismissRequest = { deleting = emptyList() },
+            title = { Text(if (deleting.size == 1) tr("Delete “${first.name}”?", "حذف «${first.name}»؟") else tr("Delete ${deleting.size} designs?", "حذف ${deleting.size} تصاميم؟")) },
             text = { Text(tr("Widgets showing it will ask you to choose another design.", "الودجات التي تعرضه ستطلب منك اختيار تصميم آخر.")) },
             confirmButton = {
                 TextButton(onClick = {
-                    store.delete(design.id)
-                    deleting = null
-                    scope.launch { Widgets.updateAll(context) }
+                    remove(deleting)
+                    deleting = emptyList()
+                    selected = emptySet()
+                    selecting = false
                 }) { Text(tr("Delete", "حذف"), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text(tr("Cancel", "إلغاء")) } },
+            dismissButton = { TextButton(onClick = { deleting = emptyList() }) { Text(tr("Cancel", "إلغاء")) } },
         )
     }
 }

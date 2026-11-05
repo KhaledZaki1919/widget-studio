@@ -401,9 +401,11 @@ public enum AutoWire {
         /// Rows of a list: an agenda's events, open reminders, prayer times. Row N takes item N, and
         /// a row's own title may already name it.
         mutating func listRows() {
+            var rowButtons: [Layer] = []
+            defer { spec.layers += rowButtons }
             for item in AutoWire.walk(spec.layers) {
                 guard case .list(let list) = item.layer.content else { continue }
-                let prefix = topics.best(of: ["calendar", "reminders"])
+                let prefix = topics.best(of: ["calendar", "tasks", "reminders"])
                 var rows = list.items
                 var changed = false
                 for (index, row) in rows.enumerated() {
@@ -424,6 +426,16 @@ public enum AutoWire {
                         rows[index].title = .plain("{{\(prefix).\(number).title}}")
                         changed = true
                         log("row \(title)", "\(prefix).\(number).title")
+                    }
+                    // A task row is a checkbox: its tick follows the task, and a tap completes it.
+                    if prefix == "tasks", rows[index].done == nil {
+                        rows[index].done = "{{tasks.\(number).done}}"
+                        changed = true
+                        let height = item.frame.h / Double(max(rows.count, 1))
+                        rowButtons.append(Layer(frame: Frame(x: item.frame.x, y: item.frame.y + Double(index) * height, w: item.frame.w, h: height),
+                                                when: "{{tasks.\(number).title}}",
+                                                content: .button(ButtonLayer(action: ButtonLayer.Action(rawValue: "task.toggle"), arg: "{{tasks.\(number).id}}"))))
+                        log("row \(title)", "task.toggle")
                     }
                     if prefix == "calendar", TextShape.isClock(detail) {
                         rows[index].detail = .plain("{{calendar.\(number).time}}")

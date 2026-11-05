@@ -10,7 +10,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 LANGS = ("ar", "en")
-KEY_PREFIXES = "common|home|diag|widget|specs|library|detail|editor|mywidgets|tab|settings|guide|compass|tasbeeh|tiles|ai|create|onboarding|keyguide|notice|permissions|crop|action|interactive|bulk"
+KEY_PREFIXES = "common|home|diag|widget|specs|library|detail|editor|mywidgets|tab|settings|guide|compass|tasbeeh|tiles|ai|create|onboarding|keyguide|notice|permissions|crop|action|interactive|bulk|tasks"
 # SF Symbol names (systemImage:/systemName:) look like keys but are icons, not text.
 # Capability ids (compass.open…) look like keys but come from capabilities.json (ADR-027).
 CATALOG = json.loads((pathlib.Path(__file__).parent.parent / "WidgetKitCore/Sources/WidgetKitCore/Resources/Spec/capabilities.json").read_text(encoding="utf-8"))

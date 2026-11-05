@@ -60,6 +60,8 @@ struct MyWidgetEntry: TimelineEntry {
         case noAppGroup
         /// Shared, but no saved design fits this size yet.
         case noDesign
+        /// Designs were deleted and none fits this size now.
+        case deleted
     }
 
     let date: Date
@@ -102,7 +104,9 @@ struct MyWidgetProvider: TimelineProvider {
     static func entry(size: SpecFamily, date: Date) -> MyWidgetEntry {
         let store = SharedStore()
         guard store.isShared else { return MyWidgetEntry(date: date, content: .noAppGroup) }
-        guard let design = store.designs(fitting: size).first else { return MyWidgetEntry(date: date, content: .noDesign) }
+        guard let design = store.designs(fitting: size).first else {
+            return MyWidgetEntry(date: date, content: store.hasDeletedDesign ? .deleted : .noDesign)
+        }
         let image = design.imageFile.flatMap(store.image(named:))
         return MyWidgetEntry(date: date, content: .design(design, image))
     }
@@ -112,6 +116,7 @@ struct MyWidgetProvider: TimelineProvider {
         case .design(let design, _): "design \(design.templateID)"
         case .noAppGroup: "no App Group"
         case .noDesign: "no design"
+        case .deleted: "design deleted"
         }
     }
 }
@@ -136,6 +141,8 @@ struct MyWidgetView: View {
             MyWidgetMessage(text: "widget.mywidget.noAppGroup")
         case .noDesign:
             MyWidgetMessage(text: "widget.mywidget.empty")
+        case .deleted:
+            MyWidgetMessage(text: "widget.mywidget.deleted")
         }
     }
 }

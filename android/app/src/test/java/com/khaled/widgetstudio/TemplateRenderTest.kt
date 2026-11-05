@@ -42,7 +42,7 @@ class TemplateRenderTest {
     fun everyTemplateRendersAndIsComparedWithIos() {
         val renderer = SpecRenderer(app)
         val templates = TemplateLibrary(app.assets).all
-        assertEquals("all 31 templates load from the shared assets", 31, templates.size)
+        assertEquals("all 37 templates load from the shared assets", 37, templates.size)
         val zone = ZoneId.of("Africa/Cairo")
         val now = Instant.ofEpochSecond(1_792_580_700)
         val summary = mutableListOf("| Template | Language | Similarity to iOS |", "|---|---|---|")

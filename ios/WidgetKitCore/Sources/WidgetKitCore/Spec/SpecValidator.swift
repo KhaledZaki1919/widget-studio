@@ -548,6 +548,7 @@ private struct Check {
                 for value in item.detail?.allValues ?? [] { text(path: "\(itemPath).detail", value) }
                 if let icon = item.icon, !Icons.isAllowed(icon) { fail("\(itemPath).icon", "\"\(icon)\" is not in the icon whitelist") }
                 color("\(itemPath).color", item.color)
+                if let done = item.done { condition(path: "\(itemPath).done", done) }
             }
         case .progressBar(let bar):
             bindingOrLiteral(path: "\(path).progress", bar.progress, kinds: [.number]) { value in

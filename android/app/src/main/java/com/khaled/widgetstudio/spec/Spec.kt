@@ -98,7 +98,11 @@ data class StateVariant(val id: String, val title: LText?, val condition: String
 
 data class Stroke(val color: String, val width: Double, val dash: List<Double>?)
 
-data class ListItem(val title: LText, val detail: LText?, val icon: String?, val color: String?)
+data class ListItem(
+    val title: LText, val detail: LText?, val icon: String?, val color: String?,
+    /** A condition: the row is a checkbox, ticked and faded while it holds (ADR-028). */
+    val done: String? = null,
+)
 
 sealed class LayerContent {
     data class Text(

@@ -192,7 +192,7 @@ object BindingNames {
             is LayerContent.ProgressBar -> listOf(c.progress)
             is LayerContent.DotGrid -> listOf(c.values)
             is LayerContent.DotBars -> listOf(c.values) + (c.labels?.allValues ?: emptyList())
-            is LayerContent.ListL -> c.items.flatMap { it.title.allValues + (it.detail?.allValues ?: emptyList()) }
+            is LayerContent.ListL -> c.items.flatMap { it.title.allValues + (it.detail?.allValues ?: emptyList()) + listOfNotNull(it.done) }
             is LayerContent.Button -> listOfNotNull(c.arg)
             is LayerContent.AnalogClock -> listOfNotNull(c.timezone)
             is LayerContent.Image -> listOf(c.source)

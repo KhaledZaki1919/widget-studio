@@ -21,7 +21,7 @@ class SpecParsingTest {
     @Test
     fun everyTemplateAndTestSpecParses() {
         val templates = specs("Templates")
-        assertEquals("the 31 Mono templates", 31, templates.size)
+        assertEquals("the 37 Mono templates", 37, templates.size)
         for (file in templates + specs("TestSpecs")) {
             val spec = SpecParser.parse(file.readText())
             val unknown = spec.layers.flatMap { it.flattened }.filter { it.content is LayerContent.Unknown }

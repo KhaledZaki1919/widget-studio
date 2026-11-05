@@ -13,6 +13,8 @@ public struct DeviceValues: Sendable {
     public var live: [String: BindingResolver.Value] = [:]
     public var media: MediaPlayback?
     public var artwork: CGImage?
+    /// A widget that needs tasks can't read Reminders here.
+    public var noTasks = false
 
     public init() {}
 }
@@ -22,12 +24,12 @@ public struct DeviceValues: Sendable {
 public enum NativeActions {
     public static let widgetExtension: Set<String> = [
         "counter.increment", "counter.reset", "counter.next", "stopwatch.toggle",
-        "timer.toggle", "timer.add", "timer.reset", "media.playPause", "media.next", "media.previous",
+        "timer.toggle", "timer.add", "timer.reset", "media.playPause", "media.next", "media.previous", "task.toggle",
     ]
     /// Opened by the app when the widget's link arrives.
     public static let app: Set<String> = [
         "open.app", "open.url", "open.deeplink", "call.dial", "message.open", "calendar.open", "reminders.open",
-        "compass.open", "weather.open", "media.open",
+        "compass.open", "weather.open", "media.open", "task.add",
     ]
 }
 
@@ -123,6 +125,11 @@ public enum DeviceData {
         if groups.contains(.reminders) {
             let reminders = await reminderValues()
             values.live.merge(reminders) { _, new in new }
+        }
+        if groups.contains(.tasks) {
+            values.noTasks = !TaskStore.isAuthorized
+            let tasks = await TaskStore().load()
+            values.live.merge(TaskFormat.values(tasks, now: now, calendar: .current, language: language)) { _, new in new }
         }
         #endif
         return values

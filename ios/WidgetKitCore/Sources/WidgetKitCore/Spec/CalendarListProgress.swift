@@ -118,6 +118,8 @@ public struct ListLayer: Codable, Sendable, Equatable {
         public var icon: String?
         /// Overrides the marker color for this row.
         public var color: String?
+        /// A condition: the row is a checkbox, ticked and faded while it holds (`{{tasks.1.done}}`, ADR-028).
+        public var done: String?
 
         public init(title: LocalizedText, detail: LocalizedText? = nil, icon: String? = nil, color: String? = nil) {
             self.title = title

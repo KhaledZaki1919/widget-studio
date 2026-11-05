@@ -9,9 +9,10 @@ public enum SpecSnapshot {
     @MainActor
     public static func render(_ spec: WidgetSpec, colors: [String: String] = [:], language: String = "en",
                               date: Date = .now, scale: CGFloat = 3, userImage: CGImage? = nil, accented: Bool = false,
-                              background: Bool = true) -> CGImage? {
+                              background: Bool = true, overrides: [String: String] = [:]) -> CGImage? {
         var context = RenderContext(date: date, language: language, data: .sample(now: date), userImage: userImage)
         context.tokenOverrides = colors
+        context.overrides = overrides
         context.freezesLiveText = true
         let canvas = spec.family.canvas
         let view = SpecView(spec: spec, context: context, drawsBackground: background && !accented)

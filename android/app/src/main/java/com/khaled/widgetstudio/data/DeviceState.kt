@@ -103,6 +103,7 @@ object DeviceState {
             live["compass.north"] = Value.Number(360 - heading, Math.round(360 - heading).toString())
         }
         live += calendar(context, now)
+        live += TaskStore.get(context).values(now, ZoneId.systemDefault(), language)
         live += MediaHub.values(context, language)
         return live
     }

@@ -207,3 +207,62 @@ struct StatesTests {
         #expect(grid.onColor == "#E2231A", "the sun takes the accent")
     }
 }
+
+/// Tasks' pure logic (ADR-028); `TasksTest.kt` pins the same answers.
+struct TaskFormatTests {
+    private var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Africa/Cairo") ?? .current
+        return calendar
+    }
+
+    private func date(_ text: String) -> Date { ISO8601DateFormatter().date(from: text) ?? .distantPast }
+
+    private var now: Date { date("2026-11-05T10:00:00Z") }
+
+    private var tasks: [TaskItem] {
+        [
+            TaskItem(id: "c", title: "No date"),
+            TaskItem(id: "b", title: "Later", due: date("2026-11-08T10:00:00Z")),
+            TaskItem(id: "a", title: "Today", due: date("2026-11-05T12:30:00Z"), hasTime: true, priority: .high),
+            TaskItem(id: "o", title: "Late", due: date("2026-11-01T10:00:00Z")),
+            TaskItem(id: "d", title: "Done", done: true, doneAt: date("2026-11-05T08:00:00Z")),
+            TaskItem(id: "e", title: "Old", done: true, doneAt: date("2026-11-01T08:00:00Z")),
+        ]
+    }
+
+    @Test func filters() {
+        #expect(TaskFormat.filter(tasks, .today, now: now, calendar: calendar).map(\.id) == ["o", "a"])
+        #expect(TaskFormat.filter(tasks, .upcoming, now: now, calendar: calendar).map(\.id) == ["b", "c"])
+        #expect(TaskFormat.filter(tasks, .done, now: now, calendar: calendar).map(\.id) == ["d", "e"])
+    }
+
+    @Test func dueTexts() {
+        let today = tasks[2]
+        #expect(TaskFormat.dueText(today, now: now, calendar: calendar, language: "en") == "Today 14:30")
+        #expect(TaskFormat.dueText(tasks[3], now: now, calendar: calendar, language: "en") == "Overdue")
+        #expect(TaskFormat.dueText(tasks[1], now: now, calendar: calendar, language: "en") == "8 Nov")
+    }
+
+    @Test func widgetValues() {
+        let live = TaskFormat.values(tasks, now: now, calendar: calendar, language: "en")
+        func shown(_ key: String) -> String? { live[key]?.display }
+        #expect(shown("tasks.today.count") == "2")
+        #expect(shown("tasks.open.count") == "4")
+        #expect(shown("tasks.done.count") == "1")
+        #expect(shown("tasks.progress") == "33")
+        #expect(shown("tasks.next.title") == "Late")
+        #expect(shown("tasks.1.id") == "o")
+        // Open first, then today's done one, ticked.
+        #expect(shown("tasks.5.title") == "Done")
+        #expect(shown("tasks.5.done") == "1")
+        #expect(shown("tasks.6.title") == "")
+        #expect(shown("tasks.list") == "Late\nToday\nLater\nNo date")
+    }
+
+    @Test func emptyList() {
+        let live = TaskFormat.values([], now: now, calendar: calendar, language: "ar")
+        #expect(live["tasks.next.title"]?.display == "لا مهام")
+        #expect(live["tasks.progress"]?.display == "0")
+    }
+}

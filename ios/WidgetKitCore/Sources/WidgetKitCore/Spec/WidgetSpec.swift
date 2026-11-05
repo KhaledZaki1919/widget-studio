@@ -87,7 +87,7 @@ public enum SpecFamily: String, Codable, Sendable, CaseIterable {
 
 /// Template library sections (brief §6), in display order.
 public enum SpecCategory: String, Codable, Sendable, CaseIterable {
-    case time, weather, health, prayer, countdown, photo, tiles, counters
+    case time, weather, health, prayer, countdown, photo, tiles, counters, tasks
 
     public var title: LocalizedText {
         switch self {
@@ -99,6 +99,7 @@ public enum SpecCategory: String, Codable, Sendable, CaseIterable {
         case .photo: .localized(en: "Photo", ar: "صور")
         case .tiles: .localized(en: "Tiles", ar: "أزرار")
         case .counters: .localized(en: "Counters", ar: "عدّادات")
+        case .tasks: .localized(en: "Tasks", ar: "المهام")
         }
     }
 }

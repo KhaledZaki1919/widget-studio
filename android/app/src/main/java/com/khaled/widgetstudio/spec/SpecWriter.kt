@@ -121,7 +121,7 @@ object SpecWriter {
                 set("items", JsonArray(c.items.map { item ->
                     buildJsonObject {
                         put("title", ltext(item.title)); item.detail?.let { put("detail", ltext(it)) }
-                        item.icon?.let { put("icon", it) }; item.color?.let { put("color", it) }
+                        item.icon?.let { put("icon", it) }; item.color?.let { put("color", it) }; item.done?.let { put("done", it) }
                     }
                 }))
                 set("font", font(c.font)); set("color", c.color); set("detailColor", c.detailColor); set("marker", c.marker)

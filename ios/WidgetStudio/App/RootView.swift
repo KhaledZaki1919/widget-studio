@@ -3,7 +3,7 @@ import UIKit
 import WidgetKit
 import WidgetKitCore
 
-/// Three tabs: the template library, My widgets (M3) and Settings (M4). Diagnostics (with the M1 test designs)
+/// Four tabs: the template library, My widgets (M3), Tasks (ADR-028) and Settings (M4). Diagnostics (with the M1 test designs)
 /// opens from the Library toolbar button (until M6), a long press on the version, or the check
 /// widget (`widgetstudio://diagnostics`).
 struct RootView: View {
@@ -35,6 +35,12 @@ struct RootView: View {
             }
             .tabItem { Label("tab.myWidgets", systemImage: "rectangle.stack") }
             .tag(AppState.Tab.myWidgets)
+
+            NavigationStack {
+                TasksView()
+            }
+            .tabItem { Label("tab.tasks", systemImage: "checklist") }
+            .tag(AppState.Tab.tasks)
 
             NavigationStack {
                 SettingsView()
@@ -97,6 +103,9 @@ struct RootView: View {
             case "action":
                 switch WidgetActions.perform(url, tiles: tiles) {
                 case .compass: showQibla = true
+                case .addTask:
+                    appState.tab = .tasks
+                    appState.isAddingTask = true
                 case .hint(let text): actionHint = text
                 case .done: break
                 }
@@ -116,6 +125,7 @@ enum WidgetActions {
     enum Outcome: Equatable {
         case done
         case compass
+        case addTask
         case hint(String)
     }
 
@@ -141,6 +151,8 @@ enum WidgetActions {
         switch id {
         case "compass.open":
             return .compass
+        case "task.add":
+            return .addTask
         case "open.url":
             guard let target = URL(string: arg), let scheme = target.scheme?.lowercased(), ["http", "https"].contains(scheme) else {
                 return .hint(needsValue(capability, language: language))

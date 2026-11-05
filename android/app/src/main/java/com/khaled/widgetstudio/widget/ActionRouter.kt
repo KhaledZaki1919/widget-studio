@@ -42,13 +42,13 @@ object ActionRouter {
     val inPlace = setOf(
         "counter.increment", "counter.reset", "counter.next", "stopwatch.toggle", "timer.toggle", "timer.add", "timer.reset",
         "media.playPause", "media.next", "media.previous", "volume.up", "volume.down", "volume.mute", "volume.ringUp", "volume.ringDown",
-        "brightness.up", "brightness.down", "system.toggle.torch", "system.toggle.silent", "system.toggle.rotation", "system.toggle.dnd",
+        "brightness.up", "brightness.down", "system.toggle.torch", "system.toggle.silent", "system.toggle.rotation", "system.toggle.dnd", "task.toggle",
     )
 
     /** Start an activity ([activity]). */
     val opens = setOf(
         "open.app", "open.url", "open.deeplink", "app.launch", "call.dial", "message.open", "shortcut.run", "camera.open", "qr.scan",
-        "calendar.open", "compass.open", "weather.open", "media.open",
+        "calendar.open", "compass.open", "weather.open", "media.open", "task.add",
     )
 
     fun glance(context: Context, id: String, arg: String?): Action {
@@ -111,6 +111,7 @@ object ActionRouter {
             "camera.open", "qr.scan" -> Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)
             "calendar.open" -> Intent(Intent.ACTION_VIEW, Uri.parse("content://com.android.calendar/time/${System.currentTimeMillis()}"))
             "compass.open" -> MainActivity.intent(context, MainActivity.OPEN_QIBLA)
+            "task.add" -> MainActivity.intent(context, MainActivity.OPEN_TASK_ADD)
             "weather.open" -> Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=weather"))
             "media.open" -> MediaHub.controller(context)?.packageName?.let { context.packageManager.getLaunchIntentForPackage(it) }
             else -> null
@@ -180,6 +181,7 @@ object ActionRouter {
             "timer.toggle" -> { live.timer = live.timer.toggle(arg.toIntOrNull()); "done" }
             "timer.add" -> { live.timer = live.timer.add(arg.toIntOrNull() ?: 5); "done" }
             "timer.reset" -> { live.timer = live.timer.reset(); "done" }
+            "task.toggle" -> com.khaled.widgetstudio.data.TaskStore.get(context).toggle(arg)
             "media.playPause", "media.next", "media.previous" -> MediaHub.perform(context, id) ?: "no session: media key sent".also { MediaHub.mediaKey(context, id) }
             "volume.up" -> adjust(context, AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE)
             "volume.down" -> adjust(context, AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER)

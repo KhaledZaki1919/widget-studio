@@ -462,9 +462,15 @@ object AutoWire {
         }
 
         fun listRows() {
+            val rowButtons = mutableListOf<Layer>()
+            listRows(rowButtons)
+            spec = spec.copy(layers = spec.layers + rowButtons)
+        }
+
+        private fun listRows(rowButtons: MutableList<Layer>) {
             for (item in walk(spec.layers)) {
                 val list = item.layer.content as? LayerContent.ListL ?: continue
-                val prefix = topics.best("calendar", "reminders")
+                val prefix = topics.best("calendar", "tasks", "reminders")
                 val rows = list.items.toMutableList()
                 var changed = false
                 for ((index, row) in rows.toList().withIndex()) {
@@ -484,6 +490,14 @@ object AutoWire {
                         rows[index] = rows[index].copy(title = LText.Plain("{{$prefix.$number.title}}"))
                         changed = true
                         log("row $title", "$prefix.$number.title")
+                    }
+                    // A task row is a checkbox: its tick follows the task, and a tap completes it.
+                    if (prefix == "tasks" && rows[index].done == null) {
+                        rows[index] = rows[index].copy(done = "{{tasks.$number.done}}")
+                        changed = true
+                        val height = item.frame.h / max(rows.size, 1)
+                        rowButtons += Layer(Frame(item.frame.x, item.frame.y + index * height, item.frame.w, height), null, null, "{{tasks.$number.title}}", null, LayerContent.Button("task.toggle", "{{tasks.$number.id}}"))
+                        log("row $title", "task.toggle")
                     }
                     if (prefix == "calendar" && TextShape.isClock(detail)) {
                         rows[index] = rows[index].copy(detail = LText.Plain("{{calendar.$number.time}}"))

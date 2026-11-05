@@ -24,7 +24,7 @@ class TemplateLibrary(private val assets: AssetManager) {
             "time" to LText.Localized("Time", "الوقت"), "weather" to LText.Localized("Weather", "الطقس"),
             "health" to LText.Localized("Health", "الصحة"), "prayer" to LText.Localized("Prayer", "الصلاة"),
             "countdown" to LText.Localized("Countdown", "العد التنازلي"), "photo" to LText.Localized("Photo", "صور"),
-            "tiles" to LText.Localized("Tiles", "أزرار"), "counters" to LText.Localized("Counters", "عدّادات"),
+            "tiles" to LText.Localized("Tiles", "أزرار"), "counters" to LText.Localized("Counters", "عدّادات"), "tasks" to LText.Localized("Tasks", "المهام"),
         )
     }
 }

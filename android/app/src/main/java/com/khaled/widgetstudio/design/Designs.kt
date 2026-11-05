@@ -158,6 +158,16 @@ class DesignStore private constructor(private val root: File) {
         return stored
     }
 
+    /** The bytes of a design's photo, kept while a delete can still be undone. */
+    fun imageBytes(design: SavedDesign): ByteArray? = design.imageFile?.let { File(imagesDir, it) }?.takeIf { it.exists() }?.readBytes()
+
+    /** Puts a deleted design back, with its photo (Undo, ADR-028). */
+    fun restore(design: SavedDesign, image: ByteArray?) {
+        val file = design.imageFile
+        if (file != null && image != null) File(imagesDir, file).writeBytes(image)
+        save(design)
+    }
+
     fun delete(id: String) {
         design(id)?.imageFile?.let { File(imagesDir, it).delete() }
         File(designsDir, "$id.json").delete()
