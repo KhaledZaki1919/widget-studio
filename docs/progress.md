@@ -1,3 +1,20 @@
+# Progress: rules, states, tasks, delete run (ADR-028)
+
+Handoff note for the run the owner asked for in one go. One IPA and one signed APK at the very end. Decisions are in ADR-028.
+
+## Done
+- Standing rules in `CLAUDE.md`, detectors (`DesignRules`), post-pass (`AutoWireRules`), four-metric gate.
+- `states` layer, conditions, built-in sets, time shares, `weather.kind`, `forecast.N.*`, prompt v6, editor States panel.
+- Android taps: live session redraw, absolute tap areas, ten-child limit, tap log, Diagnostics, Allow access.
+- Tasks tab on both platforms, `mono.tasks.*`, `task.toggle`, `task.add`.
+- Delete: swipe, long press, editor button, Select mode, Undo, "Design deleted, choose another".
+- Templates: `mono.year.dots`, `mono.battery.mood`, `mono.weather.art`, Music Card live; `everyTemplatePasses` on both platforms.
+
+## Open
+- Nothing here has run on a real phone. Android's first report comes from Settings → Diagnostics → Copy report.
+- Whether the iOS extension gets Reminders on the Fast Store install is unverified.
+- The owner's two screenshots weren't in `D:\widget`; the fixed designs come from the written description.
+
 # Progress: interactive widgets run (ADR-027)
 
 Handoff note for the run the owner asked for in one go: every widget live and interactive, plus bulk import and Android sizes. One IPA and one signed APK at the very end. Decisions are in ADR-027 and the capability table in `capabilities.md`.

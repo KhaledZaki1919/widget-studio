@@ -25,3 +25,7 @@ Run them with `cases` = `draw-i-*`. The summary shows the score with the post-pa
 `wiring-best.json` and `recorded/` hold the best run. `WiringGateTests.swift` and `CapabilityCatalogTest.kt` replay those replies on every push with no network, so a parser or post-pass change that loses wiring fails CI. After a better run, copy its `<case>.reply.json` files to `recorded/<case>.json` and update `wiring-best.json`.
 
 Before/after for a set of widgets: pass a .zip as base64 in `set_zip` (never committed), and turn on `set_v5` to also rebuild each one with the prompt from a render of the old design. The artifact has `set/set.md` and one image per widget.
+
+## The four rules (ADR-028)
+
+Every interactive case is also scored on live, interactive, alive and correct by `DesignRules`: the share of checked elements that pass. The summary shows them per model, `wiring.json` holds `metrics`, and `wiring-best.json` keeps the best run: `WiringGateTests` and its Kotlin twin replay `recorded/` on every push and fail if any of the four drops. `draw-i-year`, `draw-i-tasks`, `draw-i-mood` and `draw-i-sky` test prompt v6: a year's share is never the battery, a to-do list is `tasks.*`, a face beside a battery is the mood set, a big weather drawing is the weather set.

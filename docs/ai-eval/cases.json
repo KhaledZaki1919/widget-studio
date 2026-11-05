@@ -279,5 +279,48 @@
       "brightness.up",
       "brightness.down"
     ]
+  },
+  {
+    "file": "draw-i-year.png",
+    "mode": "recreate",
+    "size": "small",
+    "note": "Year progress: label, percent, 48 dots, days left (device report 2026-11-05: must never bind to the battery)",
+    "wiring": [
+      "year.progress"
+    ]
+  },
+  {
+    "file": "draw-i-tasks.png",
+    "mode": "recreate",
+    "size": "medium",
+    "note": "To-do widget: four rows with checkboxes, one ticked, today count, add button",
+    "wiring": [
+      "tasks.1.title",
+      "tasks.2.title",
+      "task.toggle",
+      "task.add",
+      "tasks.today.count|tasks.open.count"
+    ]
+  },
+  {
+    "file": "draw-i-mood.png",
+    "mode": "recreate",
+    "size": "medium",
+    "note": "A smiley beside a battery reading: the mood set, never a frozen face",
+    "wiring": [
+      "battery.level",
+      "battery.charging"
+    ]
+  },
+  {
+    "file": "draw-i-sky.png",
+    "mode": "recreate",
+    "size": "medium",
+    "note": "A big dot sun, temperature, four forecast days: the weather set and each day's own icon",
+    "wiring": [
+      "weather.temp",
+      "weather.kind",
+      "forecast.1.symbol|weather.hi"
+    ]
   }
 ]
