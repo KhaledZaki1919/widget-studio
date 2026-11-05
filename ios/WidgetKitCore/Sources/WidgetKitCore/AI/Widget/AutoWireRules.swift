@@ -166,7 +166,8 @@ extension AutoWire.Run {
     /// Three or more weather icons in a row are days: each follows its own day, and the labels and
     /// temperatures under it follow too. A first column called Today shows today.
     mutating func forecastRows() {
-        let weather = Set(Capabilities.binding("weather.symbol")?.icons ?? []).union(["cloud.drizzle.fill", "cloud.heavyrain.fill", "cloud.bolt.rain.fill", "cloud.snow.fill", "cloud.fog.fill", "moon.fill", "moon.stars.fill"])
+        let weather = Set(Capabilities.binding("weather.symbol")?.icons ?? [])
+            .union(["cloud.drizzle.fill", "cloud.heavyrain.fill", "cloud.bolt.rain.fill", "cloud.snow.fill", "cloud.fog.fill", "moon.fill", "moon.stars.fill"])
         let items = AutoWire.walk(spec.layers).filter { item in
             if case .icon(let icon) = item.layer.content { return weather.contains(icon.symbol) }
             return false
