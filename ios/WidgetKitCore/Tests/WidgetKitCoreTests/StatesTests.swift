@@ -5,7 +5,7 @@ import Testing
 /// State layers and the values they read (ADR-028).
 struct StatesTests {
     private func spec(_ layers: [Layer] = []) -> WidgetSpec {
-        WidgetSpec(id: "t", name: "t", family: .small, background: .solid("#000000"), layers: layers)
+        WidgetSpec(id: "t", name: .localized(en: "t", ar: "t"), family: .small, background: .solid("#000000"), layers: layers)
     }
 
     private func make(_ date: Date = .now, data: DataSnapshot = .sample(), overrides: [String: String] = [:]) -> BindingResolver {
