@@ -208,6 +208,35 @@ object MediaHub {
 
     fun isEnabled(context: Context) = NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
 
+    /** A card that is mostly about music can't work without access: it says so instead of drawing dashes. */
+    fun needsAccess(context: Context, spec: com.khaled.widgetstudio.spec.WidgetSpec): Boolean {
+        if (isEnabled(context)) return false
+        val ids = com.khaled.widgetstudio.spec.BindingNames.names(spec).toList() +
+            spec.layers.mapNotNull { (it.content as? com.khaled.widgetstudio.spec.LayerContent.Button)?.action }
+        val media = ids.count { it.startsWith("media.") && it != "media.open" }
+        return media > 0 && media * 2 >= ids.size
+    }
+
+    /** One line per media session, for Diagnostics. */
+    fun sessions(context: Context): List<String> {
+        if (!isEnabled(context)) return emptyList()
+        val manager = context.getSystemService(MediaSessionManager::class.java) ?: return emptyList()
+        val sessions = runCatching { manager.getActiveSessions(component(context)) }.getOrNull() ?: return emptyList()
+        return sessions.map { session ->
+            val label = runCatching {
+                context.packageManager.getApplicationLabel(context.packageManager.getApplicationInfo(session.packageName, 0)).toString()
+            }.getOrDefault(session.packageName)
+            val state = when (session.playbackState?.state) {
+                PlaybackState.STATE_PLAYING -> "playing"
+                PlaybackState.STATE_PAUSED -> "paused"
+                PlaybackState.STATE_STOPPED -> "stopped"
+                PlaybackState.STATE_BUFFERING -> "buffering"
+                else -> "idle"
+            }
+            "$label · $state · " + (session.metadata?.getString(MediaMetadata.METADATA_KEY_TITLE) ?: "—")
+        }
+    }
+
     private fun component(context: Context) = ComponentName(context, MediaListener::class.java)
 
     fun attach(context: Context) {
@@ -259,6 +288,7 @@ object MediaHub {
     }
 
     fun values(context: Context, language: String): Map<String, Value> {
+        if (!isEnabled(context)) return mapOf("media.title" to Value.Text(if (language.startsWith("ar")) "اسمح بالوصول" else "Allow access"))
         val nothing = Value.Text(if (language.startsWith("ar")) "لا يوجد تشغيل" else "Not playing")
         val controller = controller(context) ?: return mapOf("media.title" to nothing)
         val metadata = controller.metadata ?: return mapOf("media.title" to nothing)
@@ -274,15 +304,17 @@ object MediaHub {
         )
     }
 
-    fun perform(context: Context, id: String): Boolean {
-        val controls = controller(context)?.transportControls ?: return false
-        when (id) {
-            "media.playPause" -> if (controller(context)?.playbackState?.state == PlaybackState.STATE_PLAYING) controls.pause() else controls.play()
-            "media.next" -> controls.skipToNext()
-            "media.previous" -> controls.skipToPrevious()
-            else -> return false
+    /** Sends the command to the active session; what was sent to whom, or null with no session. */
+    fun perform(context: Context, id: String): String? {
+        val session = controller(context) ?: return null
+        val controls = session.transportControls
+        val sent = when (id) {
+            "media.playPause" -> if (session.playbackState?.state == PlaybackState.STATE_PLAYING) "pause".also { controls.pause() } else "play".also { controls.play() }
+            "media.next" -> "next".also { controls.skipToNext() }
+            "media.previous" -> "previous".also { controls.skipToPrevious() }
+            else -> return null
         }
-        return true
+        return "$sent sent to " + session.packageName
     }
 
     /** Nothing to control yet: the media keys wake the last player. */

@@ -69,6 +69,15 @@
             </intent-filter>
         </activity>
 
+        <!-- Logs a widget's opening tap and starts its target (ADR-028). -->
+        <activity
+            android:name=".widget.TapActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <activity
             android:name=".widget.ConfigureActivity"
             android:exported="true">

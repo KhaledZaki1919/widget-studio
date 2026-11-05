@@ -17,6 +17,7 @@ import androidx.glance.GlanceId
 import androidx.glance.action.Action
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionParametersOf
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
@@ -25,6 +26,7 @@ import com.khaled.widgetstudio.data.settle
 import com.khaled.widgetstudio.spec.Capabilities
 import com.khaled.widgetstudio.spec.Capability
 import com.khaled.widgetstudio.ui.MainActivity
+import kotlinx.coroutines.delay
 
 /**
  * Every tap in a widget (ADR-027), by the catalog: actions that happen in place run a callback,
@@ -52,17 +54,20 @@ object ActionRouter {
     fun glance(context: Context, id: String, arg: String?): Action {
         val capability = Capabilities.action(id)
         if (capability == null || capability.supportAndroid == "unsupported") return hint(id, arg)
-        if (id == "open.app") return actionStartActivity(MainActivity.intent(context, null))
+        if (id == "open.app") return opening(context, id, arg, MainActivity.intent(context, null))
         // Tiles from before ADR-027 name an iOS Shortcut: the torch still toggles right here.
         if (id == "shortcut.run" && WidgetActions.tileKind(arg ?: "") == WidgetActions.Tile.TORCH) {
             return actionRunCallback<Perform>(actionParametersOf(idKey to "system.toggle.torch", argKey to ""))
         }
-        missingPermission(context, id)?.let { return actionStartActivity(it) }
+        missingPermission(context, id)?.let { return opening(context, id, arg, it) }
         if (id in inPlace) return actionRunCallback<Perform>(actionParametersOf(idKey to id, argKey to (arg ?: "")))
-        if (capability.supportAndroid == "panel" && id.startsWith("system.toggle")) return actionStartActivity(panel(context, capability))
+        if (capability.supportAndroid == "panel" && id.startsWith("system.toggle")) return opening(context, id, arg, panel(context, capability))
         val intent = activity(context, id, arg) ?: return hint(id, arg)
-        return actionStartActivity(intent)
+        return opening(context, id, arg, intent)
     }
+
+    /** Opening taps go through [TapActivity], so they are logged and a dead target shows a hint. */
+    private fun opening(context: Context, id: String, arg: String?, target: Intent): Action = actionStartActivity(TapActivity.intent(context, id, arg, target))
 
     private fun hint(id: String, arg: String?): Action = actionRunCallback<ShowHint>(actionParametersOf(idKey to id, argKey to (arg ?: "")))
 
@@ -119,9 +124,21 @@ object ActionRouter {
         else -> WidgetActions.tileIntent(context, kind)
     }
 
-    /** Steps a stream one notch, keeping the system's own limits. */
-    private fun adjust(context: Context, stream: Int, direction: Int) {
-        context.getSystemService(AudioManager::class.java)?.adjustStreamVolume(stream, direction, 0)
+    /**
+     * Steps a stream one notch, keeping the system's own limits. Android refuses a raise past the
+     * safe headphone level unless its warning can show, so a raise that didn't move retries with the UI.
+     */
+    private fun adjust(context: Context, stream: Int, direction: Int): String {
+        val audio = context.getSystemService(AudioManager::class.java) ?: return "no audio service"
+        val before = audio.getStreamVolume(stream)
+        audio.adjustStreamVolume(stream, direction, 0)
+        var after = audio.getStreamVolume(stream)
+        val top = audio.getStreamMaxVolume(stream)
+        if (direction == AudioManager.ADJUST_RAISE && after == before && before < top) {
+            audio.adjustStreamVolume(stream, direction, AudioManager.FLAG_SHOW_UI)
+            after = audio.getStreamVolume(stream)
+        }
+        return "$before → $after of $top"
     }
 
     private fun stepBrightness(context: Context, delta: Int) {
@@ -131,44 +148,64 @@ object ActionRouter {
         Settings.System.putInt(resolver, Settings.System.SCREEN_BRIGHTNESS, (current + delta).coerceIn(5, 255))
     }
 
-    /** Runs an in-place action. */
-    suspend fun perform(context: Context, id: String, arg: String) {
+    /** Runs an in-place action, logs it and redraws every widget at once; returns what happened. */
+    suspend fun perform(context: Context, id: String, arg: String, widget: Int = 0): String {
+        val result = try {
+            run(context, id, arg).also { TapLog.add(context, id, arg, widget, it) }
+        } catch (error: Exception) {
+            TapLog.add(context, id, arg, widget, "failed", error.javaClass.simpleName + ": " + error.message)
+            "failed"
+        }
+        settle()
+        Widgets.updateAll(context)
+        // A player reports its new state a moment after the command.
+        if (id.startsWith("media.")) {
+            delay(700)
+            Widgets.updateAll(context)
+        }
+        return result
+    }
+
+    private fun run(context: Context, id: String, arg: String): String {
         val live = WidgetEnvironment.live(context)
-        when (id) {
-            "counter.increment" -> live.counter = live.counter.increment(live.settings.dhikrs)
-            "counter.reset" -> live.counter = live.counter.reset(live.settings.dhikrs)
-            "counter.next" -> live.counter = live.counter.next(live.settings.dhikrs)
+        return when (id) {
+            "counter.increment" -> { live.counter = live.counter.increment(live.settings.dhikrs); "done" }
+            "counter.reset" -> { live.counter = live.counter.reset(live.settings.dhikrs); "done" }
+            "counter.next" -> { live.counter = live.counter.next(live.settings.dhikrs); "done" }
             "stopwatch.toggle" -> {
                 live.stopwatchStart = if (live.stopwatchStart == null) System.currentTimeMillis() else null
                 MinuteTicker.schedule(context)
+                "done"
             }
-            "timer.toggle" -> live.timer = live.timer.toggle(arg.toIntOrNull())
-            "timer.add" -> live.timer = live.timer.add(arg.toIntOrNull() ?: 5)
-            "timer.reset" -> live.timer = live.timer.reset()
-            "media.playPause", "media.next", "media.previous" -> if (!MediaHub.perform(context, id)) MediaHub.mediaKey(context, id)
+            "timer.toggle" -> { live.timer = live.timer.toggle(arg.toIntOrNull()); "done" }
+            "timer.add" -> { live.timer = live.timer.add(arg.toIntOrNull() ?: 5); "done" }
+            "timer.reset" -> { live.timer = live.timer.reset(); "done" }
+            "media.playPause", "media.next", "media.previous" -> MediaHub.perform(context, id) ?: "no session: media key sent".also { MediaHub.mediaKey(context, id) }
             "volume.up" -> adjust(context, AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE)
             "volume.down" -> adjust(context, AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER)
             "volume.mute" -> adjust(context, AudioManager.STREAM_MUSIC, AudioManager.ADJUST_TOGGLE_MUTE)
             "volume.ringUp" -> adjust(context, AudioManager.STREAM_RING, AudioManager.ADJUST_RAISE)
             "volume.ringDown" -> adjust(context, AudioManager.STREAM_RING, AudioManager.ADJUST_LOWER)
-            "brightness.up" -> stepBrightness(context, 25)
-            "brightness.down" -> stepBrightness(context, -25)
-            "system.toggle.torch" -> Torch.toggle(context)
+            "brightness.up" -> { stepBrightness(context, 25); "done" }
+            "brightness.down" -> { stepBrightness(context, -25); "done" }
+            "system.toggle.torch" -> if (Torch.toggle(context)) "done" else "no torch"
             "system.toggle.silent" -> context.getSystemService(AudioManager::class.java)?.let { audio ->
                 audio.ringerMode = if (audio.ringerMode == AudioManager.RINGER_MODE_NORMAL) AudioManager.RINGER_MODE_SILENT else AudioManager.RINGER_MODE_NORMAL
-            }
+                "done"
+            } ?: "no audio service"
             "system.toggle.rotation" -> {
                 val resolver = context.contentResolver
                 val on = Settings.System.getInt(resolver, Settings.System.ACCELEROMETER_ROTATION, 1) != 0
                 Settings.System.putInt(resolver, Settings.System.ACCELEROMETER_ROTATION, if (on) 0 else 1)
+                "done"
             }
             "system.toggle.dnd" -> context.getSystemService(NotificationManager::class.java)?.let { manager ->
                 val quiet = manager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL
                 manager.setInterruptionFilter(if (quiet) NotificationManager.INTERRUPTION_FILTER_ALL else NotificationManager.INTERRUPTION_FILTER_PRIORITY)
-            }
+                "done"
+            } ?: "no notification service"
+            else -> "unknown action"
         }
-        settle()
-        Widgets.updateAll(context)
     }
 
     fun showHint(context: Context, id: String) {
@@ -186,14 +223,17 @@ object ActionRouter {
 class Perform : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val id = parameters[ActionRouter.idKey] ?: return
-        ActionRouter.perform(context, id, parameters[ActionRouter.argKey] ?: "")
+        val widget = runCatching { GlanceAppWidgetManager(context).getAppWidgetId(glanceId) }.getOrDefault(0)
+        ActionRouter.perform(context, id, parameters[ActionRouter.argKey] ?: "", widget)
     }
 }
 
 /** A tap Android doesn't allow, or an action with no value yet: a clear message, never nothing. */
 class ShowHint : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        parameters[ActionRouter.idKey]?.let { ActionRouter.showHint(context, it) }
+        val id = parameters[ActionRouter.idKey] ?: return
+        TapLog.add(context, id, parameters[ActionRouter.argKey] ?: "", 0, "hint shown")
+        ActionRouter.showHint(context, id)
     }
 }
 

@@ -125,6 +125,7 @@ class MainActivity : ComponentActivity() {
 sealed class Overlay {
     data class Editor(val state: EditorState, val layout: LayoutRepair? = null, val onRegenerate: (() -> Unit)? = null) : Overlay()
     data object Qibla : Overlay()
+    data object Diagnostics : Overlay()
     data object Create : Overlay()
     data object Onboarding : Overlay()
     data class Bulk(val request: BulkRequest) : Overlay()
@@ -157,6 +158,7 @@ fun AppRoot(open: String?) {
         is Overlay.Bulk -> BulkImportScreen(current.request, onOpen = { edit(it, false) }, onClose = { specs -> PendingImport.bulk = null; saved(specs) })
         is Overlay.Permissions -> PermissionsScreen(current.specs, onDone = { overlay = null })
         Overlay.Qibla -> QiblaScreen(onClose = { overlay = null })
+        Overlay.Diagnostics -> DiagnosticsScreen(onClose = { overlay = null })
         Overlay.Create -> CreateScreen(
             onClose = { overlay = null },
             onResult = { design, photo, layout, regenerate -> overlay = Overlay.Editor(EditorState(design, true, photo), layout, regenerate) },
@@ -175,7 +177,7 @@ fun AppRoot(open: String?) {
                 when (tab) {
                     Tab.LIBRARY -> LibraryScreen(onPick = { spec -> edit(SavedDesign.new(spec, language), true) }, onCreate = { overlay = Overlay.Create })
                     Tab.MY_WIDGETS -> MyWidgetsScreen(onEdit = { edit(it, false) }, onBrowse = { tab = Tab.LIBRARY }, onCreate = { overlay = Overlay.Create }, onImport = { overlay = Overlay.Bulk(it) })
-                    Tab.SETTINGS -> SettingsScreen(onQibla = { overlay = Overlay.Qibla }, onIntroduction = { overlay = Overlay.Onboarding })
+                    Tab.SETTINGS -> SettingsScreen(onQibla = { overlay = Overlay.Qibla }, onIntroduction = { overlay = Overlay.Onboarding }, onDiagnostics = { overlay = Overlay.Diagnostics })
                 }
             }
         }

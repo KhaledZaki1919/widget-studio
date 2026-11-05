@@ -100,7 +100,7 @@ fun PermissionRows() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onQibla: () -> Unit, onIntroduction: () -> Unit) {
+fun SettingsScreen(onQibla: () -> Unit, onIntroduction: () -> Unit, onDiagnostics: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val live = remember { WidgetEnvironment.live(context) }
@@ -160,6 +160,7 @@ fun SettingsScreen(onQibla: () -> Unit, onIntroduction: () -> Unit) {
                     context.startActivity(Intent(Settings.ACTION_APP_LOCALE_SETTINGS, Uri.parse("package:${context.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }) { Text(tr("Language", "اللغة")) }
                 TextButton(onClick = onIntroduction) { Text(tr("Show the introduction", "اعرض المقدمة")) }
+                TextButton(onClick = onDiagnostics) { Text(tr("Diagnostics", "التشخيص")) }
                 TextButton(onClick = { open(SITE + "privacy.html#" + if (appLanguageStatic(context) == "ar") "ar" else "en") }) { Text(tr("Privacy policy", "سياسة الخصوصية")) }
                 TextButton(onClick = { open(SITE + "support.html#" + if (appLanguageStatic(context) == "ar") "ar" else "en") }) { Text(tr("Support", "الدعم")) }
             }

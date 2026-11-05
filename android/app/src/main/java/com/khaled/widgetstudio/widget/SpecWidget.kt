@@ -12,12 +12,15 @@ import android.os.Build
 import android.provider.MediaStore
 import android.provider.Settings
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
+import androidx.glance.LocalState
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
@@ -31,10 +34,10 @@ import androidx.glance.appwidget.updateAll
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
+import androidx.glance.layout.absolutePadding
 import androidx.glance.layout.ContentScale
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
-import androidx.glance.layout.size
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
@@ -87,8 +90,18 @@ class WidgetStore(context: Context) {
 }
 
 object Widgets {
-    /** Redraws every placed widget (after saving a design, a counter tap, a data refresh). */
-    suspend fun updateAll(context: Context) = SpecGlanceWidget().updateAll(context)
+    /**
+     * Read while composing. A Glance session stays alive for 45 s after each update, and updating a
+     * live session only recomposes what reads state; without this a tap (or the minute tick) inside
+     * that window changed the value and left the old picture on screen (ADR-028).
+     */
+    internal val revision = mutableIntStateOf(0)
+
+    /** Redraws every placed widget at once (after a tap, saving a design, a data refresh). */
+    suspend fun updateAll(context: Context) {
+        Snapshot.withMutableSnapshot { revision.intValue += 1 }
+        SpecGlanceWidget().updateAll(context)
+    }
 
     fun updateAllAsync(context: Context) {
         CoroutineScope(Dispatchers.Default).launch { updateAll(context.applicationContext) }
@@ -137,6 +150,9 @@ class SpecGlanceWidget : GlanceAppWidget() {
 
     @Composable
     private fun Content(context: Context, appWidgetId: Int) {
+        // Both make a running session redraw on update (see Widgets.revision).
+        Widgets.revision.intValue
+        LocalState.current
         val store = WidgetStore(context)
         val choice = store.choice(appWidgetId)
         val live = WidgetEnvironment.live(context)
@@ -148,6 +164,10 @@ class SpecGlanceWidget : GlanceAppWidget() {
         val spec = design?.spec ?: template
         if (spec == null) {
             Message(context, appWidgetId, context.getString(if (choice == null) R.string.widget_choose else R.string.widget_missing))
+            return
+        }
+        if (MediaHub.needsAccess(context, spec)) {
+            Message(context, appWidgetId, if (language == "ar") "اسمح بالوصول إلى الإشعارات لعرض الموسيقى والتحكم بها" else "Allow access to show and control music", Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             return
         }
         val gap = DataRequirements.gap(spec, live, data)
@@ -166,11 +186,25 @@ class SpecGlanceWidget : GlanceAppWidget() {
         if (Build.VERSION.SDK_INT >= 31) modifier = modifier.cornerRadius(android.R.dimen.system_app_widget_background_radius)
         Box(modifier = modifier) {
             Image(ImageProvider(result.bitmap), contentDescription = spec.name.resolved(language), modifier = GlanceModifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
-            for (button in result.buttons) {
-                Box(modifier = GlanceModifier.padding(start = (button.rect.left / density).dp, top = (button.rect.top / density).dp)) {
-                    Box(modifier = GlanceModifier.size((button.rect.width() / density).dp, (button.rect.height() / density).dp).clickable(ActionRouter.glance(context, button.action, button.arg))) {}
+            // Glance keeps only the first 10 children of a Box, so tap areas go in groups.
+            for (group in TapZones.groups(result.buttons)) {
+                Box(modifier = GlanceModifier.fillMaxSize()) {
+                    for (button in group) TapZone(context, button, size.width.value, size.height.value, density)
                 }
             }
+        }
+    }
+
+    /**
+     * Fills the widget and pads in from all four sides with absolute (left/right) padding. Start
+     * padding and start alignment follow the launcher's direction, which landed every tap area on
+     * the mirrored side on an Arabic phone; this lands on the same spot in either direction (ADR-028).
+     */
+    @Composable
+    private fun TapZone(context: Context, button: com.khaled.widgetstudio.render.HitArea, widthDp: Float, heightDp: Float, density: Float) {
+        val inset = TapZones.insets(button.rect.left, button.rect.top, button.rect.right, button.rect.bottom, widthDp, heightDp, density)
+        Box(modifier = GlanceModifier.fillMaxSize().absolutePadding(left = inset.left.dp, top = inset.top.dp, right = inset.right.dp, bottom = inset.bottom.dp)) {
+            Box(modifier = GlanceModifier.fillMaxSize().clickable(ActionRouter.glance(context, button.action, button.arg))) {}
         }
     }
 
@@ -194,6 +228,23 @@ class SpecGlanceWidget : GlanceAppWidget() {
             DataGap.NO_BATTERY -> if (ar) "تعذّرت قراءة البطارية" else "Battery level unavailable"
         }
     }
+}
+
+/** Where a tap area sits, in dp from each edge of the widget; pure, so the tests pin it. */
+object TapZones {
+    data class Insets(val left: Float, val top: Float, val right: Float, val bottom: Float)
+
+    /** Children of one Box that Glance keeps. */
+    const val perBox = 10
+
+    fun <T> groups(buttons: List<T>): List<List<T>> = buttons.chunked(perBox)
+
+    fun insets(leftPx: Float, topPx: Float, rightPx: Float, bottomPx: Float, widthDp: Float, heightDp: Float, density: Float) = Insets(
+        left = (leftPx / density).coerceAtLeast(0f),
+        top = (topPx / density).coerceAtLeast(0f),
+        right = (widthDp - rightPx / density).coerceAtLeast(0f),
+        bottom = (heightDp - bottomPx / density).coerceAtLeast(0f),
+    )
 }
 
 /** Old tile designs name an iOS Shortcut; these map the name to Android (TileSetup.forName). Taps go through ActionRouter. */
