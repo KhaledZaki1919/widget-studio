@@ -55,3 +55,9 @@ Handoff note for this run: the owner asked for A2, A3, A4 and A5 in one go, with
 | Compass | One sensor reading per minute while the screen is on, only when a placed widget shows it |
 | Reminders | Unsupported: Android has no shared store; a tap shows a hint |
 | Sizes | Small, Medium, Large receivers; the original receiver is hidden from the picker and keeps placed widgets working |
+
+## Rules, states, tasks, delete (ADR-028)
+- **Taps:** `Widgets.revision` makes a live Glance session redraw; `TapZones` are absolute insets in groups of ten; `TapLog` and `TapActivity` log every tap; `ui/Diagnostics.kt` shows access, sessions, volume and the log, and runs the same actions from the app.
+- **States:** `LayerContent.States`, `StateSets`, `SpecExpression`, `AutoWireRules.kt`, `DesignRules.kt`.
+- **Tasks:** `data/Tasks.kt` (SQLite, `TaskFormat`, reminders) and `ui/Tasks.kt`.
+- **Delete:** swipe, long press, Select mode, the editor's button, Undo with the photo's bytes.
