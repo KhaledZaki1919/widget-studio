@@ -73,16 +73,7 @@ fun DiagnosticsScreen(onClose: () -> Unit) {
                 Row1(tr("Notification access", "الوصول إلى الإشعارات"), if (access) tr("Granted", "ممنوح") else tr("Not granted", "غير ممنوح"))
                 if (!access) {
                     Button(onClick = { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }) { Text(tr("Allow access", "اسمح بالوصول")) }
-                    // Android 13+ blocks this switch for an app installed from a file until the user lifts it.
-                    if (Build.VERSION.SDK_INT >= 33) {
-                        Footnote(tr(
-                            "If the switch is greyed out or says \"Restricted setting\": open App info, tap ⋮ at the top, choose \"Allow restricted settings\", then turn the switch on. Android does this to every app installed from a file.",
-                            "إذا كان المفتاح معطّلًا أو ظهرت عبارة «إعداد محظور»: افتح معلومات التطبيق، واضغط ⋮ في الأعلى، واختر «السماح بالإعدادات المحظورة»، ثم فعّل المفتاح. يفعل Android ذلك مع كل تطبيق مثبّت من ملف.",
-                        ))
-                        OutlinedButton(onClick = {
-                            context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                        }) { Text(tr("Open App info", "افتح معلومات التطبيق")) }
-                    }
+                    RestrictedSettingsHint()
                 }
                 Row1(tr("Active media sessions", "جلسات التشغيل النشطة"), if (access) sessions.size.toString() else "—")
                 sessions.forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
@@ -129,6 +120,20 @@ fun DiagnosticsScreen(onClose: () -> Unit) {
             }
         }
     }
+}
+
+/** Android 13+ blocks notification access for an app installed from a file until the user lifts it. */
+@Composable
+fun RestrictedSettingsHint() {
+    val context = LocalContext.current
+    if (Build.VERSION.SDK_INT < 33) return
+    Footnote(tr(
+        "If the switch is greyed out or says \"Restricted setting\": open App info, tap ⋮ at the top, choose \"Allow restricted settings\", then turn the switch on. Android does this to every app installed from a file.",
+        "إذا كان المفتاح معطّلًا أو ظهرت عبارة «إعداد محظور»: افتح معلومات التطبيق، واضغط ⋮ في الأعلى، واختر «السماح بالإعدادات المحظورة»، ثم فعّل المفتاح. يفعل Android ذلك مع كل تطبيق مثبّت من ملف.",
+    ))
+    OutlinedButton(onClick = {
+        context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }) { Text(tr("Open App info", "افتح معلومات التطبيق")) }
 }
 
 @Composable

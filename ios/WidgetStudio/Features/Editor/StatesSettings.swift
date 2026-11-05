@@ -126,8 +126,9 @@ private struct VariantEditor: View {
 
     private func change(_ edit: (inout StatesLayer.Variant) -> Void) {
         customize()
-        guard let index = states.variants?.firstIndex(where: { $0.id == id }) else { return }
-        edit(&states.variants![index])
+        guard var variants = states.variants, let index = variants.firstIndex(where: { $0.id == id }) else { return }
+        edit(&variants[index])
+        states.variants = variants
     }
 
     private var variant: StatesLayer.Variant? { states.expanded.first { $0.id == id } }

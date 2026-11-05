@@ -234,6 +234,7 @@ fun PermissionsScreen(specs: List<WidgetSpec>, onDone: () -> Unit) {
                                 "writeSettings" -> settings.launch(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:${context.packageName}")))
                             }
                         }) { Text(tr("Allow", "اسمح")) }
+                        if (permission.id == "notificationAccess") RestrictedSettingsHint()
                     }
                 }
             }
