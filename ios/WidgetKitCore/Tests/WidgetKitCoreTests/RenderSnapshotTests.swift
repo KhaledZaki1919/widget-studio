@@ -41,7 +41,10 @@ struct RenderSnapshotTests {
                 guard case .states(let states) = layer.content else { continue }
                 for variant in states.expanded {
                     var overrides = BindingResolver.overrides(for: variant, of: states)
-                    if overrides["weather.kind"] != nil { overrides["weather.symbol"] = symbol(for: variant.id) }
+                    if overrides["weather.kind"] != nil {
+                        overrides["weather.symbol"] = symbol(for: variant.id)
+                        overrides["weather.cond"] = variant.title?.resolved(language: "en")
+                    }
                     if let image = SpecSnapshot.render(spec, date: date, overrides: overrides) {
                         try writePNG(image, to: folder.appendingPathComponent("\(id).\(variant.id).png"))
                     }
