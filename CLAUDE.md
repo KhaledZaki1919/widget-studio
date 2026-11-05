@@ -6,6 +6,20 @@ Home-screen widget builder for iOS 17+ (native Swift / SwiftUI) and Android (Kot
 
 The product brief is `widget-app-brief.md` (template catalog: `TEMPLATES.md`, visual reference: `docs/reference/widgets-reference.jpg`). Read them before changing behavior. Decisions live in `docs/decisions.md`.
 
+## Product rules (permanent, ADR-028)
+They apply to EVERY design, now and in the future (templates, AI results, imports, edits), on both platforms.
+- **LIVE:** anything that can change (time, dates, progress, %, levels, counts, names, media, weather, tasks, states) is bound to real data. No frozen values.
+- **INTERACTIVE:** anything that looks tappable (button, switch, slider, checkbox, tile, play icon) does something real, or shows a clear hint if the OS forbids it.
+- **ALIVE:** anything that expresses a mood, illustration, icon or color that would naturally differ by state (battery, weather, day/night, done/not done, playing/paused, on/off, goal reached) has variants chosen by real data.
+- **CORRECT:** values and visuals agree (lit dots match the %, the icon matches the condition, the label matches the binding).
+
+Enforced as a system, never by special cases:
+- **Prompt:** every prompt version carries these rules and asks per element "what does it show, what happens on tap, how does it look in other states?"
+- **Post-pass:** `DesignRules.swift` / `DesignRules.kt` hold generic detectors (unbound changing values, controls without actions, mood or illustration layers without states, value/visual mismatches). `AutoWire` fixes what it safely can; the rest is listed in the Interactive summary. Both run `Fixtures/DesignRules/vectors.json`.
+- **Catalog:** built-in state sets live in `capabilities.json` (`stateSets`), so the AI, the post-pass and the editor reuse them. Adding a set needs no prompt edit.
+- **Eval:** every case is scored on live, interactive, alive and correct; CI fails if any metric drops below its best recorded run (`docs/ai-eval/wiring-best.json`).
+- **Templates:** every template passes `DesignRules` with no finding (`TemplateRulesTests`, `DesignRulesTest`).
+
 ## Working rules
 - **Commit after every finished step** and push (`origin` = github.com/KhaledZaki1919/widget-studio, branch `main`). Small commits; end messages with the `Co-Authored-By: Claude …` line.
 - Work in the milestones of the brief §10 (M0…M7). Stop at the end of each milestone and tell the owner the IPA is ready and how to test it; the next milestone starts in a new conversation.
