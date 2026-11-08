@@ -189,7 +189,8 @@ struct StatesTests {
     }
 
     @Test func roundTripAndRequirements() throws {
-        let text = ##"{"schemaVersion":1,"id":"t","name":{"en":"t","ar":"t"},"family":"small","background":{"type":"solid","color":"#000000"},"layers":[{"type":"states","frame":{"x":0,"y":0,"w":50,"h":50},"set":"weather.art"}]}"##
+        let text = ##"{"schemaVersion":1,"id":"t","name":{"en":"t","ar":"t"},"family":"small","background":{"type":"solid","color":"#000000"},"##
+            + ##""layers":[{"type":"states","frame":{"x":0,"y":0,"w":50,"h":50},"set":"weather.art"}]}"##
         let spec = try JSONDecoder().decode(WidgetSpec.self, from: Data(text.utf8))
         let again = try JSONDecoder().decode(WidgetSpec.self, from: JSONEncoder().encode(spec))
         #expect(again == spec)
