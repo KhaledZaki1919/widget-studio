@@ -12,7 +12,7 @@ struct WiringBest: Codable {
     var metrics: [String: Double]?
 }
 
-/// Every push replays the best run's recorded model replies through today's parser and post-pass,
+/// Every push replays the best runs' recorded model replies (one per case, prompt v5 or v6) through today's parser and post-pass,
 /// with no network: if the wiring score drops below that run, CI fails. The Kotlin test does the same.
 struct WiringGateTests {
     static let folder = URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("../../../../docs/ai-eval").standardizedFileURL
