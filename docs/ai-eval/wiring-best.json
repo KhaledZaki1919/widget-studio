@@ -13,9 +13,13 @@
     "draw-i-timer": 0.75,
     "draw-i-toggles": 0.5,
     "draw-i-volume": 1,
-    "draw-i-control": 0.9090909090909091
+    "draw-i-control": 0.9090909090909091,
+    "draw-i-year": 1,
+    "draw-i-mood": 1,
+    "draw-i-tasks": 1,
+    "draw-i-sky": 0.6666666666666666
   },
-  "model": "gemini-3.5-flash-lite",
-  "prompt": "generate_v5",
-  "score": 0.9399350649350648
+  "model": "gemini-3.5-flash-lite (v5: 14 cases; v6: year, mood) · gemini-3.5-flash (v6: tasks, sky)",
+  "prompt": "generate_v5 + generate_v6",
+  "score": 0.9347643097643097
 }
