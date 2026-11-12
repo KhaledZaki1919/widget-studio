@@ -189,12 +189,15 @@ object DeviceState {
 
 /** Keeps the app able to see media sessions; Android requires a notification listener for that (ADR-027). */
 class MediaListener : NotificationListenerService() {
+    // ADR-030: the listener is the long-lived component that keeps event-driven widget updates running.
     override fun onListenerConnected() {
         MediaHub.attach(applicationContext)
+        com.khaled.widgetstudio.widget.LiveUpdates.start(applicationContext)
     }
 
     override fun onListenerDisconnected() {
         MediaHub.detach(applicationContext)
+        com.khaled.widgetstudio.widget.LiveUpdates.stop(applicationContext)
     }
 }
 
@@ -212,7 +215,7 @@ object MediaHub {
     /** Redraws at most once a second, and every 15 s while playing, so progress moves. */
     private var appContext: Context? = null
     private val redraw = Runnable {
-        appContext?.let(Widgets::updateAllAsync)
+        appContext?.let { com.khaled.widgetstudio.widget.LiveUpdates.changed(it, com.khaled.widgetstudio.widget.LiveUpdates.Source.MEDIA) }
         scheduleTick()
     }
 

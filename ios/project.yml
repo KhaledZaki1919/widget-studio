@@ -82,7 +82,7 @@ targets:
         LSSupportsOpeningDocumentsInPlace: false
         # Localized in Resources/InfoPlist.xcstrings.
         NSLocationWhenInUseUsageDescription: "يُستخدم موقعك لعرض الطقس ومواقيت الصلاة واتجاه القبلة في الويدجت."
-        NSHealthShareUsageDescription: "يقرأ التطبيق عدد خطواتك وساعات نومك لعرضها في الويدجت."
+        NSHealthShareUsageDescription: "يقرأ التطبيق خطواتك ونومك ونبض قلبك ونشاطك لعرضها في الويدجت."
         NSAppleMusicUsageDescription: "يعرض الويدجت ما يُشغَّل في Apple Music ويتحكم في التشغيل."
         NSCalendarsFullAccessUsageDescription: "يعرض الويدجت أحداث تقويمك القادمة."
         NSRemindersFullAccessUsageDescription: "تُحفظ مهامك في قائمة «Widget Studio» في التذكيرات، ليعرضها الويدجت وينجزها."
@@ -127,7 +127,7 @@ targets:
         # Location inside the widget (brief §2), probed in Diagnostics (ADR-005).
         NSWidgetWantsLocation: true
         NSLocationWhenInUseUsageDescription: "يُستخدم موقعك لعرض الطقس ومواقيت الصلاة واتجاه القبلة في الويدجت."
-        NSHealthShareUsageDescription: "يقرأ التطبيق عدد خطواتك وساعات نومك لعرضها في الويدجت."
+        NSHealthShareUsageDescription: "يقرأ التطبيق خطواتك ونومك ونبض قلبك ونشاطك لعرضها في الويدجت."
         NSAppleMusicUsageDescription: "يعرض الويدجت ما يُشغَّل في Apple Music ويتحكم في التشغيل."
         NSCalendarsFullAccessUsageDescription: "يعرض الويدجت أحداث تقويمك القادمة."
         NSRemindersFullAccessUsageDescription: "تُحفظ مهامك في قائمة «Widget Studio» في التذكيرات، ليعرضها الويدجت وينجزها."

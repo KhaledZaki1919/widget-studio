@@ -57,6 +57,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.Instant
+import com.khaled.widgetstudio.spec.BindingNames
 import java.time.ZoneId
 
 /** The app-wide renderer, template library and live data (created once per process). */
@@ -107,7 +108,20 @@ object Widgets {
         CoroutineScope(Dispatchers.Default).launch { updateAll(context.applicationContext) }
     }
 
-    private val receivers = listOf(SpecWidgetReceiver::class.java, SmallWidgetReceiver::class.java, MediumWidgetReceiver::class.java, LargeWidgetReceiver::class.java)
+    private val receivers = listOf(SpecWidgetReceiver::class.java, SmallWidgetReceiver::class.java, MediumWidgetReceiver::class.java, LargeWidgetReceiver::class.java,
+        ExtraLargeWidgetReceiver::class.java)
+
+    /** Redraws one placed widget (ADR-030: event-driven updates touch only the widgets that read the change). */
+    suspend fun update(context: Context, appWidgetId: Int) {
+        Snapshot.withMutableSnapshot { revision.intValue += 1 }
+        val id = runCatching { androidx.glance.appwidget.GlanceAppWidgetManager(context).getGlanceIdBy(appWidgetId) }.getOrNull() ?: return
+        SpecGlanceWidget().update(context, id)
+    }
+
+    /** The binding and action ids a placed widget's spec uses, or null when unknown (then every change redraws it). */
+    fun names(context: Context, appWidgetId: Int): Set<String>? = spec(context, appWidgetId)?.let { spec ->
+        BindingNames.names(spec).toSet() + spec.layers.mapNotNull { (it.content as? com.khaled.widgetstudio.spec.LayerContent.Button)?.action }
+    }
 
     /** Every placed widget, of any size. */
     fun placedIds(context: Context): List<Int> {
@@ -121,6 +135,7 @@ object Widgets {
             "SmallWidgetReceiver" -> "small"
             "MediumWidgetReceiver" -> "medium"
             "LargeWidgetReceiver" -> "large"
+            "ExtraLargeWidgetReceiver" -> "xlarge"
             else -> null
         }
 
@@ -184,6 +199,8 @@ class SpecGlanceWidget : GlanceAppWidget() {
         // ADR-029: the playing app's icon and the icons of the design's app fields.
         val images = com.khaled.widgetstudio.data.Extras.images(context, spec) { key -> (design?.fieldValues?.get(key) ?: spec.field(key)?.default)?.resolved(language) }
         val result = WidgetEnvironment.renderer(context).render(spec, renderContext.copy(mediaArtwork = artwork, images = images), (size.width.value * density).toInt(), (size.height.value * density).toInt(), cornerRadius = radius)
+        // ADR-030: how long the change this render shows took to arrive.
+        UpdateLatency.drawn(context, BindingNames.names(spec).toSet())
         var modifier = GlanceModifier.fillMaxSize().appWidgetBackground()
         if (Build.VERSION.SDK_INT >= 31) modifier = modifier.cornerRadius(android.R.dimen.system_app_widget_background_radius)
         Box(modifier = modifier) {
@@ -303,6 +320,7 @@ open class SpecWidgetReceiver : GlanceAppWidgetReceiver() {
         super.onEnabled(context)
         MinuteTicker.schedule(context)
         com.khaled.widgetstudio.data.RefreshWorker.schedule(context)
+        LiveWidgetsService.sync(context)
     }
 
     override fun onDisabled(context: Context) {
@@ -325,6 +343,8 @@ open class SpecWidgetReceiver : GlanceAppWidgetReceiver() {
 class SmallWidgetReceiver : SpecWidgetReceiver()
 class MediumWidgetReceiver : SpecWidgetReceiver()
 class LargeWidgetReceiver : SpecWidgetReceiver()
+/** ADR-030: the 4 × 6 size (xlarge designs; any smaller design scales in). */
+class ExtraLargeWidgetReceiver : SpecWidgetReceiver()
 
 /**
  * Clocks, dates, countdowns and the stopwatch re-render once a minute (ADR-025): a windowed alarm

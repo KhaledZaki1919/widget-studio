@@ -12,6 +12,7 @@ import com.khaled.widgetstudio.ai.AIValidationError
 import com.khaled.widgetstudio.ai.AIWidgetParser
 import com.khaled.widgetstudio.ai.CardShape
 import com.khaled.widgetstudio.ai.ExternalAI
+import com.khaled.widgetstudio.widget.LiveUpdates.Source
 import com.khaled.widgetstudio.ai.GeminiClient
 import com.khaled.widgetstudio.ai.GenerationMode
 import com.khaled.widgetstudio.ai.GenerationOptions
@@ -172,6 +173,23 @@ class DesignLogicTest {
             assertTrue(error.problems, error.problems.contains("Widget 2 «Broken»"))
             assertTrue(ExternalAI.fixRequest(error).contains("- Widget 2"))
         }
+    }
+
+    /** ADR-030: an event redraws only the widgets that read its data, and its delay is recorded. */
+    @Test
+    fun liveUpdatesTouchOnlyAffectedWidgets() {
+
+        assertTrue(Source.BATTERY.affects(setOf("battery.level")))
+        assertFalse(Source.VOLUME.affects(setOf("battery.level", "time.hh")))
+        assertTrue(Source.TIME.affects(setOf("day.progress")))
+        assertTrue(Source.SCREEN.affects(setOf("weather.temp")))
+        assertTrue(Source.MEDIA.affects(setOf("media.title")) && !Source.MEDIA.affects(setOf("weather.temp")))
+        val latency = com.khaled.widgetstudio.widget.UpdateLatency
+        latency.changed(app, Source.BATTERY)
+        latency.drawn(app, setOf("weather.temp"))
+        assertTrue("an unrelated render doesn't close the event", latency.all(app)["battery"].isNullOrEmpty())
+        latency.drawn(app, setOf("battery.level"))
+        assertEquals(1, latency.all(app)["battery"]?.size)
     }
 
     @Test

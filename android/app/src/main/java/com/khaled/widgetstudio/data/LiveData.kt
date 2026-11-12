@@ -586,6 +586,7 @@ object DataRequirements {
 class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         com.khaled.widgetstudio.widget.WidgetEnvironment.live(applicationContext).refresh()
+        com.khaled.widgetstudio.widget.UpdateLatency.changed(applicationContext, com.khaled.widgetstudio.widget.LiveUpdates.Source.WORKER)
         com.khaled.widgetstudio.widget.Widgets.updateAll(applicationContext)
         return Result.success()
     }
@@ -593,7 +594,7 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
     companion object {
         fun schedule(context: Context) {
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                "refresh", ExistingPeriodicWorkPolicy.KEEP, PeriodicWorkRequestBuilder<RefreshWorker>(30, TimeUnit.MINUTES).build(),
+                "refresh", ExistingPeriodicWorkPolicy.UPDATE, PeriodicWorkRequestBuilder<RefreshWorker>(15, TimeUnit.MINUTES).build(),
             )
         }
     }

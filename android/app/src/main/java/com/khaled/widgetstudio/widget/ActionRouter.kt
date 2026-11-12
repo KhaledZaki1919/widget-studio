@@ -168,6 +168,7 @@ object ActionRouter {
             "failed"
         }
         settle()
+        UpdateLatency.changed(context, LiveUpdates.Source.ACTION)
         Widgets.updateAll(context)
         // A player reports its new state a moment after the command.
         if (id.startsWith("media.")) {

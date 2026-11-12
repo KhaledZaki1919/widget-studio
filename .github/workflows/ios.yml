@@ -178,6 +178,21 @@ jobs:
             exit "$status"
           fi
 
+      - name: Build developer mode with push updates (unsigned)
+        run: |
+          status=0
+          xcodebuild build "WS_EXTRA_CONDITIONS=WS_XL27 WS_DEVELOPER" \
+            -project WidgetStudio.xcodeproj -scheme WidgetStudio \
+            -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedDataDev \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            > build/xcodebuild-27-dev.log 2>&1 || status=$?
+          grep -E '\*\* BUILD (SUCCEEDED|FAILED) \*\*' build/xcodebuild-27-dev.log || tail -n 40 build/xcodebuild-27-dev.log
+          if [ "$status" -ne 0 ]; then
+            grep -E "error:" build/xcodebuild-27-dev.log | sort -u
+            exit "$status"
+          fi
+
   test:
     name: App and UI tests (Simulator)
     needs: [build, unit]

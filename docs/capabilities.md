@@ -31,6 +31,30 @@ Generated from `capabilities.json` by `scripts/capabilities-table.mjs`. Do not e
 | `{{month.daysLeft}}` | Days left in the month | Yes | Yes |  |  |  |
 | `{{week.daysLeft}}` | Days left in the week | Yes | Yes |  |  |  |
 | `{{time.isDay}}` | Daytime | Yes | Yes |  |  |  |
+| `{{time.ss}}` | Seconds | No | Yes |  |  | iOS: A widget redraws at most once a minute, so seconds stand still between redraws. |
+| `{{time.words}}` | Time in words | Yes | Yes |  |  |  |
+| `{{date.EE}}` | Weekday, two letters | Yes | Yes |  |  |  |
+| `{{week.d1.EEE}}` | Week day 1, name | Yes | Yes |  |  |  |
+| `{{week.d1.d}}` | Week day 1, date | Yes | Yes |  |  |  |
+| `{{week.d1.isToday}}` | Week day 1 is today | Yes | Yes |  |  |  |
+| `{{week.d2.EEE}}` | Week day 2, name | Yes | Yes |  |  |  |
+| `{{week.d2.d}}` | Week day 2, date | Yes | Yes |  |  |  |
+| `{{week.d2.isToday}}` | Week day 2 is today | Yes | Yes |  |  |  |
+| `{{week.d3.EEE}}` | Week day 3, name | Yes | Yes |  |  |  |
+| `{{week.d3.d}}` | Week day 3, date | Yes | Yes |  |  |  |
+| `{{week.d3.isToday}}` | Week day 3 is today | Yes | Yes |  |  |  |
+| `{{week.d4.EEE}}` | Week day 4, name | Yes | Yes |  |  |  |
+| `{{week.d4.d}}` | Week day 4, date | Yes | Yes |  |  |  |
+| `{{week.d4.isToday}}` | Week day 4 is today | Yes | Yes |  |  |  |
+| `{{week.d5.EEE}}` | Week day 5, name | Yes | Yes |  |  |  |
+| `{{week.d5.d}}` | Week day 5, date | Yes | Yes |  |  |  |
+| `{{week.d5.isToday}}` | Week day 5 is today | Yes | Yes |  |  |  |
+| `{{week.d6.EEE}}` | Week day 6, name | Yes | Yes |  |  |  |
+| `{{week.d6.d}}` | Week day 6, date | Yes | Yes |  |  |  |
+| `{{week.d6.isToday}}` | Week day 6 is today | Yes | Yes |  |  |  |
+| `{{week.d7.EEE}}` | Week day 7, name | Yes | Yes |  |  |  |
+| `{{week.d7.d}}` | Week day 7, date | Yes | Yes |  |  |  |
+| `{{week.d7.isToday}}` | Week day 7 is today | Yes | Yes |  |  |  |
 
 ## Weather
 
@@ -72,6 +96,35 @@ Generated from `capabilities.json` by `scripts/capabilities-table.mjs`. Do not e
 | `{{forecast.6.symbol}}` | Forecast icon 6 | Yes | Yes |  |  |  |
 | `{{forecast.6.hi}}` | Forecast high 6 | Yes | Yes |  |  |  |
 | `{{forecast.6.lo}}` | Forecast low 6 | Yes | Yes |  |  |  |
+| `{{hourly.1.time}}` | Hour 1 | Yes | Yes |  |  |  |
+| `{{hourly.1.symbol}}` | Hour 1 icon | Yes | Yes |  |  |  |
+| `{{hourly.1.temp}}` | Hour 1 temperature | Yes | Yes |  |  |  |
+| `{{hourly.2.time}}` | Hour 2 | Yes | Yes |  |  |  |
+| `{{hourly.2.symbol}}` | Hour 2 icon | Yes | Yes |  |  |  |
+| `{{hourly.2.temp}}` | Hour 2 temperature | Yes | Yes |  |  |  |
+| `{{hourly.3.time}}` | Hour 3 | Yes | Yes |  |  |  |
+| `{{hourly.3.symbol}}` | Hour 3 icon | Yes | Yes |  |  |  |
+| `{{hourly.3.temp}}` | Hour 3 temperature | Yes | Yes |  |  |  |
+| `{{hourly.4.time}}` | Hour 4 | Yes | Yes |  |  |  |
+| `{{hourly.4.symbol}}` | Hour 4 icon | Yes | Yes |  |  |  |
+| `{{hourly.4.temp}}` | Hour 4 temperature | Yes | Yes |  |  |  |
+| `{{hourly.5.time}}` | Hour 5 | Yes | Yes |  |  |  |
+| `{{hourly.5.symbol}}` | Hour 5 icon | Yes | Yes |  |  |  |
+| `{{hourly.5.temp}}` | Hour 5 temperature | Yes | Yes |  |  |  |
+| `{{hourly.6.time}}` | Hour 6 | Yes | Yes |  |  |  |
+| `{{hourly.6.symbol}}` | Hour 6 icon | Yes | Yes |  |  |  |
+| `{{hourly.6.temp}}` | Hour 6 temperature | Yes | Yes |  |  |  |
+| `{{hourly.7.time}}` | Hour 7 | Yes | Yes |  |  |  |
+| `{{hourly.7.symbol}}` | Hour 7 icon | Yes | Yes |  |  |  |
+| `{{hourly.7.temp}}` | Hour 7 temperature | Yes | Yes |  |  |  |
+| `{{hourly.8.time}}` | Hour 8 | Yes | Yes |  |  |  |
+| `{{hourly.8.symbol}}` | Hour 8 icon | Yes | Yes |  |  |  |
+| `{{hourly.8.temp}}` | Hour 8 temperature | Yes | Yes |  |  |  |
+| `{{hourly.temps}}` | Next 24 hours | Yes | Yes |  |  |  |
+| `{{weather.rainChance}}` | Chance of rain | Yes | Yes |  |  |  |
+| `{{weather.rainNext}}` | Rain soon | Yes | Yes |  |  |  |
+| `{{weather.uv}}` | UV index | Yes | Yes |  |  |  |
+| `{{weather.aqi}}` | Air quality | Yes | Yes |  |  |  |
 
 ## Battery
 
@@ -118,6 +171,16 @@ Generated from `capabilities.json` by `scripts/capabilities-table.mjs`. Do not e
 | `{{sleep.bedtime}}` | Bedtime | Yes | Yes | Health (steps and sleep) | Health (steps and sleep) |  |
 | `{{sleep.wake}}` | Wake time | Yes | Yes | Health (steps and sleep) | Health (steps and sleep) |  |
 | `{{sleep.week}}` | Sleep this week | Yes | Yes | Health (steps and sleep) | Health (steps and sleep) |  |
+| `{{heart.rate}}` | Heart rate | Yes | Yes | Health (steps and sleep) | Health (steps and sleep) |  |
+| `{{heart.resting}}` | Resting heart rate | Yes | Yes | Health (steps and sleep) | Health (steps and sleep) |  |
+| `{{heart.today}}` | Heart rate today | Yes | Yes | Health (steps and sleep) | Health (steps and sleep) |  |
+| `{{stress.level}}` | Stress | Yes | Yes | Health (steps and sleep) | Health (steps and sleep) |  |
+| `{{energy.level}}` | Energy | Yes | Yes | Health (steps and sleep) | Health (steps and sleep) |  |
+| `{{activity.minutes}}` | Active minutes | Yes | Yes | Health (steps and sleep) | Health (steps and sleep) |  |
+| `{{activity.kcal}}` | Active calories | Yes | Yes | Health (steps and sleep) | Health (steps and sleep) |  |
+| `{{sleep.time}}` | Sleep, h:mm | Yes | Yes | Health (steps and sleep) | Health (steps and sleep) |  |
+| `{{sleep.stages}}` | Sleep stages | Yes | Yes | Health (steps and sleep) | Health (steps and sleep) |  |
+| `{{steps.hourly}}` | Steps per hour | Yes | Yes | Health (steps and sleep) | Health (steps and sleep) |  |
 
 ## Counters and timers
 
@@ -158,6 +221,19 @@ Generated from `capabilities.json` by `scripts/capabilities-table.mjs`. Do not e
 | `{{calendar.3.time}}` | Event 3 time | Yes | Yes | Calendar | Calendar |  |
 | `{{calendar.4.title}}` | Event 4 | Yes | Yes | Calendar | Calendar |  |
 | `{{calendar.4.time}}` | Event 4 time | Yes | Yes | Calendar | Calendar |  |
+| `{{calendar.1.end}}` | Event 1 end | Yes | Yes | Calendar | Calendar |  |
+| `{{calendar.1.calendar}}` | Event 1 calendar | Yes | Yes | Calendar | Calendar |  |
+| `{{calendar.1.color}}` | Event 1 color | Yes | Yes | Calendar | Calendar |  |
+| `{{calendar.2.end}}` | Event 2 end | Yes | Yes | Calendar | Calendar |  |
+| `{{calendar.2.calendar}}` | Event 2 calendar | Yes | Yes | Calendar | Calendar |  |
+| `{{calendar.2.color}}` | Event 2 color | Yes | Yes | Calendar | Calendar |  |
+| `{{calendar.3.end}}` | Event 3 end | Yes | Yes | Calendar | Calendar |  |
+| `{{calendar.3.calendar}}` | Event 3 calendar | Yes | Yes | Calendar | Calendar |  |
+| `{{calendar.3.color}}` | Event 3 color | Yes | Yes | Calendar | Calendar |  |
+| `{{calendar.4.end}}` | Event 4 end | Yes | Yes | Calendar | Calendar |  |
+| `{{calendar.4.calendar}}` | Event 4 calendar | Yes | Yes | Calendar | Calendar |  |
+| `{{calendar.4.color}}` | Event 4 color | Yes | Yes | Calendar | Calendar |  |
+| `{{calendar.next.end}}` | Next event end | Yes | Yes | Calendar | Calendar |  |
 
 ## Reminders
 
@@ -223,6 +299,7 @@ Generated from `capabilities.json` by `scripts/capabilities-table.mjs`. Do not e
 | `{{media.remaining}}` | Time left | Yes | Yes | Apple Music | Notification access (now playing from any player) | iOS: Apple Music only. |
 | `{{media.progress}}` | Track progress | Yes | Yes | Apple Music | Notification access (now playing from any player) | iOS: Apple Music only. |
 | `{{media.artwork}}` | Album art | Yes | Yes | Apple Music | Notification access (now playing from any player) | iOS: Apple Music only. |
+| `{{media.appIcon}}` | Playing app icon | No | Yes |  | Notification access (now playing from any player) | iOS: iOS doesn't tell other apps which app is playing; the icon shows a music note. |
 | `media.playPause` | Play/pause | Yes | Yes | Apple Music | Notification access (now playing from any player) | iOS: Apple Music in the widget; with arg "shortcut" any player through a Shortcut. |
 | `media.next` | Next track | Yes | Yes | Apple Music | Notification access (now playing from any player) | iOS: Apple Music in the widget; with arg "shortcut" any player through a Shortcut. |
 | `media.previous` | Previous track | Yes | Yes | Apple Music | Notification access (now playing from any player) | iOS: Apple Music in the widget; with arg "shortcut" any player through a Shortcut. |
@@ -244,6 +321,7 @@ Generated from `capabilities.json` by `scripts/capabilities-table.mjs`. Do not e
 | `volume.ringDown` | Ringer down | No | Yes |  |  |  |
 | `brightness.up` | Brightness up | Shortcut | Yes | A Shortcut you create once | Modify system settings |  |
 | `brightness.down` | Brightness down | Shortcut | Yes | A Shortcut you create once | Modify system settings |  |
+| `captions.toggle` | Live captions | Shortcut | System panel | A Shortcut you create once |  |  |
 
 ## System switches
 
@@ -271,6 +349,8 @@ Generated from `capabilities.json` by `scripts/capabilities-table.mjs`. Do not e
 | `system.toggle.silent` | Silent | Shortcut | Yes | A Shortcut you create once | Do Not Disturb access |  |
 | `system.toggle.rotation` | Auto-rotate | Shortcut | Yes | A Shortcut you create once | Modify system settings |  |
 | `system.toggle.dnd` | Do Not Disturb | Shortcut | Yes | A Shortcut you create once | Do Not Disturb access |  |
+| `system.toggle.hotspot` | Hotspot | Shortcut | System panel | A Shortcut you create once |  |  |
+| `system.toggle.nfc` | NFC | No | System panel |  |  | iOS: iPhone NFC has no switch. |
 
 ## Your own values
 
@@ -282,6 +362,7 @@ Generated from `capabilities.json` by `scripts/capabilities-table.mjs`. Do not e
 
 | Id | What | iOS | Android | iOS needs | Android needs | Notes |
 |---|---|---|---|---|---|---|
+| `{{app.<appField>.icon}}` | An app's icon | No | Yes |  |  | iOS: iOS doesn't give apps other apps' icons; pick a picture instead. |
 | `open.app` | Open Widget Studio | Yes | Yes |  |  |  |
 | `open.url` | Open a link | Yes | Yes |  |  |  |
 | `open.deeplink` | Open an app link | Yes | Yes |  |  |  |
@@ -295,3 +376,28 @@ Generated from `capabilities.json` by `scripts/capabilities-table.mjs`. Do not e
 | `reminders.open` | Open Reminders | Yes | No |  |  |  |
 | `compass.open` | Open the live compass | Yes | Yes |  |  |  |
 | `weather.open` | Open the weather | Yes | System panel |  |  | Android: Opens the web forecast for your place. |
+| `assistant.open` | Open the assistant | Shortcut | Yes | A Shortcut you create once |  |  |
+| `screen.record` | Record the screen | No | No |  |  |  |
+| `search.open` | Search | No | Yes |  |  | iOS: iOS can't open Search from an app. |
+| `alarm.open` | Open alarms | Yes | Yes |  |  |  |
+| `clock.open` | Open the clock | Yes | Yes |  |  |  |
+| `health.open` | Open health | Yes | Yes |  |  |  |
+
+## Stocks and coins
+
+| Id | What | iOS | Android | iOS needs | Android needs | Notes |
+|---|---|---|---|---|---|---|
+| `{{stock.<tickerField>.price}}` | Price | Yes | Yes |  |  |  |
+| `{{stock.<tickerField>.change}}` | Change | Yes | Yes |  |  |  |
+| `{{stock.<tickerField>.changePct}}` | Change % | Yes | Yes |  |  |  |
+| `{{stock.<tickerField>.series}}` | Price history | Yes | Yes |  |  |  |
+
+## Screen time and earbuds
+
+| Id | What | iOS | Android | iOS needs | Android needs | Notes |
+|---|---|---|---|---|---|---|
+| `{{screenTime.today}}` | Screen time today | No | Yes |  | Usage access (screen time) | iOS: iOS keeps screen time to Apple's Screen Time; apps need a special entitlement. |
+| `{{earbuds.level}}` | Earbuds battery | No | Yes |  | Nearby devices (earbuds battery) | iOS: iOS doesn't share AirPods battery with apps. |
+| `{{earbuds.left}}` | Left earbud | No | No |  |  | iOS: Not shared with apps. Android: Android shares one level per headset, not per earbud: use Earbuds battery. |
+| `{{earbuds.right}}` | Right earbud | No | No |  |  | iOS: Not shared with apps. Android: Android shares one level per headset, not per earbud: use Earbuds battery. |
+| `{{earbuds.case}}` | Earbuds case | No | No |  |  | iOS: Not shared with apps. Android: Android shares one level per headset, not per earbud: use Earbuds battery. |

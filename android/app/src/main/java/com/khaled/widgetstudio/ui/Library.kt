@@ -80,6 +80,18 @@ import java.time.Instant
 import java.time.ZoneId
 
 class MainActivity : ComponentActivity() {
+    // ADR-030: widgets redraw when the app opens and closes (designs, settings or data may have changed).
+    override fun onStart() {
+        super.onStart()
+        com.khaled.widgetstudio.widget.LiveUpdates.changed(this, com.khaled.widgetstudio.widget.LiveUpdates.Source.APP)
+        com.khaled.widgetstudio.widget.LiveWidgetsService.sync(this)
+    }
+
+    override fun onStop() {
+        com.khaled.widgetstudio.widget.LiveUpdates.changed(this, com.khaled.widgetstudio.widget.LiveUpdates.Source.APP)
+        super.onStop()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()

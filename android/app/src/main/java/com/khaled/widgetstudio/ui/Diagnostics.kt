@@ -106,6 +106,12 @@ fun DiagnosticsScreen(onClose: () -> Unit) {
                 placed.forEach { id -> Text("#$id · " + (store.choice(id) ?: tr("nothing chosen", "لم يُختر شيء")), style = MaterialTheme.typography.bodySmall) }
             }
 
+            // ADR-030: how fast a change reaches the widget, per source.
+            SectionTitle(tr("Update speed", "سرعة التحديث"))
+            SectionCard {
+                Text(tr("Live updates: ", "التحديث الحي: ") + (if (com.khaled.widgetstudio.widget.LiveUpdates.isListening) tr("listening", "يعمل") else tr("off (every 15 minutes)", "متوقف (كل 15 دقيقة)")))
+                Text(com.khaled.widgetstudio.widget.UpdateLatency.summary(context), style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+            }
             SectionTitle(tr("Last widget taps", "آخر ضغطات الويدجت"))
             SectionCard {
                 if (entries.isEmpty()) {
@@ -156,6 +162,8 @@ private fun report(context: Context): String = buildString {
     appendLine("Sessions: " + MediaHub.sessions(context).joinToString(" | "))
     context.getSystemService(AudioManager::class.java)?.let { appendLine("Media volume: ${it.getStreamVolume(AudioManager.STREAM_MUSIC)}/${it.getStreamMaxVolume(AudioManager.STREAM_MUSIC)}") }
     appendLine("Widgets: " + Widgets.placedIds(context).joinToString())
+    appendLine("Live updates: " + com.khaled.widgetstudio.widget.LiveUpdates.isListening + ", service " + com.khaled.widgetstudio.widget.LiveWidgetsService.isEnabled(context))
+    appendLine("Update delays: " + com.khaled.widgetstudio.widget.UpdateLatency.summary(context).replace("\n", "; "))
     TapLog.entries(context).forEach { appendLine(line(it)) }
 }
 

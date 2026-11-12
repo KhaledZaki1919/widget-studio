@@ -30,6 +30,7 @@ struct DiagnosticsView: View {
             Section("diag.section.battery") {
                 outcomeRow("diag.battery.app", model.battery)
             }
+            reloadSection
             // Whether Apple Music is reachable here; the check widget's step log shows the widget's own taps (ADR-027).
             Section("diag.section.media") {
                 LabeledContent {
@@ -54,6 +55,31 @@ struct DiagnosticsView: View {
         .onAppear(perform: model.refresh)
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { model.refresh() }
+        }
+    }
+
+    /// ADR-030: the last reload per widget kind, with its reason, and how to lift the budget for testing.
+    private var reloadSection: some View {
+        Section {
+            let latest = ReloadLog.latest()
+            if latest.isEmpty {
+                Text("diag.reloads.none").foregroundStyle(.secondary)
+            }
+            ForEach(latest.prefix(12)) { entry in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(verbatim: entry.kind).font(.footnote.monospaced())
+                    Text(verbatim: entry.date.formatted(date: .omitted, time: .standard) + " · " + entry.reason
+                         + (entry.entries.map { " · ($0) entries" } ?? "")
+                         + (entry.next.map { " · next " + $0.formatted(date: .omitted, time: .shortened) } ?? ""))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .environment(.layoutDirection, .leftToRight)
+            }
+        } header: {
+            Text("diag.section.reloads")
+        } footer: {
+            Text("diag.reloads.footer")
         }
     }
 

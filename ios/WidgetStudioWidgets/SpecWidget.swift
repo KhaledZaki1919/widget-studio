@@ -173,6 +173,7 @@ struct TemplateProvider: TimelineProvider {
             let inputs = await WidgetData.inputs(for: DataRequirements.groups(for: spec), tickers: MarketData.tickers(in: spec), now: start)
             let gap = LiveData.gap(for: spec, inputs)
             let (dates, reload) = LiveSchedule.make(for: spec, inputs: inputs, now: start)
+            ReloadLog.record(kind: templateID, reason: "timeline", entries: dates.count, next: reload, now: start)
             let entries = dates.map {
                 TemplateEntry(date: $0, templateID: templateID, spec: spec, problem: nil, inputs: inputs, gap: gap)
             }
@@ -216,7 +217,11 @@ enum LiveSchedule {
             reload = min(reload, next.addingTimeInterval(60))
         }
         if reload == .distantFuture { reload = now.addingTimeInterval(6 * 3600) }
-        return (schedule.dates.filter { $0 < reload }.isEmpty ? [now] : schedule.dates.filter { $0 < reload }, reload)
+        // ADR-030: entries at the moments data is known to change (midnight, prayers, events, the timer's end),
+        // so they show on time without spending a reload.
+        let boundaries = TimelineBoundaries.dates(for: spec, data: LiveData.snapshot(inputs, now: now), now: now, until: reload)
+        let dates = Array(Set(schedule.dates.filter { $0 < reload } + boundaries)).sorted()
+        return (dates.isEmpty ? [now] : dates, reload)
     }
 }
 

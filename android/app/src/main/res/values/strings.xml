@@ -14,5 +14,7 @@
     <string name="widget_large">كبير</string>
     <string name="widget_small_description">مربع 2×2: تصاميمك والقوالب الصغيرة</string>
     <string name="widget_medium_description">عريض 4×2: تصاميمك والقوالب المتوسطة</string>
+    <string name="widget_xlarge">كبير جدًا</string>
+    <string name="widget_xlarge_description">كبير جدًا 4×6: التصاميم الطويلة</string>
     <string name="widget_large_description">كبير 4×4: تصاميمك الكبيرة ومركز التحكم</string>
 </resources>

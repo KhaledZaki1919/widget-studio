@@ -242,6 +242,9 @@ object TaskReminders {
 
 class TaskAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == Intent.ACTION_BOOT_COMPLETED) TaskStore.get(context).rescheduleAll() else TaskReminders.show(context, intent)
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
+            TaskStore.get(context).rescheduleAll()
+            com.khaled.widgetstudio.widget.LiveWidgetsService.sync(context)
+        } else TaskReminders.show(context, intent)
     }
 }

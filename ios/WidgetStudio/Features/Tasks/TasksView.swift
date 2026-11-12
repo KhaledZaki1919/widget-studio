@@ -25,7 +25,7 @@ final class TasksModel {
     func requestAccess() async {
         _ = await store.requestAccess()
         await reload()
-        WidgetCenter.shared.reloadAllTimelines()
+        AppReloads.all("tasks changed")
     }
 
     private func changing(_ change: () throws -> Void) async {
@@ -35,7 +35,7 @@ final class TasksModel {
             failed = true
         }
         await reload()
-        WidgetCenter.shared.reloadAllTimelines()
+        AppReloads.all("tasks changed")
     }
 
     func save(_ task: TaskItem) async {

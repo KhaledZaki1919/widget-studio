@@ -9945,6 +9945,57 @@
           }
         }
       }
+    },
+    "diag.section.reloads": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تحديثات الويدجت"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widget reloads"
+          }
+        }
+      }
+    },
+    "diag.reloads.none": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يُسجَّل أي تحديث بعد."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No reload recorded yet."
+          }
+        }
+      }
+    },
+    "diag.reloads.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "آخر جدول زمني بناه كل ويدجت وكل تحديث طلبه التطبيق، مع السبب. الأوقات تتحرك دون تحديث؛ أما البيانات الأخرى فتنتظر التحديث التالي (كل 15 دقيقة تقريبًا في أفضل الأحوال). للتجربة دون الحد اليومي فعّل الإعدادات ← المطوّر ← وضع مطوّر WidgetKit على هذا الآيفون. ودون App Group يبقى سجل الويدجت داخله."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The last timeline each widget built and every reload the app asked for, with the reason. Times move without reloads; other data waits for the next reload (about every 15 minutes at best). To test without the daily limit, turn on Settings → Developer → WidgetKit Developer Mode on this iPhone. Without an App Group the widget's own log stays in the widget."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

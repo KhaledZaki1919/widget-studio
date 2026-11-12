@@ -66,6 +66,8 @@ struct WidgetStudioApp: App {
                 .task { await live.refresh() }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active { Task { await live.refresh() } }
+                    // ADR-030: whatever changed in the app shows on the home screen the user returns to.
+                    if phase == .background { AppReloads.all("app went to the background") }
                 }
         }
     }

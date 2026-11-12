@@ -13,5 +13,7 @@
     <string name="widget_large">Large</string>
     <string name="widget_small_description">2×2 square: your small designs and templates</string>
     <string name="widget_medium_description">4×2 wide: your medium designs and templates</string>
+    <string name="widget_xlarge">Extra large</string>
+    <string name="widget_xlarge_description">4×6 extra large: tall designs</string>
     <string name="widget_large_description">4×4 large: your large designs and the control center</string>
 </resources>

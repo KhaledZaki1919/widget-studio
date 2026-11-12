@@ -23,6 +23,10 @@
     <uses-permission android:name="android.permission.WRITE_SETTINGS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- ADR-030: the optional "Live widgets" service and the battery-optimisation request. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
     <uses-feature android:name="android.hardware.sensor.compass" android:required="false" />
 
@@ -146,6 +150,28 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_large" />
         </receiver>
+
+        <receiver
+            android:name=".widget.ExtraLargeWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_xlarge">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_xlarge" />
+        </receiver>
+
+        <!-- ADR-030: keeps event-driven updates running without notification access (off by default). -->
+        <service
+            android:name=".widget.LiveWidgetsService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Redraws the user's home-screen widgets when battery, volume, connectivity or time change" />
+        </service>
 
         <!-- Now playing from any player: Android shows media sessions only to a notification listener. -->
         <service

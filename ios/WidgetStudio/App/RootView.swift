@@ -242,7 +242,7 @@ enum AppInfo {
         } catch {
             return error
         }
-        WidgetCenter.shared.reloadAllTimelines()
+        AppReloads.all("action from a widget link")
         return nil
     }
 }

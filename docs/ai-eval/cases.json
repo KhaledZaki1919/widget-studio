@@ -322,5 +322,60 @@
       "weather.kind",
       "forecast.1.symbol|weather.hi"
     ]
+  },
+  {
+    "file": "draw-p-week.png",
+    "mode": "recreate",
+    "size": "medium",
+    "note": "ADR-029: a week strip on a wide island card (calendarMonth rows week, card aspect about 3)",
+    "wiring": [
+      "calendar.count"
+    ]
+  },
+  {
+    "file": "draw-p-hourly.png",
+    "mode": "recreate",
+    "size": "medium",
+    "note": "ADR-029: six hours of rain icons and temperatures (forecastRow mode hourly), condition and city",
+    "wiring": [
+      "weather.temp",
+      "weather.cond|weather.kind",
+      "weather.city"
+    ]
+  },
+  {
+    "file": "draw-p-heart.png",
+    "mode": "recreate",
+    "size": "medium",
+    "note": "ADR-029: resting heart rate with a candle chart and y labels (chart, heart bindings)",
+    "wiring": [
+      "heart.resting|heart.rate",
+      "heart.today"
+    ]
+  },
+  {
+    "file": "draw-p-scallop.png",
+    "mode": "recreate",
+    "size": "small",
+    "note": "ADR-029: a scallop card, the date along the arc, thick rounded hands, a dot",
+    "wiring": [
+      "clock",
+      "date.EEE|date.d"
+    ]
+  },
+  {
+    "file": "draw-p-stock.png",
+    "mode": "recreate",
+    "size": "medium",
+    "note": "ADR-029: price, change and an area chart over a dashed baseline (ticker field, stock bindings, chart area)"
+  },
+  {
+    "file": "draw-p-pill.png",
+    "mode": "recreate",
+    "size": "large",
+    "note": "ADR-029: a tall pill with a sparkle (card capsule vertical, assistant.open)",
+    "wiring": [
+      "assistant.open"
+    ]
   }
 ]

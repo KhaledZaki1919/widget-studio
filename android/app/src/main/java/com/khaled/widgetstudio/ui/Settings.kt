@@ -119,6 +119,8 @@ fun SettingsScreen(onQibla: () -> Unit, onIntroduction: () -> Unit, onDiagnostic
             SectionCard { PermissionRows() }
             TextButton(onClick = { scope.launch { live.refresh(); Widgets.updateAll(context) } }) { Text(tr("Refresh data now", "حدّث البيانات الآن")) }
 
+            LiveWidgetsSection()
+
             SectionTitle(tr("Display", "العرض"))
             SectionCard {
                 Dropdown(tr("Clock", "الساعة"), listOf(ClockFormat.DEVICE to tr("Device", "حسب الجهاز"), ClockFormat.H12 to tr("12-hour", "12 ساعة"), ClockFormat.H24 to tr("24-hour", "24 ساعة")), clock) {
@@ -293,5 +295,82 @@ fun QiblaScreen(onClose: () -> Unit) {
             if (!available) Footnote(tr("This phone has no compass sensor.", "لا يحتوي هذا الهاتف على مستشعر بوصلة."))
             Footnote(tr("Keep the phone flat and away from metal and magnets.", "أبقِ الهاتف مستويًا وبعيدًا عن المعادن والمغناطيس."))
         }
+    }
+}
+
+/**
+ * ADR-030: how fast widgets update, and what keeps them fast. Android needs one running component to
+ * hear battery, volume, Wi-Fi and similar changes; phone makers also stop background apps, so the
+ * section opens the right page for each brand.
+ */
+@Composable
+private fun LiveWidgetsSection() {
+    val context = LocalContext.current
+    var live by remember { mutableStateOf(com.khaled.widgetstudio.widget.LiveWidgetsService.isEnabled(context)) }
+    val listener = remember { com.khaled.widgetstudio.data.MediaHub.isEnabled(context) }
+    val power = context.getSystemService(android.os.PowerManager::class.java)
+    val exempt = power?.isIgnoringBatteryOptimizations(context.packageName) == true
+    SectionTitle(tr("Live widgets", "ويدجتات حيّة"))
+    SectionCard {
+        Text(tr(
+            "Widgets redraw within a second when the battery, volume, Wi-Fi, Bluetooth, airplane mode, Do Not Disturb, music or time change, as long as something of the app keeps running: notification access (if you allowed it), or the Live widgets switch below. Without either they refresh every 15 minutes and when you open the app.",
+            "تتحدّث الويدجتات خلال ثانية عند تغيّر البطارية أو الصوت أو الواي فاي أو البلوتوث أو وضع الطيران أو عدم الإزعاج أو الموسيقى أو الوقت، طالما بقي جزء من التطبيق يعمل: الوصول إلى الإشعارات (إن سمحت به) أو مفتاح «ويدجتات حيّة» أدناه. وبدونهما تتحدّث كل 15 دقيقة وعند فتح التطبيق.",
+        ))
+        Text(if (listener) tr("Notification access is on: live updates run.", "الوصول إلى الإشعارات مفعّل: التحديث الحي يعمل.") else tr("Notification access is off.", "الوصول إلى الإشعارات غير مفعّل."), style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            androidx.compose.material3.Switch(checked = live, onCheckedChange = { live = it; com.khaled.widgetstudio.widget.LiveWidgetsService.setEnabled(context, it) })
+            Spacer(Modifier.padding(4.dp))
+            Text(tr("Live widgets (a quiet notification stays)", "ويدجتات حيّة (يبقى إشعار هادئ)"))
+        }
+        Text(tr(
+            "Battery optimisation can still stop the app. Allow it to run in the background, and on Xiaomi, Oppo, Vivo, Huawei and Samsung phones also turn on autostart or \"no restrictions\".",
+            "قد يوقف توفير البطارية التطبيق رغم ذلك. اسمح له بالعمل في الخلفية، وفي هواتف شاومي وأوبو وفيفو وهواوي وسامسونج فعّل أيضًا التشغيل التلقائي أو «بلا قيود».",
+        ), style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+        if (!exempt) TextButton(onClick = { BatteryPages.requestExemption(context) }) { Text(tr("Allow background use", "اسمح بالعمل في الخلفية")) }
+        BatteryPages.brandPage(context)?.let { (label, intent) ->
+            TextButton(onClick = { runCatching { context.startActivity(intent) } }) { Text(label) }
+        }
+        TextButton(onClick = { runCatching { context.startActivity(android.content.Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) } }) {
+            Text(tr("Usage access (screen time widgets)", "الوصول إلى الاستخدام (ويدجتات وقت الشاشة)"))
+        }
+    }
+}
+
+/** The phone maker's own background-start page, where there is one (ADR-030). */
+object BatteryPages {
+    fun requestExemption(context: android.content.Context) {
+        val request = android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, android.net.Uri.parse("package:" + context.packageName))
+        val fallback = android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+        for (intent in listOf(request, fallback)) {
+            if (runCatching { context.startActivity(intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess) return
+        }
+    }
+
+    private val pages = listOf(
+        "xiaomi" to ("com.miui.securitycenter" to "com.miui.permcenter.autostart.AutoStartManagementActivity"),
+        "redmi" to ("com.miui.securitycenter" to "com.miui.permcenter.autostart.AutoStartManagementActivity"),
+        "poco" to ("com.miui.securitycenter" to "com.miui.permcenter.autostart.AutoStartManagementActivity"),
+        "oppo" to ("com.coloros.safecenter" to "com.coloros.safecenter.permission.startup.StartupAppListActivity"),
+        "realme" to ("com.coloros.safecenter" to "com.coloros.safecenter.permission.startup.StartupAppListActivity"),
+        "oneplus" to ("com.oneplus.security" to "com.oneplus.security.chainlaunch.view.ChainLaunchAppListActivity"),
+        "vivo" to ("com.vivo.permissionmanager" to "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"),
+        "huawei" to ("com.huawei.systemmanager" to "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"),
+        "honor" to ("com.huawei.systemmanager" to "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"),
+        "samsung" to ("com.samsung.android.lool" to "com.samsung.android.sm.battery.ui.BatteryActivity"),
+        "asus" to ("com.asus.mobilemanager" to "com.asus.mobilemanager.autostart.AutoStartActivity"),
+    )
+
+    /** A label and an intent for this phone's autostart or battery page, if it has one that resolves. */
+    @Composable
+    fun brandPage(context: android.content.Context): Pair<String, android.content.Intent>? {
+        val brand = android.os.Build.MANUFACTURER.lowercase()
+        val (pkg, cls) = pages.firstOrNull { brand.contains(it.first) }?.second ?: return null
+        val intent = android.content.Intent().setClassName(pkg, cls).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (context.packageManager.resolveActivity(intent, 0) == null) {
+            // Not this model's page: the app's own settings page, where autostart usually sits too.
+            val details = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:" + context.packageName)).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            return tr("App settings (autostart, battery)", "إعدادات التطبيق (التشغيل التلقائي، البطارية)") to details
+        }
+        return tr("Autostart for " + android.os.Build.MANUFACTURER, "التشغيل التلقائي في " + android.os.Build.MANUFACTURER) to intent
     }
 }

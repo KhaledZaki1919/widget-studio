@@ -103,7 +103,7 @@ final class DesignsModel {
     private func changed() {
         reload()
         // My widget reads the store; it only sees it with an App Group (store mode, ADR-014).
-        WidgetCenter.shared.reloadAllTimelines()
+        AppReloads.all("designs changed")
     }
 }
 

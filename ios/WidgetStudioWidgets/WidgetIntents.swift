@@ -28,6 +28,7 @@ struct CounterIncrementIntent: AppIntent {
         counter.increment(list: settings.dhikrList, target: target, autoAdvance: settings.tasbeehAutoAdvance)
         try counter.save()
         WidgetLog.add("intent counter +1 -> \(counter.count(in: settings.dhikrList)) (dhikr \(counter.index + 1))")
+        WidgetReloads.afterAction(String(describing: Self.self))
         return .result()
     }
 }
@@ -42,6 +43,7 @@ struct CounterResetIntent: AppIntent {
         counter.reset(list: AppSettings.load().dhikrList)
         try counter.save()
         WidgetLog.add("intent counter reset")
+        WidgetReloads.afterAction(String(describing: Self.self))
         return .result()
     }
 }
@@ -56,6 +58,7 @@ struct CounterNextIntent: AppIntent {
         counter.next(list: AppSettings.load().dhikrList)
         try counter.save()
         WidgetLog.add("intent counter next -> dhikr \(counter.index + 1)")
+        WidgetReloads.afterAction(String(describing: Self.self))
         return .result()
     }
 }
@@ -69,6 +72,7 @@ struct StopwatchToggleIntent: AppIntent {
         stopwatch.toggle()
         try stopwatch.save()
         WidgetLog.add("intent stopwatch \(stopwatch.isRunning ? "started" : "stopped")")
+        WidgetReloads.afterAction(String(describing: Self.self))
         return .result()
     }
 }
@@ -92,6 +96,7 @@ struct TimerToggleIntent: AppIntent {
         timer.toggle(minutes: minutes > 0 ? minutes : nil)
         try timer.save()
         WidgetLog.add("intent timer toggle")
+        WidgetReloads.afterAction(String(describing: Self.self))
         return .result()
     }
 }
@@ -114,6 +119,7 @@ struct TimerAddIntent: AppIntent {
         timer.add(minutes: minutes)
         try timer.save()
         WidgetLog.add("intent timer add \(minutes)")
+        WidgetReloads.afterAction(String(describing: Self.self))
         return .result()
     }
 }
@@ -127,6 +133,7 @@ struct TimerResetIntent: AppIntent {
         timer.reset()
         try timer.save()
         WidgetLog.add("intent timer reset")
+        WidgetReloads.afterAction(String(describing: Self.self))
         return .result()
     }
 }
@@ -151,6 +158,7 @@ struct MediaControlIntent: AppIntent {
     func perform() async throws -> some IntentResult {
         let done = MediaControl.perform(command)
         WidgetLog.add("intent \(command) \(done ? "sent" : "not allowed")")
+        WidgetReloads.afterAction(String(describing: Self.self))
         return .result()
     }
 }
@@ -178,6 +186,7 @@ struct TaskToggleIntent: AppIntent {
         } catch {
             WidgetLog.add("intent task failed: \(error)")
         }
+        WidgetReloads.afterAction(String(describing: Self.self))
         return .result()
     }
 }
@@ -207,5 +216,14 @@ enum WidgetActionButtons {
             Color.clear.contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// ADR-030: after an action, every widget reloads at once (others may show the same counter, timer or task),
+/// and the reason goes to the reload log.
+enum WidgetReloads {
+    static func afterAction(_ name: String) {
+        ReloadLog.record(kind: "all", reason: "action " + name)
+        WidgetCenter.shared.reloadAllTimelines()
     }
 }
