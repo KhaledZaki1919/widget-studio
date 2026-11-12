@@ -80,7 +80,7 @@ struct SpecValidatorTests {
     @Test func schemaVersionIsKnown() throws {
         var spec = exampleSpec()
         spec["schemaVersion"] = 3
-        #expect(try specIssues(spec).contains { $0.path == "schemaVersion" })
+        #expect(try specIssues(spec).contains { $0.path == "specVersion" })
     }
 
     @Test func idMustBeLowercaseSlug() throws {

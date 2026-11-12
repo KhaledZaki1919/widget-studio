@@ -50,7 +50,7 @@ struct WidgetPushTokens: WidgetPushHandler {
     func pushTokenDidChange(_ pushInfo: WidgetPushInfo, widgets: [WidgetInfo]) {
         let token = pushInfo.token.map { String(format: "%02x", $0) }.joined()
         try? DataCache().write(token, "widgetPushToken")
-        ReloadLog.record(kind: "push", reason: "token (token.prefix(8))… for (widgets.count) widgets")
+        ReloadLog.record(kind: "push", reason: "token \(token.prefix(8))… for \(widgets.count) widgets")
     }
 }
 #endif

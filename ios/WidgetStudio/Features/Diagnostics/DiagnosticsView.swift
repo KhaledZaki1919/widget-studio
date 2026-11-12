@@ -293,7 +293,7 @@ private struct ReloadRow: View {
 
     private var detail: String {
         var parts: [String] = [entry.date.formatted(date: .omitted, time: .standard), entry.reason]
-        if let count = entry.entries { parts.append("(count) entries") }
+        if let count = entry.entries { parts.append("\(count) entries") }
         if let next = entry.next { parts.append("next " + next.formatted(date: .omitted, time: .shortened)) }
         return parts.joined(separator: " · ")
     }
@@ -303,6 +303,6 @@ private struct ReloadRow: View {
             Text(verbatim: entry.kind).font(.footnote.monospaced())
             Text(verbatim: detail).font(.caption).foregroundStyle(.secondary)
         }
-        .environment(.layoutDirection, .leftToRight)
+        .environment(\.layoutDirection, .leftToRight)
     }
 }
