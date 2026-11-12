@@ -52,6 +52,8 @@ data class GenerationOptions(
     val detectedCard: CardShape? = null,
     val wallpaperColor: String? = null,
     val cropped: Boolean = false,
+    /** ADR-029: every widget in the image, as {"widgets": [...]}. */
+    val allWidgets: Boolean = false,
 ) {
     val family: String? get() = size.takeIf { it != "auto" }
 
@@ -81,14 +83,18 @@ class WidgetPrompt(assets: AssetManager) {
         GenerationMode.PHOTO to assets.open("spec/ai/schema.photo.json").bufferedReader().readText(),
     )
     val example: String = assets.open("spec/ai/external_example.json").bufferedReader().readText()
+    /** ADR-029: the schema as a readable reference for "Use another AI" (exported from Swift). */
+    val schemaReference: String = runCatching { assets.open("spec/ai/schema_reference.md").bufferedReader().readText() }.getOrDefault("")
+    private val many: String = runCatching { assets.open("spec/ai/schema.many.json").bufferedReader().readText() }.getOrDefault("")
 
     fun schema(mode: GenerationMode) = schemas.getValue(mode)
 
-    /** JSON mode: the schema goes into the system prompt (AIRequest.withSchemaInstructions). */
+    /** ADR-029: structured output (Gemini's responseJsonSchema); the client falls back to the schema in the prompt. */
     fun request(options: GenerationOptions, image: PreparedImage) = AIRequest(
-        system = system + "\n\nReply with only one JSON object, no prose and no code fences. It must match this JSON Schema:\n" + schema(options.mode),
+        system = system,
         userText = userText(options, image.width, image.height),
         images = listOf(image.jpeg),
+        schema = if (options.allWidgets && many.isNotEmpty()) many else schema(options.mode),
     )
 
     companion object {
@@ -103,11 +109,13 @@ class WidgetPrompt(assets: AssetManager) {
         fun userText(options: GenerationOptions, imageWidth: Int, imageHeight: Int, today: LocalDate = LocalDate.now()): String {
             val lines = mutableListOf<String>()
             if (options.mode == GenerationMode.RECREATE) {
-                lines += "Task: the image shows a widget design or a screenshot of widgets. Recreate the main widget as closely as " +
-                    "possible with the layer types, fonts and bindings above: start with the inventory, then map every element. " +
-                    "Do not use image layers: draw everything with text, calendars, lists, shapes, icons and the other layers. " +
-                    "Replace sample values (times, dates, temperatures, step counts, song names, levels, states) with the matching live " +
-                    "bindings, and give every control its action: fill `wiring` first."
+                lines += "Task: the image shows a widget design or a screenshot of widgets. Recreate " +
+                    (if (options.allWidgets) "every widget in it, each in its own object inside \"widgets\"," else "the main widget") +
+                    " as closely as possible with the layer types, fonts and bindings above: start with the inventory, then map every " +
+                    "element. Draw with text, calendars, lists, charts, shapes, icons and the other layers; use image layers only for " +
+                    "album art, app logos and the user's own photo (see Pictures). Replace sample values (times, dates, temperatures, step " +
+                    "counts, song names, levels, states) with the matching live bindings, and give every control its action: fill " +
+                    "`wiring` first."
                 if (options.cropped) lines += "The image was cropped to the widget; a little wallpaper may still show at the edges. Ignore it."
                 options.detectedCard?.let { card ->
                     val name = when (card) {
@@ -191,15 +199,25 @@ object AIWidgetParser {
             if (ratio < MIN_CONTRAST) problems += "palette: fg on bg has contrast ${"%.1f".format(java.util.Locale.US, ratio)}:1; use at least 4.5:1"
             obj["theme"] = JsonPrimitive(if (luminance(bg) < 0.4) "dark" else "light")
         }
-        val card = CardShape.of(obj["card"]["shape"].str()) ?: options.detectedCard
-        if (options.mode == GenerationMode.RECREATE) applyCard(card, obj, colors, options.wallpaperColor)
+        // ADR-029: a v2 reply describes its card and places layers in the card's canvas; older replies keep v1.
+        val version = version(obj)
+        val rawShape = obj["card"]["shape"].str()
+        val card = CardShape.of(rawShape) ?: options.detectedCard
+        var cardSpec: JsonElement? = null
+        if (options.mode == GenerationMode.RECREATE) {
+            val family = com.khaled.widgetstudio.spec.Family.of(options.family ?: obj["family"].str() ?: "small")
+            val made = if (version >= 2) cardSpec(obj["card"], family, options.wallpaperColor, colors) else null
+            if (made != null) cardSpec = made else if (rawShape != "scallop") applyCard(card, obj, colors, options.wallpaperColor)
+        }
         val notes = decorativeNotes(obj["wiring"])
         val inventory = (obj["inventory"] as? JsonArray)?.mapNotNull { it.str() } ?: emptyList()
         val wiring = (obj["wiring"] as? JsonArray)?.mapNotNull { item -> item["element"].str()?.let { AutoWire.WiringEntry(it, item["shows"].str()) } } ?: emptyList()
         listOf("card", "palette", "category", "inventory", "wiring", "differences").forEach { obj.remove(it) }
         obj["layers"]?.let { obj["layers"] = withKnownColors(withKnownShapeKinds(withoutUnknownIcons(it))) }
         obj["fields"]?.let { obj["fields"] = withCleanFieldLabels(it) }
-        obj["schemaVersion"] = JsonPrimitive(1)
+        obj.remove("specVersion")
+        obj["schemaVersion"] = JsonPrimitive(if (version >= 2) WidgetSpec.CURRENT_VERSION else 1)
+        if (cardSpec != null) obj["card"] = cardSpec
         obj["id"] = JsonPrimitive(id)
         options.family?.let { obj["family"] = JsonPrimitive(it) }
         val cleaned = tokenize(removingNulls(JsonObject(obj)), colors) as JsonObject
@@ -211,7 +229,7 @@ object AIWidgetParser {
         }
         val issues = SpecValidator(ai = true, checksTextOverlaps = enforceLayout).validate(spec)
         if (issues.isNotEmpty()) {
-            problems += issues.take(20)
+            problems += issues.take(60)
             throw AIValidationError(problems.joinToString("; "))
         }
         problems += modeProblems(spec, options.mode)
@@ -230,6 +248,60 @@ object AIWidgetParser {
             autoWired = wired.changes
         }
         return Parsed(result.copy(refresh = refresh(result)), colors, layout, autoWired)
+    }
+
+    /** `specVersion` (or `schemaVersion`) of a reply; 1 without one (ADR-029). */
+    fun version(obj: Map<String, JsonElement>): Int = listOf("specVersion", "schemaVersion").firstNotNullOfOrNull { key ->
+        (obj[key] as? JsonPrimitive)?.let { it.content.toDoubleOrNull()?.toInt() }
+    } ?: 1
+
+    /** A v2 reply's card as a spec card, or null for the family's own rounded rectangle and for none (AIWidgetParser.cardSpec). */
+    private fun cardSpec(value: JsonElement?, family: com.khaled.widgetstudio.spec.Family, wallpaper: String?, colors: MutableMap<String, String>): JsonElement? {
+        val raw = value as? JsonObject ?: return null
+        val shape = raw["shape"].str() ?: "roundedRect"
+        if (shape == "none") return null
+        val aspect = (raw["aspect"] as? JsonPrimitive)?.content?.toDoubleOrNull()
+        val own = family.width / family.height
+        if (shape == "roundedRect" && (aspect == null || kotlin.math.abs(aspect - own) / own < 0.08)) return null
+        val card = linkedMapOf<String, JsonElement>("shape" to JsonPrimitive(shape), "outerColor" to JsonPrimitive("@outer"))
+        if (aspect != null && aspect.isFinite() && aspect in 0.15..7.0) card["aspect"] = JsonPrimitive(Math.round(aspect * 100) / 100.0)
+        for (key in listOf("cornerRadius", "orientation", "bumps")) raw[key]?.takeIf { it !is JsonNull }?.let { card[key] = it }
+        colors["outer"] = wallpaper?.takeIf { Drawing.parseHex(it) != null }?.uppercase() ?: "#000000"
+        return JsonObject(card)
+    }
+
+    /** The widget objects of a {"widgets": [...]} reply, each with the reply's specVersion; else the text itself. */
+    fun widgets(text: String): List<String> {
+        val root = extractJSON(text)?.let { runCatching { json.parseToJsonElement(it) }.getOrNull() } as? JsonObject ?: return listOf(text)
+        val items = root["widgets"] as? JsonArray ?: return listOf(text)
+        val version = root["specVersion"]
+        return items.mapNotNull { item ->
+            val widget = (item as? JsonObject)?.toMutableMap() ?: return@mapNotNull null
+            if (widget["specVersion"] == null && version != null) widget["specVersion"] = version
+            JsonObject(widget).toString()
+        }
+    }
+
+    private fun name(text: String): String {
+        val root = extractJSON(text)?.let { runCatching { json.parseToJsonElement(it) }.getOrNull() } as? JsonObject ?: return "?"
+        return root["name"]["en"].str() ?: root["name"].str() ?: "?"
+    }
+
+    /** Every widget of a reply; all widgets' problems at once, each named ("Widget 2 «Weather»: …"). */
+    fun parseAll(text: String, options: GenerationOptions, idPrefix: String, enforceLayout: Boolean = true): List<Parsed> {
+        val items = widgets(text)
+        if (items.size == 1 && items[0] == text) return listOf(parseWidget(text, options, idPrefix, enforceLayout))
+        val results = mutableListOf<Parsed>()
+        val problems = mutableListOf<String>()
+        items.forEachIndexed { index, item ->
+            try {
+                results += parseWidget(item, options, "$idPrefix.${index + 1}", enforceLayout)
+            } catch (error: AIValidationError) {
+                problems += "Widget ${index + 1} «${name(item)}»: ${error.message}"
+            }
+        }
+        if (problems.isNotEmpty()) throw AIValidationError(problems.joinToString("\n"))
+        return results
     }
 
     /** Words models write for "no color", which would otherwise fail the whole widget. */
@@ -465,7 +537,13 @@ class WidgetGenerator(private val prompt: WidgetPrompt, private val settings: Ge
         val request = prompt.request(options, image)
         return try {
             withTimeout(240_000) {
-                val first = gemini.complete(request, model)
+                // ADR-029: structured output first; a schema rejection or a timeout falls back to the schema in the prompt.
+                val first = try {
+                    gemini.complete(request, model)
+                } catch (error: AIError) {
+                    if (error !is AIError.BadRequest && error !is AIError.TimedOut && error !is AIError.Truncated) throw error
+                    gemini.complete(request.withSchemaInstructions(), model)
+                }
                 try {
                     val parsed = AIWidgetParser.parseWidget(first, options, id, enforceLayout = true)
                     GeneratedWidget(parsed.spec, parsed.colors, model, 1, parsed.layout)
@@ -514,14 +592,16 @@ object ExternalAI {
         var task = WidgetPrompt.userText(recreate, 0, 0, today)
         if (recreate.family == null) {
             task.split("\n\n").firstOrNull { it.startsWith("Size: the image is") }?.let { line ->
-                task = task.replace(line, "Size: pick \"family\" from the image's shape: \"small\" when it is about square, \"medium\" when it is wide, \"large\" when it is tall.")
+                task = task.replace(line, "Size: pick \"family\" and \"card.aspect\" from the card's shape in the image (see Card and canvas).")
             }
         }
+        // ADR-029: the readable schema reference (exported from Swift), not the JSON Schema on one line.
+        val reply = if (recreate.allWidgets) "Reply with only the JSON object {\"specVersion\": 2, \"widgets\": [ … ]}, one widget object per widget" else "Reply with only the JSON object"
         return listOf(
-            "You are designing a home-screen widget for the app Widget Studio. The user attached an image of the widget they want. Follow every rule below and answer with one JSON object that the app imports.",
+            "You are designing a home-screen widget for the app Widget Studio (iPhone and Android). The user attached an image of the widget they want. Follow every rule below and answer with JSON that the app imports.",
             prompt.system,
             "# Task\n\n$task",
-            "# Answer format\n\nReply with only the JSON object: no explanation before or after it, no code fences, no code of any kind. It must match this JSON Schema:\n\n" + prompt.schema(GenerationMode.RECREATE),
+            "# Answer format\n\n$reply: no explanation before or after it, no code fences, no code of any kind. The structure:\n\n" + prompt.schemaReference,
             "# Example of the shape (not of the design)\n\n" + prompt.example,
         ).joinToString("\n\n")
     }
@@ -541,13 +621,37 @@ object ExternalAI {
         }
     }
 
-    /** Every widget in a reply. */
-    fun importAll(text: String, size: String = "auto"): List<GeneratedWidget> = listOf(importWidget(text, size))
+    /** Every widget in a reply: one object or {"widgets": [...]}; all problems at once (ADR-029). */
+    fun importAll(text: String, size: String = "auto"): List<GeneratedWidget> {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) throw ImportError.Empty
+        if (trimmed.toByteArray().size > MAX_IMPORT_BYTES) throw ImportError.TooLarge
+        if (AIWidgetParser.extractJSON(trimmed) == null) throw ImportError.NoJSON
+        val id = "ai." + UUID.randomUUID().toString().take(8).lowercase()
+        return try {
+            AIWidgetParser.parseAll(trimmed, GenerationOptions(size = size), id, enforceLayout = false)
+                .map { GeneratedWidget(it.spec, it.colors, "external", 1, it.layout, it.autoWired) }
+        } catch (error: AIValidationError) {
+            if (error.message?.contains("no JSON object found") == true) throw ImportError.NoJSON
+            throw ImportError.Invalid(error.message ?: "")
+        }
+    }
+
+    /** ADR-029: sent with a render of the imported widget, so the other AI can compare it with the original image. */
+    fun previewRequest(names: List<String>, notes: List<String> = emptyList()): String {
+        var text = "The picture shows how Widget Studio draws your JSON" + (if (names.size > 1) " (${names.size} widgets: ${names.joinToString(", ")})" else "") +
+            ". Compare it with my original image, element by element: position, size (font size ≈ 1.4 × cap height), font, color, card shape and ratio, " +
+            "missing or extra elements, and live data. Fix every difference and reply with the whole corrected JSON only, in the same format."
+        if (notes.isNotEmpty()) text += "\n\nThe app also noted:\n" + notes.joinToString("\n") { "- $it" }
+        return text
+    }
 
     fun fixRequest(error: ImportError): String = when (error) {
         ImportError.Unreadable -> "The file could not be read. Reply again with the whole JSON object as text."
         ImportError.Empty, ImportError.NoJSON -> "Reply again with only the widget JSON object, exactly as the schema in my first message describes: no explanation, no code fences."
         ImportError.TooLarge -> "That reply is too long. Simplify the design (fewer layers) and reply with only the JSON object."
-        is ImportError.Invalid -> "Widget Studio could not import your JSON. These problems were found:\n\n${error.problems}\n\nFix only these problems, keep everything else, and reply with the whole corrected JSON object only."
+        // ADR-029: every problem at once, one per line, with its widget and path.
+        is ImportError.Invalid -> "Widget Studio could not import your JSON. Fix every problem below (each names its widget or its path), keep everything else, and reply with the whole corrected JSON only:\n\n" +
+            error.problems.split("\n").flatMap { it.split("; ") }.filter { it.isNotBlank() }.joinToString("\n") { "- " + it.trim() }
     }
 }

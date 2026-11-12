@@ -258,6 +258,11 @@ private struct Check {
 
     mutating func color(_ path: String, _ value: String?) {
         guard let value else { return }
+        // ADR-029: a color binding (a calendar's color).
+        if let raw = Bindings.soleBinding(value), Capabilities.binding(raw.trimmingCharacters(in: .whitespaces))?.type == "color" {
+            binding(path: path, raw, expecting: nil)
+            return
+        }
         if HexColor.parse(value) == nil && !SpecTokens.isToken(value) {
             fail(path, "color must be #RRGGBB, #RRGGBBAA or a token (@\(SpecTokens.names.joined(separator: ", @")))")
         }

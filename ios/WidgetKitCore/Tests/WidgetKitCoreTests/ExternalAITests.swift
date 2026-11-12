@@ -38,7 +38,7 @@ struct ExternalAITests {
             Issue.record("imported a reply without a palette")
         } catch ExternalAI.ImportError.invalid(let problems) {
             #expect(problems.contains("palette"))
-            #expect(ExternalAI.fixRequest(for: .invalid(problems)).contains(problems))
+            #expect(ExternalAI.fixRequest(for: .invalid(problems)).contains("- palette"))
         }
         // Code is never accepted: a script is not a widget.
         #expect(throws: ExternalAI.ImportError.self) { try ExternalAI.importWidget("function widget() { return 1 }") }

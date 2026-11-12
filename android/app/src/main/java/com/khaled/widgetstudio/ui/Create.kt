@@ -231,7 +231,7 @@ fun CreateScreen(onClose: () -> Unit, onResult: (SavedDesign, Bitmap?, LayoutRep
                     SectionTitle(tr("What is it?", "ما هذه الصورة؟"))
                     Segmented(listOf(GenerationMode.RECREATE to tr("Recreate a widget", "أعِد تصميم ويدجت"), GenerationMode.PHOTO to tr("Build around my photo", "صمّم حول صورتي")), options.mode, { options = options.copy(mode = it) })
                     SectionTitle(tr("Size", "الحجم"))
-                    Segmented(listOf("auto" to tr("Auto", "تلقائي"), "small" to tr("Small", "صغير"), "medium" to tr("Medium", "متوسط"), "large" to tr("Large", "كبير")), options.size, { options = options.copy(size = it) })
+                    Segmented(listOf("auto" to tr("Auto", "تلقائي"), "small" to tr("Small", "صغير"), "medium" to tr("Medium", "متوسط"), "large" to tr("Large", "كبير"), "xlarge" to tr("XL", "كبير جدًا")), options.size, { options = options.copy(size = it) })
                     SectionTitle(tr("Wishes (optional)", "طلبات إضافية (اختياري)"))
                     OutlinedTextField(options.instructions, { options = options.copy(instructions = it.take(GenerationOptions.MAX_INSTRUCTIONS)) }, modifier = Modifier.fillMaxWidth(), minLines = 2,
                         placeholder = { Text(tr("e.g. use a red accent, show the date in Arabic", "مثلًا: استخدم لونًا أحمر، واعرض التاريخ بالعربية")) })
@@ -396,6 +396,8 @@ private fun ExternalAIView(
     var pasted by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<ExternalAI.ImportError?>(null) }
     var fixCopied by remember { mutableStateOf(false) }
+    /** ADR-029: every widget in the image, as {"widgets": [...]}. */
+    var allWidgets by remember { mutableStateOf(false) }
     fun importText(text: String) {
         fixCopied = false
         // A JSON array or several objects in one paste (ADR-027).
@@ -429,10 +431,15 @@ private fun ExternalAIView(
     SectionTitle(tr("1. Copy the instructions", "١. انسخ التعليمات"))
     SectionCard {
         Button(onClick = {
-            val text = ExternalAI.instructions(prompt, GenerationOptions(size = size, detectedCard = cardShape, cropped = crop != null))
+            val text = ExternalAI.instructions(prompt, GenerationOptions(size = size, detectedCard = cardShape, cropped = crop != null, allWidgets = allWidgets))
             context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText("Widget Studio", text))
             copied = true
         }) { Text(if (copied) tr("Copied. Now paste them with your image", "نُسخت. الصقها الآن مع صورتك") else tr("Copy instructions", "انسخ التعليمات")) }
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            androidx.compose.material3.Switch(checked = allWidgets, onCheckedChange = { allWidgets = it; copied = false })
+            Spacer(Modifier.padding(4.dp))
+            Text(tr("All widgets in the image", "كل الويدجتات في الصورة"))
+        }
         Footnote(tr("Paste them into ChatGPT, Claude or Gemini on the web and attach your image in the same message.", "الصقها في ChatGPT أو Claude أو Gemini على الويب، وأرفق صورتك في الرسالة نفسها."))
     }
     SectionTitle(tr("2. Import the answer", "٢. استورد الرد"))

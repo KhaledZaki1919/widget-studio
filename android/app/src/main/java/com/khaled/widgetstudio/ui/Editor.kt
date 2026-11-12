@@ -197,6 +197,8 @@ fun EditorScreen(state: EditorState, onClose: () -> Unit, onSaved: () -> Unit, l
             Spacer(Modifier.height(10.dp))
             EditorPreview(state, language) { path -> screen = EditorScreen.Layer(path) }
             Footnote(tr("Real-size preview with your real data. Tap a part to edit it.", "معاينة بالحجم الحقيقي ببياناتك. اضغط أي جزء لتعديله."))
+            // ADR-029: the render and a fix request for the AI that wrote the JSON.
+            TextButton(onClick = { sharePreview(context, state) }) { Text(tr("Copy preview + fix request", "نسخ المعاينة وطلب التصحيح")) }
             when (val s = screen) {
                 is EditorScreen.Main -> {
                     InteractiveCard(state) { screen = EditorScreen.Layer(it) }
@@ -439,4 +441,25 @@ private fun DateField(title: String, value: String, hasTime: Boolean, onChange: 
             TextButton(onClick = { write(parsed.toLocalDate(), LocalTime.of(picker.hour, picker.minute)); pickTime = false }) { Text(tr("Done", "تم")) }
         })
     }
+}
+
+/** "Copy preview + fix request" (ADR-029): the design drawn with sample data, shared as a PNG with the request text (also copied). */
+private fun sharePreview(context: android.content.Context, state: EditorState) {
+    val design = state.design
+    val spec = design.spec
+    val now = java.time.Instant.now()
+    val zone = java.time.ZoneId.systemDefault()
+    val renderContext = com.khaled.widgetstudio.spec.RenderContext(now = now, language = "en", zone = zone,
+        data = com.khaled.widgetstudio.spec.DataSnapshot.sample(now, zone), tokenOverrides = design.colors)
+    val bitmap = com.khaled.widgetstudio.widget.WidgetEnvironment.renderer(context).render(spec, renderContext, (spec.family.width * 3).toInt(), (spec.family.height * 3).toInt()).bitmap
+    val notes = com.khaled.widgetstudio.design.DesignRules.check(spec).findings.map { it.message.resolved("en") } + state.issues
+    val text = com.khaled.widgetstudio.ai.ExternalAI.previewRequest(listOf(design.name), notes)
+    context.getSystemService(android.content.ClipboardManager::class.java)?.setPrimaryClip(android.content.ClipData.newPlainText("Widget Studio", text))
+    val folder = java.io.File(context.cacheDir, "shared").apply { mkdirs() }
+    val file = java.io.File(folder, "widget-preview.png")
+    file.outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+    val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.files", file)
+    val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("image/png").putExtra(android.content.Intent.EXTRA_STREAM, uri)
+        .putExtra(android.content.Intent.EXTRA_TEXT, text).addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    context.startActivity(android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
 }

@@ -216,6 +216,8 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
 
     private fun color(path: String, value: String?) {
         if (value == null) return
+        // ADR-029: a color binding (a calendar's color).
+        Bindings.soleBinding(value)?.let { raw -> if (Capabilities.binding(raw.trim())?.type == "color") return binding(path, raw, null) }
         val token = value.startsWith("@") && SpecTokens.names.contains(value.drop(1))
         if (Drawing.parseHex(value) == null && !token) fail(path, "color must be #RRGGBB, #RRGGBBAA or a token (@${SpecTokens.names.joinToString(", @")})")
     }

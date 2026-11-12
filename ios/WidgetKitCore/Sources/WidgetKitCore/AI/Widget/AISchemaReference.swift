@@ -20,8 +20,21 @@ public enum AISchemaReference {
             lines.append("")
             lines.append("Layer, one of (every top-level layer also has frame {x, y, w, h}, opacity?, mirror?, when?, rotation?):")
             for shape in shapes { lines.append("- " + layerLine(shape)) }
+            // Stack children, once (they have no frame, an optional width and height).
+            if let stack = shapes.first(where: { layerType($0) == "stack" }), case .object(let object) = stack,
+               case .object(let properties)? = object["properties"], case .object(let children)? = properties["children"],
+               case .object(let items)? = children["items"], case .array(let kinds)? = items["anyOf"] {
+                lines.append("")
+                lines.append("Child, one of (inside a stack: no frame; width?, height?, when?, rotation?):")
+                for kind in kinds { lines.append("- " + layerLine(kind, skip: ["type", "width", "height", "when", "rotation"])) }
+            }
         }
         return lines.joined(separator: "\n")
+    }
+
+    static func layerType(_ shape: JSONValue) -> String? {
+        guard case .object(let object) = shape, case .object(let properties)? = object["properties"] else { return nil }
+        return properties["type"].flatMap(enumValues)?.first
     }
 
     /// Keys in a reading order: what the model writes first comes first.
@@ -30,13 +43,13 @@ public enum AISchemaReference {
         return first.filter(keys.contains) + keys.filter { !first.contains($0) }.sorted()
     }
 
-    static func layerLine(_ shape: JSONValue) -> String {
+    static func layerLine(_ shape: JSONValue, skip: Set<String> = ["type", "frame", "opacity", "mirror", "when", "rotation"]) -> String {
         guard case .object(let object) = shape, case .object(let properties)? = object["properties"] else { return render(shape, depth: 0) }
-        let type = properties["type"].flatMap(enumValues)?.first ?? "?"
-        let skipped: Set<String> = ["type", "frame", "opacity", "mirror", "when", "rotation"]
-        let fields = order(properties.keys).filter { !skipped.contains($0) }.compactMap { key -> String? in
+        let type = layerType(shape) ?? "?"
+        let fields = order(properties.keys).filter { !skip.contains($0) }.compactMap { key -> String? in
             guard let value = properties[key] else { return nil }
-            return "\(key)\(isNullable(value) ? "?" : ""): \(render(value, depth: 2))"
+            if key == "children" { return "children: Child[] (1–\(SpecValidator.maxChildren))" }
+            return "\(key)\(isNullable(value) ? "?" : ""): \(render(value, depth: 1))"
         }
         return "\(type) { \(fields.joined(separator: ", ")) }"
     }
@@ -75,7 +88,7 @@ public enum AISchemaReference {
         switch types.first {
         case "object":
             guard case .object(let properties)? = object["properties"] else { return "{}" }
-            if depth > 3 { return "{…}" }
+            if depth > 5 { return "{…}" }
             let fields = order(properties.keys).compactMap { key -> String? in
                 guard let item = properties[key] else { return nil }
                 return "\(key)\(isNullable(item) ? "?" : ""): \(render(item, depth: depth + 1))"

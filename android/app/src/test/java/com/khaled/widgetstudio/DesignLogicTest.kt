@@ -140,13 +140,38 @@ class DesignLogicTest {
         val prompt = WidgetPrompt(app.assets)
         assertTrue(prompt.system.length > 2000)
         val request = prompt.request(GenerationOptions(size = "small"), com.khaled.widgetstudio.ai.PreparedImage(ByteArray(4), 10, 10))
-        assertTrue(request.system.contains("JSON Schema"))
+        // ADR-029: the schema goes as structured output; the fallback puts it in the prompt.
+        assertFalse(request.system.contains("JSON Schema"))
+        assertTrue(request.schema?.contains("\"specVersion\"") == true)
+        assertTrue(request.withSchemaInstructions().system.contains("JSON Schema"))
+        assertTrue(ExternalAI.instructions(prompt, GenerationOptions()).contains("Child, one of") || ExternalAI.instructions(prompt, GenerationOptions()).contains("Layer, one of"))
         assertTrue(request.userText.contains("\"family\" must be \"small\""))
         val text = WidgetPrompt.userText(GenerationOptions(detectedCard = CardShape.CIRCLE, cropped = true, instructions = "<b>red</b>"), 300, 300, LocalDate.of(2026, 11, 3))
         assertTrue(text.contains("a circle"))
         assertTrue(text.contains("‹b›red‹/b›"))
         assertTrue(ExternalAI.instructions(prompt, GenerationOptions()).contains("Widget Studio"))
         assertFalse(WidgetPrompt.userText(GenerationOptions(mode = GenerationMode.PHOTO), 10, 10).contains("Do not use image layers"))
+    }
+
+    /** ADR-029: {"widgets": [...]} imports every widget; a v2 card keeps its shape and ratio; errors name their widget. */
+    @Test
+    fun multiWidgetRepliesAndV2Cards() {
+        val example = WidgetPrompt(app.assets).example
+        val two = ExternalAI.importAll("{\"specVersion\":2,\"widgets\":[$example,$example]}")
+        assertEquals(2, two.size)
+        val pill = example.replace("\"card\":{\"shape\":\"roundedRect\",\"aspect\":1,\"cornerRadius\":28}", "\"card\":{\"shape\":\"capsule\",\"aspect\":0.66,\"orientation\":\"vertical\"}")
+        val spec = ExternalAI.importAll(pill).single().spec
+        assertEquals("capsule", spec.card?.shape)
+        assertEquals(170.0, spec.canvasHeight, 0.01)
+        assertTrue(spec.canvasWidth < 115)
+        val broken = example.replace("\"name\":{\"en\":\"Clock\"", "\"name\":{\"en\":\"Broken\"").replace("\"size\":14", "\"size\":3")
+        try {
+            ExternalAI.importAll("{\"specVersion\":2,\"widgets\":[$example,$broken]}")
+            org.junit.Assert.fail("imported a broken widget")
+        } catch (error: ExternalAI.ImportError.Invalid) {
+            assertTrue(error.problems, error.problems.contains("Widget 2 «Broken»"))
+            assertTrue(ExternalAI.fixRequest(error).contains("- Widget 2"))
+        }
     }
 
     @Test

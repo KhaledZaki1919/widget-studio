@@ -73,8 +73,9 @@ struct CapabilityDriftTests {
     @Test func aiSchemaListsEveryAction() throws {
         let text = AIWidgetSchema.schema(mode: .recreate).jsonString()
         for action in aiActions { #expect(text.contains("\"\(action)\""), "schema misses \(action)") }
+        // ADR-029: any SF Symbol name is allowed (a pattern), so symbol bindings are listed in the prompt instead.
         for binding in Capabilities.bindings where binding.type == "symbol" && binding.ai {
-            #expect(text.contains("{{\(binding.id)}}"), "schema misses {{\(binding.id)}}")
+            #expect(WidgetPrompt.system.contains("{{\(binding.id)}}"), "prompt misses {{\(binding.id)}}")
         }
     }
 

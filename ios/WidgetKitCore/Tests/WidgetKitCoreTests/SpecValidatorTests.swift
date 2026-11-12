@@ -195,7 +195,7 @@ struct SpecValidatorTests {
     }
 
     @Test func dotGridAndBarsLimits() throws {
-        let grid = layer("dotGrid", ["rows": 50, "cols": 10, "dotSize": 3, "gap": 1, "onColor": "#FFFFFF",
+        let grid = layer("dotGrid", ["rows": 70, "cols": 10, "dotSize": 3, "gap": 1, "onColor": "#FFFFFF",
                                      "offColor": "#333333", "values": "{{steps.monthGrid}}"])
         #expect(try issues(layers: [grid]).contains { $0.path == "layers[0].rows" })
         let bars = layer("dotBars", ["bars": 7, "maxDots": 8, "values": "0.2,0.5,2", "color": "#FFFFFF"])

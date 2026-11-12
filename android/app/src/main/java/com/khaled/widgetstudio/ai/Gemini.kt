@@ -110,7 +110,17 @@ class GeminiSettings(context: Context) {
 }
 
 /** One request: the system prompt, the user text, JPEG images and the reply size limit. */
-data class AIRequest(val system: String, val userText: String, val images: List<ByteArray>, val maxOutputTokens: Int = 16_000, val timeoutMs: Int = 110_000)
+data class AIRequest(
+    val system: String, val userText: String, val images: List<ByteArray>, val maxOutputTokens: Int = 16_000, val timeoutMs: Int = 110_000,
+    /** ADR-029: the JSON Schema for Gemini's responseJsonSchema; null = JSON mode with the schema in the prompt. */
+    val schema: String? = null,
+) {
+    /** The fallback: the schema moves into the prompt and the request goes in plain JSON mode. */
+    fun withSchemaInstructions(): AIRequest = if (schema == null) this else copy(
+        system = system + "\n\nReply with only one JSON object, no prose and no code fences. It must match this JSON Schema:\n" + schema,
+        schema = null,
+    )
+}
 
 /**
  * Gemini generateContent with plain HttpURLConnection (no SDK), in JSON mode with the schema in the
@@ -124,6 +134,8 @@ class GeminiClient(private val key: String) {
         val id = model.lowercase()
         val legacy = listOf("gemini-1.", "gemini-2.0").any { id.contains(it) }
         val config = JSONObject().put("responseMimeType", "application/json").put("maxOutputTokens", if (legacy) minOf(request.maxOutputTokens, 8192) else request.maxOutputTokens + 24_576)
+        // ADR-029: structured output with the full JSON Schema (responseJsonSchema).
+        request.schema?.let { schema -> runCatching { config.put("responseJsonSchema", JSONObject(schema)) } }
         when {
             legacy || listOf("flash-lite", "gemma", "image", "tts").any { id.contains(it) } -> Unit
             id.contains("gemini-2.5") -> config.put("thinkingConfig", JSONObject().put("thinkingBudget", 1024))

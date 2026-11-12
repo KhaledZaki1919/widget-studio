@@ -137,9 +137,27 @@ struct WidgetDetectorTests {
 
 /// ADR-024: the model reports the card shape; circle and capsule cards are drawn inside the widget.
 struct CardShapeTests {
+    /// A v1 reply (no specVersion): circles and pills are drawn inside the family canvas.
+    static var v1Example: String {
+        ExternalAI.example.replacingOccurrences(of: "\"specVersion\":2,", with: "")
+            .replacingOccurrences(of: "\"card\":{\"shape\":\"roundedRect\",\"aspect\":1,\"cornerRadius\":28},", with: "")
+    }
+
+    /// ADR-029: a v2 reply's card becomes the spec's card, and layers live in its canvas.
+    @Test func v2CardsKeepTheirShapeAndRatio() throws {
+        let reply = ExternalAI.example.replacingOccurrences(of: "\"card\":{\"shape\":\"roundedRect\",\"aspect\":1,\"cornerRadius\":28}",
+                                                            with: "\"card\":{\"shape\":\"capsule\",\"aspect\":0.66,\"orientation\":\"vertical\"}")
+        let parsed = try AIWidgetParser.parse(reply, options: GenerationOptions(wallpaperColor: "#123456"), id: "gen.card")
+        #expect(parsed.spec.card?.shape == .capsule && parsed.spec.card?.aspect == 0.66)
+        #expect(abs(parsed.spec.canvas.width - 112.2) < 0.6 && parsed.spec.canvas.height == 170)
+        #expect(parsed.colors["outer"] == "#123456")
+        let square = try AIWidgetParser.parse(ExternalAI.example, options: GenerationOptions(), id: "gen.card")
+        #expect(square.spec.card == nil && square.spec.schemaVersion == 2)
+    }
+
     func reply(card: String?) -> String {
-        guard let card else { return ExternalAI.example }
-        return ExternalAI.example.replacingOccurrences(of: "\"fields\":[]", with: "\"card\":{\"shape\":\"\(card)\"},\"fields\":[]")
+        guard let card else { return Self.v1Example }
+        return Self.v1Example.replacingOccurrences(of: "\"fields\":[]", with: "\"card\":{\"shape\":\"\(card)\"},\"fields\":[]")
     }
 
     @Test func circleAndCapsuleCardsUseTheOuterColor() throws {
