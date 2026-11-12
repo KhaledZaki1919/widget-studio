@@ -66,7 +66,7 @@ public enum TemplateLibrary {
         switch size {
         case .small: "mono.clock.digital"
         case .medium: "mono.weather.forecast"
-        case .large: "mono.prayer.day"
+        case .large, .xlarge: "mono.prayer.day"
         }
     }
 

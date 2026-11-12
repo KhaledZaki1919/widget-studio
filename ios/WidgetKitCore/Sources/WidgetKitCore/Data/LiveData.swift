@@ -24,6 +24,7 @@ public enum DataRequirements {
             switch layer.content {
             case .text(let text):
                 strings += text.value.allValues + [text.live?.target].compactMap { $0 }
+                strings += (text.spans ?? []).flatMap(\.text.allValues)
             case .icon(let icon): strings.append(icon.symbol)
             case .dotGrid(let grid): strings.append(grid.values)
             case .dotBars(let bars): strings += [bars.values] + (bars.labels?.allValues ?? [])
@@ -32,11 +33,16 @@ public enum DataRequirements {
             case .analogClock(let clock): strings += [clock.timezone].compactMap { $0 }
             case .button(let button): strings += [button.arg].compactMap { $0 }
             case .list(let list):
-                strings += list.items.flatMap { $0.title.allValues + ($0.detail?.allValues ?? []) + [$0.done].compactMap { $0 } }
+                strings += list.items.flatMap { item in
+                    item.title.allValues + (item.detail?.allValues ?? []) + [item.done].compactMap { $0 }
+                        + (item.subtitle?.allValues ?? []) + (item.detail2?.allValues ?? [])
+                }
             case .progressBar(let bar): strings.append(bar.progress)
             case .image(let image): strings.append(image.source)
             case .states(let states): strings += states.expanded.compactMap(\.when) + [states.value].compactMap { $0 }
-            case .shape, .calendarMonth, .stack, .spacer, .unknown: break
+            case .chart(let chart): strings.append(chart.values)
+            case .shape(let shape): strings += [shape.progress].compactMap { $0 }
+            case .calendarMonth, .stack, .spacer, .unknown: break
             }
         }
         return strings.flatMap(Bindings.names(in:))

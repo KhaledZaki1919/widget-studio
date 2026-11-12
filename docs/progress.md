@@ -1,3 +1,28 @@
+# Progress: image fidelity + fast updates run (ADR-029, ADR-030)
+
+Handoff note for the one-go run (PDF docs/feedback/image-to-widget-issues.pdf + fast widget updates). One IPA and one signed APK at the very end.
+
+## Private eval (never committed)
+- private-eval/ and private-eval-out/ are git-ignored (.gitignore). cases.json in private-eval-out lists 23 crops.
+- Local Android toolchain: C:Userskhalewidget-tools (JDK 17, Gradle 8.14.3, SDK 36); run with private-eval-out/gradle.sh.
+- Harness: android/app/src/test/.../PrivateEvalTest.kt (does nothing unless PRIVATE_EVAL is set). PRIVATE_EVAL_PHASE=before|after.
+- before.mjs / after.mjs write the replies; instructions-before.txt is the copied text used.
+
+## Plan (PDF order) and status
+1. [ ] Prompt/schema: maxItems 12 + every limit in schema, image-layer line, valid example, structured output (Gemini responseJsonSchema, OpenAI json_schema), compact schema reference in copied text, 1.4 x cap height + minScale, chart counts as one / limit 100, plain string values, specVersion 2. Undocumented items documented.
+2. [ ] Preview loop: render JSON to PNG for the in-app review; "Copy preview + fix request"; all errors at once with path and widget name.
+3. [ ] {"widgets":[...]} replies, import of .json/.zip with many.
+4. [ ] card {shape (+scallop), aspect, inset, cornerRadius, orientation}; canvas = card.
+5. [ ] chart layer.
+6. [ ] forecastRow hourly + hourly/rain/uv/aqi bindings.
+7. [ ] Health bindings (heart, stress, energy, activity, sleep stages, hourly steps).
+8. [ ] Shapes (line, triangle, polygon, sector, star, scallop), radial stack, arc text, spans, gradient fill, dotGrid levels/mask/sizeByLevel, clock options, progress knob.
+9. [ ] Calendar rows week/2weeks, end time, calendar name/color, list subtitle/detail2, week.dN bindings.
+10. [ ] Any SF Symbol + Android fallback, icon style, new actions.
+11. [ ] media.appIcon, app.<field>.icon, user_image back.
+12. [ ] stock/crypto, earbuds, screen time (catalog support or unsupported).
+B. [ ] Fast updates iOS (xlarge, Text styles, reload after intents/background, long timelines, reload log, push behind WS_DEVELOPER, Diagnostics) and Android (event service, throttle, battery-optimisation screen, XL receiver, delays).
+
 # Progress: rules, states, tasks, delete run (ADR-028)
 
 Handoff note for the run the owner asked for in one go. One IPA and one signed APK at the very end. Decisions are in ADR-028.

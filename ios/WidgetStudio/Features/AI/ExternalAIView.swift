@@ -39,6 +39,7 @@ struct ExternalAIView: View {
                     Text("detail.size.small").tag(SizeChoice.small)
                     Text("detail.size.medium").tag(SizeChoice.medium)
                     Text("detail.size.large").tag(SizeChoice.large)
+                    Text("detail.size.xlarge").tag(SizeChoice.xlarge)
                 }
                 .pickerStyle(.segmented)
                 Button {

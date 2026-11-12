@@ -34,7 +34,63 @@ internal class TextDrawer(private val d: Drawing) {
                 return frozen(Duration.between(minOf(context.now, target), maxOf(context.now, target)))
             }
         }
-        return BidiText.isolatingNumbers(d.resolver.render(text.value.resolved(context.language)))
+        return BidiText.isolatingNumbers(cased(d.resolver.render(text.value.resolved(context.language)), text.case))
+    }
+
+    private fun cased(value: String, case: String?): String = when (case) {
+        "upper" -> value.uppercase(d.context.locale)
+        "lower" -> value.lowercase(d.context.locale)
+        else -> value
+    }
+
+    /** ADR-029: the runs of a text, each with its own font, color, raised baseline, case and tracking. */
+    fun spans(text: LayerContent.Text, scale: Float): CharSequence {
+        val builder = SpannableStringBuilder()
+        for (span in text.spans ?: emptyList()) {
+            val value = BidiText.isolatingNumbers(cased(d.resolver.render(span.text.resolved(d.context.language)), span.case ?: text.case))
+            if (value.isEmpty()) continue
+            val start = builder.length
+            builder.append(value)
+            val end = builder.length
+            val font = span.font ?: text.font
+            val arabic = Fonts.containsArabic(value)
+            builder.setSpan(TypefaceSpanCompat(d.renderer.fonts.typeface(font, value)), start, end, 0)
+            builder.setSpan(AbsoluteSizeSpan(((font.size + if (arabic && font.family != "arabic") 1 else 0) * scale).toInt()), start, end, 0)
+            builder.setSpan(android.text.style.ForegroundColorSpan(d.color(span.color ?: text.color)), start, end, 0)
+            span.baselineOffset?.let { builder.setSpan(BaselineSpan((it * scale).toFloat()), start, end, 0) }
+            val tracking = span.tracking ?: text.tracking
+            if (!arabic && tracking != null) builder.setSpan(TrackingSpan((tracking * scale).toFloat()), start, end, 0)
+        }
+        return builder
+    }
+
+    /** Text along a circle (ArcTextView.swift): each character placed and turned on the arc, centered on `start`. */
+    fun drawArc(canvas: Canvas, text: LayerContent.Text, value: String, rect: RectF, scale: Float) {
+        val path = text.path ?: return
+        val size = (text.font.size * scale).toFloat()
+        val radius = path.arc?.let { (it * scale).toFloat() } ?: maxOf(minOf(rect.width(), rect.height()) / 2 - size * 0.7f, size)
+        val inside = path.inside == true
+        val paint = paint(text.font, value, scale, null).apply { color = d.color(text.color); textAlign = android.graphics.Paint.Align.CENTER }
+        val advances = value.map { paint.measureText(it.toString()) + ((text.tracking ?: 0.0) * scale).toFloat() }
+        val total = advances.sum()
+        val degreesPerUnit = 180.0 / (Math.PI * maxOf(radius, 1f))
+        val sign = if (inside) -1 else 1
+        val start = (path.start ?: 0.0) - total * degreesPerUnit / 2 * sign
+        val cx = rect.centerX()
+        val cy = rect.centerY()
+        var before = 0f
+        value.forEachIndexed { index, character ->
+            val angle = start + (before + advances[index] / 2) * degreesPerUnit * sign
+            before += advances[index]
+            val radians = Math.toRadians(angle)
+            val x = cx + (Math.sin(radians) * radius).toFloat()
+            val y = cy - (Math.cos(radians) * radius).toFloat()
+            canvas.save()
+            canvas.rotate((if (inside) angle + 180 else angle).toFloat(), x, y)
+            val metrics = paint.fontMetrics
+            canvas.drawText(character.toString(), x, y - (metrics.ascent + metrics.descent) / 2, paint)
+            canvas.restore()
+        }
     }
 
     /** "12m", "2h 5m", "3d 4h": two units at most, like DateComponentsFormatter (abbreviated). */
@@ -76,13 +132,34 @@ internal class TextDrawer(private val d: Drawing) {
 
     fun draw(canvas: Canvas, text: LayerContent.Text, rect: RectF, scale: Float, mirrored: Boolean, stackAlign: String?, fillWidth: Boolean) {
         val value = value(text)
+        if (text.path != null && text.liveKind == null) return drawArc(canvas, text, value, rect, scale)
         var align = text.align ?: stackAlign ?: "leading"
         if (mirrored) align = when (align) {
             "leading" -> "trailing"
             "trailing" -> "leading"
             else -> align
         }
-        drawFitted(canvas, value, text.font, d.color(text.color), align, text.maxLines, text.tracking, rect, scale)
+        val minimum = (text.minScale ?: 0.5).coerceIn(0.3, 1.0).toFloat()
+        if (!text.spans.isNullOrEmpty() && text.liveKind == null) {
+            // Runs: laid out as one paragraph, shrunk together until they fit.
+            var factor = 1f
+            while (true) {
+                val styled = spans(text, scale * factor)
+                val paint = paint(text.font, value, scale * factor, text.tracking).apply { color = d.color(text.color) }
+                val lines = maxOf(text.maxLines ?: 1, value.count { it == '\n' } + 1)
+                val layout = layout(styled, paint, rect.width(), lines, align, ellipsize = factor <= minimum)
+                val wide = lines == 1 && Layout.getDesiredWidth(styled, paint) > rect.width() + 0.5f
+                if ((!wide && layout.height <= rect.height() + 0.5f && layout.lineCount <= lines) || factor <= minimum) {
+                    canvas.save()
+                    canvas.translate(rect.left, rect.top + (rect.height() - layout.height) / 2)
+                    layout.draw(canvas)
+                    canvas.restore()
+                    return
+                }
+                factor = maxOf(minimum, factor - 0.05f)
+            }
+        }
+        drawFitted(canvas, value, text.font, d.color(text.color), align, text.maxLines, text.tracking, rect, scale, minimum)
     }
 
     /** Lays out [value] in [rect], shrinking to 50 % before truncating, vertically centered. */
@@ -155,6 +232,28 @@ internal class TextDrawer(private val d: Drawing) {
             }
         }
         return false
+    }
+}
+
+/** Raises a run by a fixed amount (a superscript "AM"). */
+private class BaselineSpan(private val shift: Float) : MetricAffectingSpan() {
+    override fun updateDrawState(paint: TextPaint) {
+        paint.baselineShift -= shift.toInt()
+    }
+
+    override fun updateMeasureState(paint: TextPaint) {
+        paint.baselineShift -= shift.toInt()
+    }
+}
+
+/** Letter spacing for one run, in pixels. */
+private class TrackingSpan(private val pixels: Float) : MetricAffectingSpan() {
+    override fun updateDrawState(paint: TextPaint) {
+        if (paint.textSize > 0) paint.letterSpacing = pixels / paint.textSize
+    }
+
+    override fun updateMeasureState(paint: TextPaint) {
+        if (paint.textSize > 0) paint.letterSpacing = pixels / paint.textSize
     }
 }
 

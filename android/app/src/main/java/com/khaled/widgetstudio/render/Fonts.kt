@@ -33,6 +33,8 @@ class Fonts(private val assets: AssetManager) {
 
     /** Material Symbols Rounded, filled (Android-only, Apache 2.0) for icon layers. */
     val symbols: Typeface by lazy { Typeface.createFromAsset(assets, "fonts/MaterialSymbolsRounded-Filled.ttf") }
+    /** Unfilled symbols for `style: outline` (ADR-029). */
+    val symbolsOutline: Typeface by lazy { Typeface.createFromAsset(assets, "fonts/MaterialSymbolsRounded-Outline.ttf") }
 
     private fun file(name: String): Typeface = cache.getOrPut(name) {
         runCatching { Typeface.createFromAsset(assets, "fonts/$name.ttf") }.getOrDefault(Typeface.DEFAULT)
@@ -98,7 +100,45 @@ class Icons(assets: AssetManager) {
     }
 
     fun isAllowed(symbol: String) = map.containsKey(symbol)
-    fun material(symbol: String): String = map[symbol] ?: "help"
+
+    /** ADR-029: a whitelisted symbol by its name; any other SF Symbol by its closest known parent, then by its words. */
+    fun material(symbol: String): String {
+        map[symbol]?.let { return it }
+        var parts = symbol.split(".")
+        while (parts.size > 1) {
+            parts = parts.dropLast(1)
+            map[parts.joinToString(".")]?.let { return it }
+            map[parts.joinToString(".") + ".fill"]?.let { return it }
+        }
+        return symbol.split(".").firstNotNullOfOrNull { IconWords.words[it] } ?: "help"
+    }
+}
+
+/** Words of SF Symbol names → Material Symbols, for names outside the whitelist (ADR-029). */
+object IconWords {
+    val words = mapOf(
+        "cart" to "shopping_cart", "bag" to "shopping_bag", "creditcard" to "credit_card", "wallet" to "wallet", "magnifyingglass" to "search",
+        "heart" to "favorite", "star" to "star", "bell" to "notifications", "envelope" to "mail", "person" to "person", "house" to "home",
+        "gearshape" to "settings", "gear" to "settings", "trash" to "delete", "pencil" to "edit", "doc" to "description", "folder" to "folder",
+        "book" to "menu_book", "bookmark" to "bookmark", "camera" to "photo_camera", "photo" to "image", "video" to "videocam", "mic" to "mic",
+        "speaker" to "volume_up", "music" to "music_note", "play" to "play_arrow", "pause" to "pause", "stop" to "stop", "forward" to "fast_forward",
+        "backward" to "fast_rewind", "shuffle" to "shuffle", "repeat" to "repeat", "headphones" to "headphones", "airpods" to "earbuds",
+        "airpodspro" to "earbuds", "iphone" to "smartphone", "ipad" to "tablet", "laptopcomputer" to "laptop", "desktopcomputer" to "desktop_windows",
+        "applewatch" to "watch", "tv" to "tv", "wifi" to "wifi", "antenna" to "cell_tower", "battery" to "battery_full", "bolt" to "bolt",
+        "flashlight" to "flashlight_on", "lock" to "lock", "key" to "key", "faceid" to "face", "touchid" to "fingerprint", "location" to "location_on",
+        "map" to "map", "car" to "directions_car", "bus" to "directions_bus", "tram" to "tram", "airplane" to "flight", "bicycle" to "pedal_bike",
+        "figure" to "directions_walk", "shoeprints" to "footprint", "flame" to "local_fire_department", "drop" to "water_drop", "leaf" to "eco",
+        "sun" to "sunny", "moon" to "dark_mode", "cloud" to "cloud", "snowflake" to "ac_unit", "wind" to "air", "thermometer" to "thermostat",
+        "umbrella" to "umbrella", "sparkle" to "auto_awesome", "sparkles" to "auto_awesome", "clock" to "schedule", "alarm" to "alarm",
+        "timer" to "timer", "stopwatch" to "timer", "hourglass" to "hourglass_empty", "calendar" to "calendar_today", "checkmark" to "check",
+        "xmark" to "close", "plus" to "add", "minus" to "remove", "arrow" to "arrow_forward", "chevron" to "chevron_right", "link" to "link",
+        "globe" to "public", "phone" to "call", "message" to "chat", "bubble" to "chat_bubble", "waveform" to "graphic_eq", "chart" to "bar_chart",
+        "dollarsign" to "paid", "eurosign" to "euro", "sterlingsign" to "currency_pound", "gift" to "redeem", "cup" to "local_cafe",
+        "fork" to "restaurant", "cross" to "medical_services", "pills" to "medication", "bed" to "bed", "brain" to "psychology", "lungs" to "pulmonology",
+        "eye" to "visibility", "hand" to "pan_tool", "qrcode" to "qr_code", "barcode" to "barcode", "printer" to "print", "paperplane" to "send",
+        "tray" to "inbox", "square" to "square", "circle" to "circle", "triangle" to "change_history", "record" to "radio_button_checked",
+        "captions" to "closed_caption", "rectangle" to "rectangle", "nfc" to "nfc", "personalhotspot" to "wifi_tethering", "bluetooth" to "bluetooth",
+    )
 }
 
 /**

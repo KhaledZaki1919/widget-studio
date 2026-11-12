@@ -51,6 +51,13 @@ object DeviceState {
         "calendar.next.title", "calendar.next.time", "calendar.next.location", "calendar.count", "calendar.1.title", "calendar.1.time",
         "calendar.2.title", "calendar.2.time", "calendar.3.title", "calendar.3.time", "calendar.4.title", "calendar.4.time",
         "media.title", "media.artist", "media.album", "media.app",
+        // ADR-029
+        "calendar.1.end", "calendar.2.end", "calendar.3.end", "calendar.4.end", "calendar.next.end",
+        "calendar.1.calendar", "calendar.2.calendar", "calendar.3.calendar", "calendar.4.calendar",
+        "calendar.1.color", "calendar.2.color", "calendar.3.color", "calendar.4.color",
+        "heart.rate", "heart.resting", "heart.today", "stress.level", "energy.level", "activity.minutes", "activity.kcal",
+        "screenTime.today", "earbuds.level", "media.appIcon", "app.<appField>.icon",
+        "stock.<tickerField>.price", "stock.<tickerField>.change", "stock.<tickerField>.changePct", "stock.<tickerField>.series",
     )
 
     private fun bool(value: Boolean) = Value.Text(if (value) "1" else "0")
@@ -105,6 +112,7 @@ object DeviceState {
         live += calendar(context, now)
         live += TaskStore.get(context).values(now, ZoneId.systemDefault(), language)
         live += MediaHub.values(context, language)
+        live += Extras.read(context, now)
         return live
     }
 
@@ -115,14 +123,20 @@ object DeviceState {
         val builder = CalendarContract.Instances.CONTENT_URI.buildUpon()
         ContentUris.appendId(builder, start)
         ContentUris.appendId(builder, start + 7 * 86_400_000L)
-        val events = mutableListOf<Triple<String, Long, String>>()
+        data class Event(val first: String, val second: Long, val third: String, val end: Long, val calendar: String, val color: Int)
+        val events = mutableListOf<Event>()
         runCatching {
             context.contentResolver.query(
-                builder.build(), arrayOf(CalendarContract.Instances.TITLE, CalendarContract.Instances.BEGIN, CalendarContract.Instances.EVENT_LOCATION, CalendarContract.Instances.ALL_DAY),
+                builder.build(), arrayOf(
+                    CalendarContract.Instances.TITLE, CalendarContract.Instances.BEGIN, CalendarContract.Instances.EVENT_LOCATION, CalendarContract.Instances.ALL_DAY,
+                    CalendarContract.Instances.END, CalendarContract.Instances.CALENDAR_DISPLAY_NAME, CalendarContract.Instances.DISPLAY_COLOR,
+                ),
                 null, null, CalendarContract.Instances.BEGIN + " ASC",
             )?.use { cursor ->
                 while (cursor.moveToNext()) {
-                    if (cursor.getInt(3) == 0 && cursor.getLong(1) >= now.toEpochMilli()) events += Triple(cursor.getString(0) ?: "", cursor.getLong(1), cursor.getString(2) ?: "")
+                    if (cursor.getInt(3) == 0 && cursor.getLong(1) >= now.toEpochMilli()) {
+                        events += Event(cursor.getString(0) ?: "", cursor.getLong(1), cursor.getString(2) ?: "", cursor.getLong(4), cursor.getString(5) ?: "", cursor.getInt(6))
+                    }
                 }
             }
         }
@@ -134,10 +148,15 @@ object DeviceState {
             live["calendar.next.title"] = Value.Text(it.first)
             live["calendar.next.time"] = Value.Date(Instant.ofEpochMilli(it.second))
             live["calendar.next.location"] = Value.Text(it.third)
+            if (it.end > 0) live["calendar.next.end"] = Value.Date(Instant.ofEpochMilli(it.end))
         }
         events.take(4).forEachIndexed { index, event ->
             live["calendar.${index + 1}.title"] = Value.Text(event.first)
             live["calendar.${index + 1}.time"] = Value.Date(Instant.ofEpochMilli(event.second))
+            // ADR-029: end time, calendar name and color.
+            if (event.end > 0) live["calendar.${index + 1}.end"] = Value.Date(Instant.ofEpochMilli(event.end))
+            live["calendar.${index + 1}.calendar"] = Value.Text(event.calendar)
+            live["calendar.${index + 1}.color"] = Value.Text("#%06X".format(event.color and 0xFFFFFF))
         }
         return live
     }
@@ -267,6 +286,9 @@ object MediaHub {
     }
 
     /** The session that is playing, else the most recent one. */
+    /** The package of the app that is playing (ADR-029: `{{media.appIcon}}`). */
+    fun playingPackage(context: Context): String? = controller(context)?.packageName
+
     fun controller(context: Context): MediaController? {
         if (!isEnabled(context)) return null
         val manager = context.getSystemService(MediaSessionManager::class.java) ?: return null

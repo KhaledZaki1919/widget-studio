@@ -44,9 +44,12 @@ data class DataSnapshot(
     val live: Map<String, BindingResolver.Value> = emptyMap(),
 ) {
     data class DayForecast(val date: LocalDate, val symbol: String, val high: Double, val low: Double)
+    /** One hour of the forecast (ADR-029): chance of rain in percent, rain in mm. */
+    data class HourForecast(val time: Instant, val symbol: String, val temperature: Double, val rainChance: Double, val rain: Double)
     data class Weather(
         val temperature: Double, val high: Double, val low: Double, val condition: LText, val symbol: String,
         val city: LText, val forecast: List<DayForecast>,
+        val hourly: List<HourForecast> = emptyList(), val uv: Double? = null, val aqi: Double? = null,
     )
     data class Prayer(val times: Map<String, Instant>, val nextName: LText, val nextKey: String, val nextTime: Instant)
 
@@ -96,7 +99,7 @@ data class DataSnapshot(
                         val parts = example.split(":").mapNotNull { it.toIntOrNull() }
                         BindingResolver.Value.Date((if (parts.size == 2) today.atTime(parts[0], parts[1]) else today.atStartOfDay()).atZone(zone).toInstant())
                     }
-                    "levels" -> BindingResolver.Value.Levels(example.split(",").mapNotNull { it.trim().toDoubleOrNull() })
+                    "levels", "series" -> BindingResolver.Value.Levels(example.split(",").mapNotNull { it.trim().toDoubleOrNull() })
                     else -> BindingResolver.Value.Text(example)
                 }
             }
@@ -154,6 +157,8 @@ data class RenderContext(
     val userImage: android.graphics.Bitmap? = null,
     /** The album art of what is playing (`{{media.artwork}}`). */
     val mediaArtwork: android.graphics.Bitmap? = null,
+    /** Other image bindings (ADR-029): `media.appIcon`, `app.<package>.icon`. */
+    val images: Map<String, android.graphics.Bitmap> = emptyMap(),
     /** Live texts (relative, timer) as fixed text measured from [now]: snapshots and previews. */
     val freezesLiveText: Boolean = true,
     /** 24-hour (true) or 12-hour (false); null keeps "HH". */
@@ -292,8 +297,12 @@ class BindingResolver(val spec: WidgetSpec, val context: RenderContext) {
         (soleValue(text) as? Value.Levels)?.let { return it.levels }
         val parts = text.split(",").map { it.trim().toDoubleOrNull() }
         if (parts.isNotEmpty() && parts.size <= 31 && parts.all { it != null && it in 0.0..1.0 }) return parts.filterNotNull()
+        // Digits row by row: 0/1, or levels 0…9 when any digit is above 1 (ADR-029).
         val digits = text.filter { it != ' ' }
-        if (digits.isNotEmpty() && digits.length <= 600 && digits.all { it == '0' || it == '1' }) return digits.map { if (it == '1') 1.0 else 0.0 }
+        if (digits.isNotEmpty() && digits.length <= 1600 && digits.all { it in '0'..'9' }) {
+            val binary = digits.all { it == '0' || it == '1' }
+            return digits.map { (it - '0').toDouble() / if (binary) 1.0 else 9.0 }
+        }
         return emptyList()
     }
 
@@ -386,6 +395,12 @@ class BindingResolver(val spec: WidgetSpec, val context: RenderContext) {
                 val days = ChronoUnit.DAYS.between(zoned.toLocalDate(), target.atZone(context.zone).toLocalDate())
                 return number(maxOf(days, 0).toDouble(), 0)
             }
+            name.startsWith("stock.") -> {
+                val parts = name.split(".")
+                if (parts.size != 3) return null
+                val ticker = fieldValue(parts[1])?.trim()?.lowercase()?.takeIf { it.isNotEmpty() } ?: return null
+                return context.data.live["stock.$ticker.${parts[2]}"] ?: context.data.live["stock.<tickerField>.${parts[2]}"]
+            }
             name.startsWith("tz.") && name.endsWith(".time") -> {
                 val zone = fieldValue(name.drop(3).dropLast(5))?.let { runCatching { ZoneId.of(it) }.getOrNull() } ?: return null
                 return Value.Text(DateTimeFormatter.ofPattern(context.timePattern, Locale.US).format(context.now.atZone(zone)))
@@ -404,14 +419,52 @@ class BindingResolver(val spec: WidgetSpec, val context: RenderContext) {
         return null
     }
 
+    /** The hours from the current one on. */
+    private fun upcoming(hours: List<DataSnapshot.HourForecast>): List<DataSnapshot.HourForecast> =
+        hours.filter { it.time.plusSeconds(3600) > context.now }
+
+    /** `hourly.N.time|symbol|temp` and `week.dN.EEE|d|isToday` (ADR-029). */
+    private fun indexed(name: String): Value? {
+        val parts = name.split(".")
+        if (parts.size != 3) return null
+        if (parts[0] == "hourly") {
+            val n = parts[1].toIntOrNull() ?: return null
+            val hours = context.data.weather?.hourly?.let(::upcoming)?.takeIf { it.isNotEmpty() } ?: return context.data.live[name]
+            // Hour 1 is the next full hour.
+            val hour = hours.filter { it.time > context.now }.getOrNull(n - 1) ?: return null
+            return when (parts[2]) {
+                "time" -> Value.Text(DateTimeFormatter.ofPattern(if (context.uses24Hour == false) "h a" else "HH:mm", context.locale).format(hour.time.atZone(context.zone)))
+                "symbol" -> Value.Text(hour.symbol)
+                "temp" -> number(hour.temperature, 0)
+                else -> null
+            }
+        }
+        if (parts[0] == "week" && parts[1].startsWith("d")) {
+            val n = parts[1].drop(1).toIntOrNull()?.takeIf { it in 1..7 } ?: return null
+            val first = zoned.toLocalDate().with(TemporalAdjusters.previousOrSame(WeekFields.of(context.locale).firstDayOfWeek))
+            val day = first.plusDays((n - 1).toLong())
+            return when (parts[2]) {
+                "EEE" -> Value.Text(DateTimeFormatter.ofPattern("EEE", context.locale).format(day))
+                "d" -> Value.Text(day.dayOfMonth.toString())
+                "isToday" -> Value.Text(if (day == zoned.toLocalDate()) "1" else "0")
+                else -> null
+            }
+        }
+        return null
+    }
+
     private fun builtin(name: String): Value? {
         val data = context.data
         val language = context.language
+        if (name.startsWith("hourly.") || name.startsWith("week.d")) indexed(name)?.let { return it }
         return when (name) {
             "time.h" -> Value.Text(format("h"))
             "time.hh" -> Value.Text(format(if (context.uses24Hour == false) "h" else "HH"))
             "time.mm" -> Value.Text(format("mm"))
             "time.ampm" -> Value.Text(localized("a"))
+            "time.ss" -> Value.Text(format("ss"))
+            "time.words" -> Value.Text(TimeWords.words(zoned.hour, zoned.minute, context.isArabic))
+            "date.EE" -> Value.Text(localized("EEE").let { if (context.isArabic) it else it.take(2) })
             "year.progress" -> progress(ChronoUnit.YEARS)
             "month.progress" -> progress(ChronoUnit.MONTHS)
             "week.progress" -> progress(ChronoUnit.WEEKS)
@@ -422,6 +475,13 @@ class BindingResolver(val spec: WidgetSpec, val context: RenderContext) {
             "week.daysLeft" -> daysLeft(ChronoUnit.WEEKS)
             "time.isDay" -> Value.Text(if (isDay()) "1" else "0")
             "weather.kind" -> data.weather?.let { Value.Text(WeatherKind.of(it.symbol)) }
+            "weather.rainChance" -> data.weather?.hourly?.let(::upcoming)?.takeIf { it.isNotEmpty() }?.let { hours -> number(hours.take(3).maxOf { it.rainChance }, 0) }
+                ?: data.live[name]
+            "weather.rainNext" -> data.weather?.hourly?.let(::upcoming)?.takeIf { it.isNotEmpty() }?.let { Value.Text(TimeWords.rainNext(it, context)) } ?: data.live[name]
+            "weather.uv" -> data.weather?.uv?.let { number(it, 0) } ?: data.live[name]
+            "weather.aqi" -> data.weather?.aqi?.let { number(it, 0) } ?: data.live[name]
+            "hourly.temps" -> data.weather?.hourly?.let(::upcoming)?.takeIf { it.isNotEmpty() }?.let { hours -> Value.Levels(hours.take(24).map { it.temperature }) }
+                ?: data.live[name]
             "date.d" -> Value.Text(format("d"))
             "date.EEEE" -> Value.Text(localized("EEEE"))
             "date.MMM" -> Value.Text(localized("MMM"))

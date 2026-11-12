@@ -49,7 +49,17 @@ extension WidgetFamily {
         case .small: self = .systemSmall
         case .medium: self = .systemMedium
         case .large: self = .systemLarge
+        case .xlarge: self = WidgetFamily.extraLargePortrait.first ?? .systemLarge
         }
+    }
+
+    /// iOS 27's 4 × 6 portrait widget (ADR-030), where the SDK and the system have it. Xcode 16 and 26
+    /// don't offer it on iOS, so older toolchains compile without it.
+    static var extraLargePortrait: [WidgetFamily] {
+        #if compiler(>=6.3)
+        if #available(iOS 27.0, *) { return [.systemExtraLargePortrait] }
+        #endif
+        return []
     }
 }
 

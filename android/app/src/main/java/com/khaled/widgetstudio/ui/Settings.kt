@@ -93,7 +93,7 @@ fun PermissionRows() {
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.google.android.apps.healthdata")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }) { Text(tr("Get Health Connect", "ثبّت Health Connect")) }
             live.healthIssue == null && live.snapshot().stepsToday != null -> Text("✓ " + tr("Allowed", "مسموح"), color = MaterialTheme.colorScheme.primary)
-            else -> Button(onClick = { health.launch(live.healthPermissions) }) { Text(tr("Allow steps and sleep", "اسمح بالخطوات والنوم")) }
+            else -> Button(onClick = { health.launch(live.allHealthPermissions) }) { Text(tr("Allow health data", "اسمح ببيانات الصحة")) }
         }
     }
 }

@@ -225,6 +225,7 @@ struct MyWidgetsView: View {
         case .small: language == "ar" ? "صغير" : "Small"
         case .medium: language == "ar" ? "متوسط" : "Medium"
         case .large: language == "ar" ? "كبير" : "Large"
+        case .xlarge: language == "ar" ? "كبير جدًا" : "Extra large"
         }
         return [design.spec.category?.title.resolved(language: language), size].compactMap { $0 }.joined(separator: " · ")
     }

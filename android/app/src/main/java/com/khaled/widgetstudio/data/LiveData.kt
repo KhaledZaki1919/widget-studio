@@ -271,6 +271,11 @@ class LiveRepository(private val context: Context) {
             live["sleep.bedtime"] = BindingResolver.Value.Date(Instant.ofEpochMilli(window.getLong(0)))
             live["sleep.wake"] = BindingResolver.Value.Date(Instant.ofEpochMilli(window.getLong(1)))
         }
+        sleep(health)[day]?.let { minutes ->
+            val total = minutes.roundToInt()
+            live["sleep.time"] = BindingResolver.Value.Text("${total / 60}:%02d".format(Locale.US, total % 60))
+        }
+        health.optJSONObject("extra")?.let { live += Extras.healthValues(it, sleep(health)[day], now, zone) }
         return live
     }
 
@@ -297,6 +302,7 @@ class LiveRepository(private val context: Context) {
         refreshLocation()
         location?.let { runCatching { fetchWeather(it) } }
         runCatching { refreshHealth() }
+        runCatching { Markets.refresh(context) }
     }
 
     fun hasLocationPermission() =
@@ -332,7 +338,9 @@ class LiveRepository(private val context: Context) {
         val unit = if (settings.fahrenheit) "fahrenheit" else "celsius"
         val url = URL(
             "https://api.open-meteo.com/v1/forecast?latitude=%.2f&longitude=%.2f".format(Locale.US, at.latitude, at.longitude) +
-                "&current=temperature_2m,weather_code,is_day,relative_humidity_2m,apparent_temperature,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days=7&temperature_unit=$unit",
+                "&current=temperature_2m,weather_code,is_day,relative_humidity_2m,apparent_temperature,wind_speed_10m,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days=7&temperature_unit=$unit" +
+                // ADR-029: the next hours (rain, icons, temperatures).
+                "&hourly=temperature_2m,weather_code,precipitation_probability,precipitation,is_day&forecast_hours=30",
         )
         val connection = (url.openConnection() as HttpURLConnection).apply {
             connectTimeout = 15_000
@@ -342,7 +350,8 @@ class LiveRepository(private val context: Context) {
             if (connection.responseCode !in 200..299) return
             val body = connection.inputStream.bufferedReader().readText()
             JSONObject(body).getJSONObject("current")
-            weatherJson = JSONObject().put("body", JSONObject(body)).put("city", at.city ?: "").put("fetched", System.currentTimeMillis()).toString()
+            val aqi = runCatching { Extras.airQuality(at.latitude, at.longitude) }.getOrNull()
+            weatherJson = JSONObject().put("body", JSONObject(body)).put("city", at.city ?: "").put("fetched", System.currentTimeMillis()).put("aqi", aqi ?: Double.NaN).toString()
         } finally {
             connection.disconnect()
         }
@@ -364,9 +373,23 @@ class LiveRepository(private val context: Context) {
                 )
             }
             val city = stored.optString("city").ifEmpty { null }
+            // Hours in the place's own offset (timezone=auto).
+            val offset = java.time.ZoneOffset.ofTotalSeconds(body.optInt("utc_offset_seconds", 0))
+            val hourly = body.optJSONObject("hourly")?.let { h ->
+                val times = h.getJSONArray("time")
+                (0 until times.length()).map { i ->
+                    DataSnapshot.HourForecast(
+                        LocalDateTime.parse(times.getString(i)).toInstant(offset),
+                        describe(h.getJSONArray("weather_code").getInt(i), h.optJSONArray("is_day")?.optInt(i, 1) != 0).first,
+                        h.getJSONArray("temperature_2m").getDouble(i), h.optJSONArray("precipitation_probability")?.optDouble(i, 0.0) ?: 0.0,
+                        h.optJSONArray("precipitation")?.optDouble(i, 0.0) ?: 0.0,
+                    )
+                }
+            } ?: emptyList()
             DataSnapshot.Weather(
                 current.getDouble("temperature_2m"), forecast.firstOrNull()?.high ?: 0.0, forecast.firstOrNull()?.low ?: 0.0, text, symbol,
-                LText.Plain(city ?: "--"), forecast,
+                LText.Plain(city ?: "--"), forecast, hourly, current.optDouble("uv_index", Double.NaN).takeIf { !it.isNaN() },
+                stored.optDouble("aqi", Double.NaN).takeIf { !it.isNaN() },
             )
         }.getOrNull()
     }
@@ -393,6 +416,9 @@ class LiveRepository(private val context: Context) {
     // MARK: Health Connect
 
     val healthPermissions = setOf(HealthPermission.getReadPermission(StepsRecord::class), HealthPermission.getReadPermission(SleepSessionRecord::class))
+    /** ADR-029: heart, variability, exercise and calories; asked together, each read only when granted. */
+    val extraHealthPermissions = Extras.healthPermissions
+    val allHealthPermissions get() = healthPermissions + extraHealthPermissions
 
     fun healthAvailable() = HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE
 
@@ -425,7 +451,9 @@ class LiveRepository(private val context: Context) {
             val known = windows.optJSONArray(day)
             windows.put(day, org.json.JSONArray().put(minOf(known?.optLong(0) ?: Long.MAX_VALUE, session.startTime.toEpochMilli())).put(maxOf(known?.optLong(1) ?: 0L, session.endTime.toEpochMilli())))
         }
-        healthJson = JSONObject().put("steps", stepJson).put("sleep", sleepJson).put("windows", windows).put("fetched", System.currentTimeMillis()).toString()
+        val extra = runCatching { Extras.readHealth(client, zone, sessions) }.getOrNull()
+        healthJson = JSONObject().put("steps", stepJson).put("sleep", sleepJson).put("windows", windows).put("fetched", System.currentTimeMillis())
+            .put("extra", extra ?: JSONObject()).toString()
         healthIssue = null
     }
 

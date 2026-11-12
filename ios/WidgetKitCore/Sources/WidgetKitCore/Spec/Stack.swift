@@ -8,7 +8,9 @@ import Foundation
 /// RTL (ADR-010): with `mirror: true` in Arabic, a horizontal stack or grid reverses its items
 /// and `start`/`end` swap sides; glyphs never flip.
 public struct StackLayer: Codable, Sendable, Equatable {
-    public enum Axis: String, Codable, Sendable, CaseIterable { case vertical, horizontal, grid }
+    /// `radial` (ADR-029): children around a circle, the first at `startAngle`, evenly spaced, each turned
+    /// to face outward when `rotateChildren` is true (compass letters, clock numerals).
+    public enum Axis: String, Codable, Sendable, CaseIterable { case vertical, horizontal, grid, radial }
     /// `start` is the leading edge (left in the canvas, right when mirrored) or the top.
     public enum Align: String, Codable, Sendable, CaseIterable { case start, center, end }
 
@@ -25,6 +27,13 @@ public struct StackLayer: Codable, Sendable, Equatable {
     public var justify: Align?
     /// Grid only: items per row (1–8).
     public var columns: Int?
+    /// Radial only: the circle the children's centers sit on (default: half the smaller side minus the
+    /// largest child), the first child's angle in degrees clockwise from 12 o'clock (default 0), the arc
+    /// they spread over (default 360) and whether each child turns with its angle.
+    public var radius: Double?
+    public var startAngle: Double?
+    public var sweep: Double?
+    public var rotateChildren: Bool?
     public var children: [Layer]
 
     public static let defaultSpacing = 4.0
@@ -41,7 +50,7 @@ public struct StackLayer: Codable, Sendable, Equatable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case axis, spacing, padding, alignItems, justify, columns, children
+        case axis, spacing, padding, alignItems, justify, columns, children, radius, startAngle, sweep, rotateChildren
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -52,6 +61,10 @@ public struct StackLayer: Codable, Sendable, Equatable {
         try container.encodeIfPresent(alignItems, forKey: .alignItems)
         try container.encodeIfPresent(justify, forKey: .justify)
         try container.encodeIfPresent(columns, forKey: .columns)
+        try container.encodeIfPresent(radius, forKey: .radius)
+        try container.encodeIfPresent(startAngle, forKey: .startAngle)
+        try container.encodeIfPresent(sweep, forKey: .sweep)
+        try container.encodeIfPresent(rotateChildren, forKey: .rotateChildren)
         var list = container.nestedUnkeyedContainer(forKey: .children)
         for child in children { try list.encode(Child(layer: child)) }
     }

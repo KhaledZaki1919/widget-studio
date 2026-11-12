@@ -50,14 +50,16 @@ class SpecRenderer(context: Context) {
         val draw = Drawing(this, spec, context)
         if (drawsBackground) draw.background(canvas, spec.background, full)
         val scale = min(width / spec.family.width, height / spec.family.height).toFloat()
-        val ox = (width - spec.family.width.toFloat() * scale) / 2
-        val oy = (height - spec.family.height.toFloat() * scale) / 2
+        // ADR-029: layers live in the card's own canvas, placed where the card sits in the widget.
+        val card = spec.cardFrame
+        val ox = (width - spec.family.width.toFloat() * scale) / 2 + (card.x * scale).toFloat()
+        val oy = (height - spec.family.height.toFloat() * scale) / 2 + (card.y * scale).toFloat()
         canvas.translate(ox, oy)
         val buttons = mutableListOf<HitArea>()
         for (layer in spec.layers) {
             if (layer.condition != null && !draw.resolver.isSatisfied(layer.condition)) continue
             val mirrored = context.isArabic && layer.mirror == true
-            val frame = if (mirrored) layer.frame.mirrored(spec.family.width) else layer.frame
+            val frame = if (mirrored) layer.frame.mirrored(spec.canvasWidth) else layer.frame
             val rect = RectF(frame.x.toFloat() * scale, frame.y.toFloat() * scale, (frame.x + frame.w).toFloat() * scale, (frame.y + frame.h).toFloat() * scale)
             val content = layer.content
             if (content is LayerContent.Button) {
@@ -76,6 +78,7 @@ internal class Drawing(val renderer: SpecRenderer, val spec: WidgetSpec, val con
     val theme: Theme = context.theme ?: spec.theme
     val text = TextDrawer(this)
     val charts = ChartDrawer(this)
+    val chartPainter = ChartPainter(this)
 
     /** A spec color: `#RRGGBB(AA)` or a theme token; anything else is transparent. */
     fun color(value: String?, fallback: Int = Color.TRANSPARENT): Int {
@@ -98,7 +101,22 @@ internal class Drawing(val renderer: SpecRenderer, val spec: WidgetSpec, val con
 
     fun background(canvas: Canvas, background: Background, rect: RectF) {
         val outer = background.outerColor
-        if (outer != null) {
+        val card = spec.card
+        if (card != null && card.shape == "none") {
+            fill(canvas, background, rect)
+        } else if (card != null && card.hasOuter) {
+            // ADR-029: the widget in the outer color, the card's fill clipped to its outline.
+            canvas.drawRect(rect, paint(color(card.outerColor ?: outer ?: "@outer", android.graphics.Color.BLACK)))
+            val scale = min(rect.width() / spec.family.width.toFloat(), rect.height() / spec.family.height.toFloat())
+            val ox = rect.left + (rect.width() - spec.family.width.toFloat() * scale) / 2
+            val oy = rect.top + (rect.height() - spec.family.height.toFloat() * scale) / 2
+            val f = spec.cardFrame
+            val cardRect = RectF(ox + (f.x * scale).toFloat(), oy + (f.y * scale).toFloat(), ox + ((f.x + f.w) * scale).toFloat(), oy + ((f.y + f.h) * scale).toFloat())
+            canvas.save()
+            canvas.clipPath(ShapeGeometry.card(card, cardRect, scale))
+            fill(canvas, background, cardRect)
+            canvas.restore()
+        } else if (outer != null) {
             canvas.drawRect(rect, paint(color(outer)))
             val side = min(rect.width(), rect.height())
             val card = if (background.cardShape == "capsule") {
@@ -161,6 +179,7 @@ internal class Drawing(val renderer: SpecRenderer, val spec: WidgetSpec, val con
             is LayerContent.Text -> text.draw(canvas, content, rect, scale, mirrored, stackTextAlign, fillWidth)
             is LayerContent.Image -> image(canvas, content, rect, scale)
             is LayerContent.Shape -> shape(canvas, content, rect, scale)
+            is LayerContent.Chart -> chartPainter.draw(canvas, content, rect, scale, mirrored)
             is LayerContent.Icon -> icon(canvas, content, rect, scale)
             is LayerContent.AnalogClock -> charts.analogClock(canvas, content, rect)
             is LayerContent.DotGrid -> charts.dotGrid(canvas, content, rect, scale, mirrored)
@@ -209,9 +228,21 @@ internal class Drawing(val renderer: SpecRenderer, val spec: WidgetSpec, val con
 
     private fun shape(canvas: Canvas, shape: LayerContent.Shape, rect: RectF, scale: Float) {
         val glass = shape.glass == true
-        val path = shapePath(shape.kind, rect, ((shape.cornerRadius ?: 16.0) * scale).toFloat())
+        val progress = shape.progress?.let(resolver::number)
+        val path = ShapeGeometry.path(shape, rect, progress) ?: shapePath(shape.kind, rect, ((shape.cornerRadius ?: 16.0) * scale).toFloat())
         val fill = shape.fill ?: if (glass) "#FFFFFF26" else null
-        if (fill != null) canvas.drawPath(path, paint(color(fill)))
+        if (shape.kind == "line") {
+            // A line is drawn with its stroke, else with its fill color as a stroke.
+            val stroke = shape.stroke
+            canvas.drawPath(path, paint(color(stroke?.color ?: fill ?: "#FFFFFF"), Paint.Style.STROKE).apply {
+                strokeWidth = ((stroke?.width ?: 2.0) * scale).toFloat()
+                strokeCap = Paint.Cap.ROUND
+                stroke?.dash?.takeIf { it.isNotEmpty() }?.let { dash -> pathEffect = DashPathEffect(dash.map { (it * scale).toFloat() }.toFloatArray(), 0f) }
+            })
+            return
+        }
+        if (shape.gradient != null) canvas.drawPath(path, Paint(Paint.ANTI_ALIAS_FLAG).apply { shader = shader(shape.gradient, rect) })
+        else if (fill != null) canvas.drawPath(path, paint(color(fill)))
         if (glass) {
             canvas.save()
             canvas.clipPath(path)
@@ -232,14 +263,15 @@ internal class Drawing(val renderer: SpecRenderer, val spec: WidgetSpec, val con
 
     fun icon(canvas: Canvas, icon: LayerContent.Icon, rect: RectF, scale: Float) {
         val raw = resolver.soleValue(icon.symbol)?.let(resolver::display) ?: icon.symbol
-        val symbol = if (renderer.icons.isAllowed(raw)) raw else "questionmark"
-        drawSymbol(canvas, renderer.icons.material(symbol), rect.centerX(), rect.centerY(), (icon.size * scale).toFloat(), color(icon.color))
+        // ADR-029: any SF Symbol name maps to a Material symbol; outline draws the unfilled font.
+        val outline = icon.style == "outline" || (icon.style == null && !raw.contains(".fill") && renderer.icons.isAllowed(raw.replace(Regex("$"), ".fill")))
+        drawSymbol(canvas, renderer.icons.material(raw), rect.centerX(), rect.centerY(), (icon.size * scale).toFloat(), color(icon.color), outline)
     }
 
-    /** A Material Symbols glyph by ligature, centered on (cx, cy), about [size] px tall. */
-    fun drawSymbol(canvas: Canvas, name: String, cx: Float, cy: Float, size: Float, color: Int) {
+    /** A Material Symbols glyph by ligature, centered on (cx, cy), about [size] px tall; [outline] uses the unfilled font. */
+    fun drawSymbol(canvas: Canvas, name: String, cx: Float, cy: Float, size: Float, color: Int, outline: Boolean = false) {
         val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            typeface = renderer.fonts.symbols
+            typeface = if (outline) renderer.fonts.symbolsOutline else renderer.fonts.symbols
             textSize = size * 1.1f
             this.color = color
             textAlign = Paint.Align.CENTER
@@ -256,7 +288,14 @@ internal class Drawing(val renderer: SpecRenderer, val spec: WidgetSpec, val con
         }
         canvas.save()
         canvas.clipPath(path)
-        val photo = if (image.source == "user_image") context.userImage else if (Bindings.soleBinding(image.source) != null) context.mediaArtwork else null
+        val binding = Bindings.soleBinding(image.source)?.trim()
+        val photo = when {
+            binding == null -> context.userImage
+            binding == "media.artwork" -> context.mediaArtwork
+            binding.startsWith("app.") && binding.endsWith(".icon") ->
+                resolver.fieldValue(binding.drop(4).dropLast(5))?.let { context.images["app.$it.icon"] } ?: context.images[binding]
+            else -> context.images[binding]
+        }
         if (photo != null) {
             val fit = image.fit == "fit"
             val ratio = if (fit) min(rect.width() / photo.width, rect.height() / photo.height) else maxOf(rect.width() / photo.width, rect.height() / photo.height)

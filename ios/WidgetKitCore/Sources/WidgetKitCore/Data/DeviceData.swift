@@ -30,6 +30,8 @@ public enum NativeActions {
     public static let app: Set<String> = [
         "open.app", "open.url", "open.deeplink", "call.dial", "message.open", "calendar.open", "reminders.open",
         "compass.open", "weather.open", "media.open", "task.add",
+        // ADR-029: the system apps, by their URL schemes.
+        "alarm.open", "clock.open", "health.open",
     ]
 }
 

@@ -42,13 +42,15 @@ internal class ChartDrawer(private val d: Drawing) {
         val cx = rect.centerX()
         val cy = rect.centerY()
         canvas.drawCircle(cx, cy, radius, d.paint(face))
-        for (tick in 0 until 60) {
+        // ADR-029: marks `60` (default), `12`, `dots` (default for style dot) or `none`.
+        val ticks = clock.ticks ?: if (clock.style == "dot") "dots" else "60"
+        if (ticks != "none") for (tick in 0 until 60) {
             val isHour = tick % 5 == 0
-            if (clock.style == "dot" && !isHour) continue
+            if ((ticks == "dots" || ticks == "12") && !isHour) continue
             val angle = tick / 60.0 * 2 * Math.PI
             val dx = sin(angle).toFloat()
             val dy = -cos(angle).toFloat()
-            if (clock.style == "dot") {
+            if (ticks == "dots") {
                 canvas.drawCircle(cx + dx * radius * 0.82f, cy + dy * radius * 0.82f, radius * 0.035f, d.paint(ink))
             } else {
                 val outer = radius * 0.92f
@@ -57,16 +59,25 @@ internal class ChartDrawer(private val d: Drawing) {
                 canvas.drawLine(cx + dx * inner, cy + dy * inner, cx + dx * outer, cy + dy * outer, p)
             }
         }
-        hand(canvas, cx, cy, radius, ((time.hour % 12) + time.minute / 60.0) / 12, 0.5f, 0.07f, hour)
-        hand(canvas, cx, cy, radius, time.minute / 60.0, 0.75f, 0.045f, minute)
-        canvas.drawCircle(cx, cy, radius * 0.045f, d.paint(accent))
+        val round = clock.handCap != "flat"
+        hand(canvas, cx, cy, radius, ((time.hour % 12) + time.minute / 60.0) / 12, (clock.hourLength ?: 0.5).toFloat(), (clock.hourWidth ?: 0.07).toFloat(), hour, round)
+        hand(canvas, cx, cy, radius, time.minute / 60.0, (clock.minuteLength ?: 0.75).toFloat(), (clock.minuteWidth ?: 0.045).toFloat(), minute, round)
+        // Seconds as of the render (a hand or a dot on the rim) in the accent color.
+        when (clock.seconds) {
+            "hand" -> hand(canvas, cx, cy, radius, time.second / 60.0, 0.85f, 0.015f, accent, true)
+            "dot" -> {
+                val angle = time.second / 60.0 * 2 * Math.PI
+                canvas.drawCircle(cx + sin(angle).toFloat() * radius * 0.86f, cy - cos(angle).toFloat() * radius * 0.86f, radius * 0.05f, d.paint(accent))
+            }
+        }
+        if (clock.centerDot != false) canvas.drawCircle(cx, cy, radius * 0.045f, d.paint(accent))
     }
 
-    private fun hand(canvas: Canvas, cx: Float, cy: Float, radius: Float, fraction: Double, length: Float, width: Float, color: Int) {
+    private fun hand(canvas: Canvas, cx: Float, cy: Float, radius: Float, fraction: Double, length: Float, width: Float, color: Int, round: Boolean = true) {
         val angle = fraction * 2 * Math.PI
         val p = d.paint(color, Paint.Style.STROKE).apply {
             strokeWidth = radius * width
-            strokeCap = Paint.Cap.ROUND
+            strokeCap = if (round) Paint.Cap.ROUND else Paint.Cap.BUTT
         }
         canvas.drawLine(cx, cy, cx + sin(angle).toFloat() * radius * length, cy - cos(angle).toFloat() * radius * length, p)
     }
@@ -74,6 +85,9 @@ internal class ChartDrawer(private val d: Drawing) {
     // MARK: Dots
 
     fun dotGrid(canvas: Canvas, grid: LayerContent.DotGrid, rect: RectF, scale: Float, mirrored: Boolean) {
+        if (grid.levelColors != null || grid.mask != null || grid.sizeByLevel == true || grid.order != null || (grid.fade ?: "none") != "none") {
+            return DotGridPainter(d).draw(canvas, grid, rect, scale, mirrored)
+        }
         val levels = d.resolver.gridLevels(grid.values, grid.rows * grid.cols)
         val on = d.color(grid.onColor)
         val off = d.color(grid.offColor)
@@ -181,11 +195,24 @@ internal class ChartDrawer(private val d: Drawing) {
             val filled = if (mirrored) RectF(rect.right - w, rect.top, rect.right, rect.bottom) else RectF(rect.left, rect.top, rect.left + w, rect.bottom)
             canvas.drawRoundRect(filled, radius, radius, d.paint(fill))
         }
+        // ADR-029: a round knob at the fill's end.
+        bar.knob?.let { knob ->
+            val size = knob.size?.let { (it * scale).toFloat() } ?: (2 * minOf(rect.width(), rect.height()))
+            val knobColor = d.color(knob.color ?: bar.color)
+            if (vertical) canvas.drawCircle(rect.centerX(), rect.bottom - (rect.height() * value).toFloat(), size / 2, d.paint(knobColor))
+            else {
+                val x = if (mirrored) rect.right - (rect.width() * value).toFloat() else rect.left + (rect.width() * value).toFloat()
+                canvas.drawCircle(x, rect.centerY(), size / 2, d.paint(knobColor))
+            }
+        }
     }
 
     // MARK: Forecast
 
     fun forecast(canvas: Canvas, row: LayerContent.ForecastRow, rect: RectF, scale: Float, mirrored: Boolean) {
+        if (row.mode == "hourly" || row.font != null || row.dividerColor != null || row.showLow != null || row.iconStyle != null || row.labelColor != null || row.showIcons != null) {
+            return forecastColumns(canvas, row, rect, scale, mirrored)
+        }
         val next = context.data.weather?.forecast?.take(row.days) ?: emptyList()
         val days = if (mirrored) next.reversed() else next
         val color = d.color(row.color)
@@ -210,6 +237,53 @@ internal class ChartDrawer(private val d: Drawing) {
             d.text.drawFitted(canvas, "${day.high.roundToInt()}°", FontSpec("dot", 13.0, "bold"), color, "center", 1, null, RectF(left, y, left + column, y + heights[2]), scale)
             y += heights[2] + 3 * scale
             d.text.drawFitted(canvas, "${day.low.roundToInt()}°", FontSpec("system", 9.0, null), d.withAlpha(color, 0.6), "center", 1, null, RectF(left, y, left + column, y + heights[3]), scale)
+        }
+    }
+
+    /** ADR-029: hourly or daily columns with the row's font, icon style, lows and dividers. */
+    private fun forecastColumns(canvas: Canvas, row: LayerContent.ForecastRow, rect: RectF, scale: Float, mirrored: Boolean) {
+        data class Column(val label: String, val symbol: String, val high: String, val low: String?)
+        val hourly = row.mode == "hourly"
+        val columns = if (hourly) (1..row.days).mapNotNull { n ->
+            val time = d.resolver.value("hourly.$n.time")?.let(d.resolver::display) ?: return@mapNotNull null
+            val symbol = d.resolver.value("hourly.$n.symbol")?.let(d.resolver::display) ?: "cloud.fill"
+            val temp = d.resolver.value("hourly.$n.temp")?.let(d.resolver::display) ?: "--"
+            Column(time, symbol, "$temp°", null)
+        } else (context.data.weather?.forecast?.take(row.days) ?: emptyList()).map { day ->
+            Column(DateTimeFormatter.ofPattern(if (context.isArabic) "EEEE" else "EEE", context.locale).format(day.date), day.symbol, "${day.high.roundToInt()}°", "${day.low.roundToInt()}°")
+        }
+        val color = d.color(row.color)
+        if (columns.isEmpty()) {
+            d.text.drawFitted(canvas, "--", FontSpec("system", 13.0, null), color, "center", 1, null, rect, scale)
+            return
+        }
+        val ordered = if (mirrored) columns.reversed() else columns
+        val font = row.font ?: FontSpec("system", 12.0, "semibold")
+        val labelFont = FontSpec(font.family, font.size * 0.85, null)
+        val labelColor = d.color(row.labelColor, d.withAlpha(color, 0.6))
+        val showIcons = row.showIcons != false
+        val showLow = !hourly && row.showLow != false
+        val width = rect.width() / ordered.size
+        val lines = listOf(labelFont.size * 1.4, if (showIcons) font.size * 1.5 else 0.0, font.size * 1.35, if (showLow) labelFont.size * 1.35 else 0.0).map { (it * scale).toFloat() }
+        val gap = 3 * scale
+        val total = lines.sum() + gap * lines.count { it > 0 }.minus(1).coerceAtLeast(0)
+        for ((index, column) in ordered.withIndex()) {
+            val left = rect.left + index * width
+            var y = rect.centerY() - total / 2
+            d.text.drawFitted(canvas, column.label, labelFont, labelColor, "center", 1, null, RectF(left, y, left + width, y + lines[0]), scale)
+            y += lines[0] + gap
+            if (showIcons) {
+                val outline = row.iconStyle == "outline"
+                val symbol = if (outline) column.symbol.replace(".fill", "") else column.symbol
+                d.drawSymbol(canvas, d.renderer.icons.material(symbol), left + width / 2, y + lines[1] / 2, (font.size * 1.25 * scale).toFloat(), color, outline)
+                y += lines[1] + gap
+            }
+            d.text.drawFitted(canvas, column.high, font, color, "center", 1, null, RectF(left, y, left + width, y + lines[2]), scale)
+            y += lines[2] + gap
+            if (showLow && column.low != null) d.text.drawFitted(canvas, column.low, labelFont, labelColor, "center", 1, null, RectF(left, y, left + width, y + lines[3]), scale)
+            if (row.dividerColor != null && index > 0) {
+                canvas.drawRect(RectF(left - maxOf(0.5f, 0.5f * scale), rect.centerY() - total / 2, left + maxOf(0.5f, 0.5f * scale), rect.centerY() + total / 2), d.paint(d.color(row.dividerColor)))
+            }
         }
     }
 
@@ -274,7 +348,7 @@ internal class ChartDrawer(private val d: Drawing) {
         val color = d.color(list.color)
         for ((index, item) in list.items.withIndex()) {
             val row = RectF(rect.left, rect.top + index * rowHeight, rect.right, rect.top + (index + 1) * rowHeight)
-            val markerColor = d.color(item.color ?: list.markerColor ?: list.color)
+            val markerColor = d.color(item.color?.let(d.resolver::render) ?: list.markerColor ?: list.color)
             val isDone = item.done?.let(d.resolver::isSatisfied) ?: false
             val markerWidth = marker(canvas, list, item, row, size, scale, markerColor, mirrored)
             val gap = 8 * scale
@@ -284,10 +358,18 @@ internal class ChartDrawer(private val d: Drawing) {
             val detailWidth = detail?.let { minOf(d.text.naturalWidth(it, list.font, null, scale), row.width() * 0.45f) } ?: 0f
             val titleLeft = if (mirrored) row.left + detailWidth + 4 * scale else row.left + (if (markerWidth > 0) markerWidth + gap else 0f)
             val titleRight = if (mirrored) row.right - (if (markerWidth > 0) markerWidth + gap else 0f) else row.right - detailWidth - 4 * scale
-            d.text.drawFitted(canvas, title, list.font, if (isDone) d.withAlpha(color, 0.5) else color, if (mirrored) "trailing" else "leading", 1, null, RectF(titleLeft, row.top, titleRight, row.bottom), scale, 0.6f)
+            // ADR-029: a subtitle under the title and a second detail under the first share the row's height.
+            val subtitle = item.subtitle?.let(::text)
+            val detail2 = item.detail2?.let(::text)
+            val small = com.khaled.widgetstudio.spec.FontSpec(list.font.family, list.font.size * 0.82, null)
+            val titleBox = RectF(titleLeft, row.top, titleRight, if (subtitle != null) row.top + row.height() * 0.56f else row.bottom)
+            d.text.drawFitted(canvas, title, list.font, if (isDone) d.withAlpha(color, 0.5) else color, if (mirrored) "trailing" else "leading", 1, null, titleBox, scale, 0.6f)
+            subtitle?.let { d.text.drawFitted(canvas, it, small, detailColor, if (mirrored) "trailing" else "leading", 1, null, RectF(titleLeft, titleBox.bottom, titleRight, row.bottom), scale, 0.6f) }
             if (detail != null) {
                 val box = if (mirrored) RectF(row.left, row.top, row.left + detailWidth, row.bottom) else RectF(row.right - detailWidth, row.top, row.right, row.bottom)
-                d.text.drawFitted(canvas, detail, list.font, detailColor, if (mirrored) "leading" else "trailing", 1, null, box, scale, 0.6f)
+                val top = if (detail2 != null) RectF(box.left, box.top, box.right, box.top + box.height() * 0.5f) else box
+                d.text.drawFitted(canvas, detail, if (detail2 != null) small else list.font, detailColor, if (mirrored) "leading" else "trailing", 1, null, top, scale, 0.6f)
+                detail2?.let { d.text.drawFitted(canvas, it, small, detailColor, if (mirrored) "leading" else "trailing", 1, null, RectF(box.left, top.bottom, box.right, box.bottom), scale, 0.6f) }
             }
             val divider = list.dividerColor
             if (divider != null && index < list.items.size - 1) {
@@ -320,7 +402,7 @@ internal class ChartDrawer(private val d: Drawing) {
                 val icon = item.icon?.takeIf { d.renderer.icons.isAllowed(it) } ?: "circle.fill"
                 d.drawSymbol(canvas, d.renderer.icons.material(icon), cx, cy, size * 0.9f, color)
             }
-            "bar" -> canvas.drawRoundRect(RectF(cx - width / 2, cy - row.height() * 0.3f, cx + width / 2, cy + row.height() * 0.3f), 1.5f * scale, 1.5f * scale, d.paint(color))
+            "bar" -> canvas.drawRoundRect(RectF(cx - width / 2, row.top + row.height() * 0.12f, cx + width / 2, row.bottom - row.height() * 0.12f), 1.5f * scale, 1.5f * scale, d.paint(color))
         }
         return width
     }
@@ -356,8 +438,12 @@ internal class CalendarLayout(layer: LayerContent.CalendarMonth, date: LocalDate
         val weekend = (layer.weekendDays ?: emptyList()).mapNotNull { keys.indexOf(it.lowercase()).takeIf { i -> i >= 0 } }.toSet()
         // Column → day index with 0 = Sunday, like the Swift layout.
         val columns = (0 until 7).map { ((first.value % 7) + it) % 7 }
-        val style = if ((layer.weekdays ?: "narrow") == "short") TextStyle.SHORT_STANDALONE else TextStyle.NARROW_STANDALONE
-        weekdays = if ((layer.weekdays ?: "narrow") == "none") emptyList() else columns.map { DayOfWeek.of(if (it == 0) 7 else it).getDisplayName(style, locale) }
+        val style = if ((layer.weekdays ?: "narrow") in listOf("short", "two")) TextStyle.SHORT_STANDALONE else TextStyle.NARROW_STANDALONE
+        weekdays = if ((layer.weekdays ?: "narrow") == "none") emptyList() else columns.map { column ->
+            val name = DayOfWeek.of(if (column == 0) 7 else column).getDisplayName(style, locale)
+            // "Mo Tu" (ADR-029); Arabic keeps its short name.
+            if (layer.weekdays == "two" && !arabic) name.take(2) else name
+        }
         weekendColumns = columns.map { it in weekend }
 
         val cells = mutableListOf<Cell>()
@@ -372,6 +458,19 @@ internal class CalendarLayout(layer: LayerContent.CalendarMonth, date: LocalDate
             cells += Cell(if (dimmed) next else null, true, false, weekendColumns[cells.size % 7])
             next += 1
         }
-        rows = cells.chunked(7)
+        val month = cells.chunked(7)
+        // ADR-029: a week strip shows the week holding today (and the next for two weeks), across months.
+        rows = when (layer.rows) {
+            "week", "2weeks" -> {
+                val firstOfWeek = date.minusDays(((date.dayOfWeek.value % 7 - first.value % 7 + 7) % 7).toLong())
+                (0 until if (layer.rows == "week") 1 else 2).map { row ->
+                    (0 until 7).map { column ->
+                        val day = firstOfWeek.plusDays((row * 7 + column).toLong())
+                        Cell(day.dayOfMonth, day.month != date.month, day == date, weekendColumns[column])
+                    }
+                }
+            }
+            else -> month
+        }
     }
 }

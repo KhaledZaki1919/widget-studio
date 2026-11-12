@@ -46,9 +46,50 @@ public enum Icons {
         "arrow.up": "arrow_upward", "arrow.down": "arrow_downward",
         "checkmark": "check", "checkmark.circle.fill": "check_circle", "star.fill": "star", "circle.fill": "circle",
         "circle": "radio_button_unchecked", "hand.tap.fill": "touch_app", "sparkles": "auto_awesome",
+        // ADR-029: the symbols image-to-widget needed (PDF "icons and actions")
+        "magnifyingglass": "search", "cart.fill": "shopping_cart", "bag.fill": "shopping_bag", "wallet.pass.fill": "wallet",
+        "creditcard.fill": "credit_card", "dollarsign.circle.fill": "paid", "chart.line.uptrend.xyaxis": "trending_up",
+        "chart.bar.fill": "bar_chart", "arrow.right": "arrow_forward", "arrow.left": "arrow_back", "arrow.up.right": "north_east",
+        "arrow.down.right": "south_east", "chevron.right": "chevron_right", "chevron.left": "chevron_left",
+        "airpods": "earbuds", "airpodspro": "earbuds", "faceid": "face", "iphone": "smartphone", "applewatch": "watch",
+        "bluetooth": "bluetooth", "shoeprints.fill": "footprint", "waveform.path.ecg": "ecg_heart", "heart": "favorite",
+        "bell.badge.fill": "notifications_active", "envelope.fill": "mail", "rectangle.dashed.badge.record": "screen_record",
+        "captions.bubble": "closed_caption", "captions.bubble.fill": "closed_caption", "sparkle": "auto_awesome",
+        "mic.circle.fill": "mic", "waveform": "graphic_eq", "music.note.list": "queue_music", "speaker.wave.1.fill": "volume_down",
+        "gearshape.fill": "settings", "person.fill": "person", "car.fill": "directions_car", "photo": "image",
+        "photo.fill": "image", "xmark": "close", "ellipsis": "more_horiz", "info.circle": "info", "alarm": "alarm",
+        "exclamationmark.triangle.fill": "warning", "umbrella.fill": "umbrella", "aqi.medium": "airwave",
+        "wifi.slash": "wifi_off", "battery.0": "battery_0_bar",
+        // Outline weather, for `style: outline` and the hourly forecast (ADR-029)
+        "cloud": "cloud", "sun.max": "sunny", "moon": "dark_mode", "cloud.sun": "partly_cloudy_day",
+        "cloud.moon": "partly_cloudy_night", "cloud.rain": "rainy", "cloud.drizzle": "rainy_light",
+        "cloud.heavyrain": "rainy_heavy", "cloud.bolt.rain": "thunderstorm", "cloud.snow": "weather_snowy", "cloud.fog": "foggy",
     ]
 
     public static func isAllowed(_ symbol: String) -> Bool {
         whitelist[symbol] != nil
+    }
+
+    /// ADR-029: any SF Symbol name may be used: lower-case words and digits joined by dots, at most 60
+    /// characters. Unknown names draw their closest known symbol (`IconRendering.symbol`); Android maps
+    /// them to Material Symbols by their words (Icons.kt).
+    public static func isSymbolName(_ symbol: String) -> Bool {
+        guard !symbol.isEmpty, symbol.count <= 60, !symbol.hasPrefix("."), !symbol.hasSuffix("."), !symbol.contains("..") else { return false }
+        return symbol.unicodeScalars.allSatisfy { ("a"..."z").contains($0) || ("0"..."9").contains($0) || $0 == "." }
+    }
+
+    /// The symbol for a style: `outline` drops `.fill`, `fill` adds it when that variant is known.
+    public static func styled(_ symbol: String, _ style: IconStyle?) -> String {
+        switch style {
+        case .outline?:
+            let parts = symbol.split(separator: ".").filter { $0 != "fill" }
+            return parts.joined(separator: ".")
+        case .fill?:
+            if symbol.hasSuffix(".fill") { return symbol }
+            let filled = symbol + ".fill"
+            return whitelist[filled] != nil || !isAllowed(symbol) ? filled : symbol
+        case nil:
+            return symbol
+        }
     }
 }

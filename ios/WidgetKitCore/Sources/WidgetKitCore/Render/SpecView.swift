@@ -23,9 +23,12 @@ public struct SpecView: View {
 
     public var body: some View {
         GeometryReader { proxy in
-            let canvas = spec.family.canvas
+            let family = spec.family.canvas
             // A spec shown in a larger widget is scaled uniformly and centered (ADR-011).
-            let scale = min(proxy.size.width / canvas.width, proxy.size.height / canvas.height)
+            let scale = min(proxy.size.width / family.width, proxy.size.height / family.height)
+            // ADR-029: layers live in the card's own canvas, placed where the card sits in the widget.
+            let card = spec.cardFrame
+            let canvas = spec.canvas
             let resolver = BindingResolver(spec: spec, context: context)
             ZStack {
                 if drawsBackground {
@@ -45,6 +48,7 @@ public struct SpecView: View {
                     }
                 }
                 .frame(width: canvas.width * scale, height: canvas.height * scale)
+                .offset(x: (card.x + card.w / 2 - family.width / 2) * scale, y: (card.y + card.h / 2 - family.height / 2) * scale)
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
@@ -99,7 +103,9 @@ public struct SpecBackground: View {
     }
 
     public var body: some View {
-        if let outer = spec.background.outerColor {
+        if let card = spec.card, card.hasOuter || card.shape == CardSpec.Shape.none {
+            CardBackground(spec: spec, card: card) { fill }
+        } else if let outer = spec.background.outerColor {
             ZStack {
                 Color(hex: outer)
                 if spec.background.cardShape == .capsule {
@@ -146,6 +152,34 @@ extension Color {
     }
 }
 
+/// The card of ADR-029 inside the widget: the widget in `outerColor` (else the background's, else the
+/// wallpaper token), the card's fill clipped to its outline at `cardFrame`. `none` draws the fill everywhere.
+struct CardBackground<Fill: View>: View {
+    let spec: WidgetSpec
+    let card: CardSpec
+    @ViewBuilder let fill: () -> Fill
+
+    var body: some View {
+        if card.shape == CardSpec.Shape.none {
+            fill()
+        } else {
+            GeometryReader { proxy in
+                let family = spec.family.canvas
+                let scale = min(proxy.size.width / family.width, proxy.size.height / family.height)
+                let frame = spec.cardFrame
+                ZStack {
+                    Color(hex: card.outerColor ?? spec.background.outerColor ?? SpecTokens.hex("outer", theme: spec.theme) ?? "#000000")
+                    fill()
+                        .frame(width: frame.w * scale, height: frame.h * scale)
+                        .clipShape(CardOutline(card: card, scale: scale))
+                        .offset(x: (frame.x + frame.w / 2 - family.width / 2) * scale, y: (frame.y + frame.h / 2 - family.height / 2) * scale)
+                }
+                .frame(width: proxy.size.width, height: proxy.size.height)
+            }
+        }
+    }
+}
+
 /// One layer, filling the frame it is given. `mirrored` swaps leading/trailing alignment and
 /// reverses horizontal item order; it never flips glyphs.
 struct LayerView: View {
@@ -158,13 +192,13 @@ struct LayerView: View {
         switch layer.content {
         case .text(let text): TextLayerView(layer: text, resolver: resolver, scale: scale, mirrored: mirrored)
         case .image(let image):
-            ImageLayerView(layer: image, image: Bindings.soleBinding(image.source) == nil ? resolver.context.userImage : resolver.context.mediaArtwork,
-                           scale: scale)
-        case .shape(let shape): ShapeLayerView(layer: shape, scale: scale)
+            ImageLayerView(layer: image, image: Self.picture(image.source, resolver: resolver), scale: scale)
+        case .shape(let shape): ShapeLayerView(layer: shape, scale: scale, progress: shape.progress.flatMap(resolver.number))
         case .icon(let icon): IconLayerView(layer: icon, resolver: resolver, scale: scale)
         case .analogClock(let clock): AnalogClockView(layer: clock, resolver: resolver)
         case .dotGrid(let grid):
-            DotGridView(layer: grid, levels: resolver.gridLevels(grid.values, cells: grid.rows * grid.cols), scale: scale, mirrored: mirrored)
+            DotGridView(layer: grid, levels: resolver.gridLevels(grid.values, cells: grid.rows * grid.cols, order: grid.order, columns: grid.cols), scale: scale,
+                        mirrored: mirrored, maskName: DotGridLayout.maskName(grid.mask, resolver: resolver))
         case .dotBars(let bars): DotBarsView(layer: bars, resolver: resolver, scale: scale, mirrored: mirrored)
         case .ring(let ring): RingView(layer: ring, progress: resolver.number(ring.progress) ?? 0, scale: scale)
         case .forecastRow(let row): ForecastRowView(layer: row, resolver: resolver, scale: scale, mirrored: mirrored)
@@ -175,7 +209,18 @@ struct LayerView: View {
             ProgressBarView(layer: bar, progress: resolver.number(bar.progress) ?? 0, scale: scale, mirrored: mirrored)
         case .stack(let stack): StackLayerView(layer: stack, resolver: resolver, scale: scale, mirrored: mirrored)
         case .states(let states): StatesLayerView(layer: states, frame: layer.frame, resolver: resolver)
+        case .chart(let chart): ChartView(layer: chart, resolver: resolver, scale: scale, mirrored: mirrored)
         case .spacer, .unknown: Color.clear
         }
+    }
+
+    /// The picture an image layer shows: the user's photo, the album art, or another image binding (ADR-029).
+    static func picture(_ source: String, resolver: BindingResolver) -> CGImage? {
+        guard let name = Bindings.soleBinding(source)?.trimmingCharacters(in: .whitespaces) else { return resolver.context.userImage }
+        if name == "media.artwork" { return resolver.context.mediaArtwork }
+        if case .appIcon(let key)? = Bindings.Name(name), let app = resolver.fieldValue(key) {
+            return resolver.context.images["app.\(app).icon"] ?? resolver.context.images[name]
+        }
+        return resolver.context.images[name]
     }
 }

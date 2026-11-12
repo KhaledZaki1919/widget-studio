@@ -181,7 +181,9 @@ class SpecGlanceWidget : GlanceAppWidget() {
         val size = LocalSize.current
         val density = context.resources.displayMetrics.density
         val radius = if (Build.VERSION.SDK_INT < 31) 16 * density else 0f
-        val result = WidgetEnvironment.renderer(context).render(spec, renderContext.copy(mediaArtwork = artwork), (size.width.value * density).toInt(), (size.height.value * density).toInt(), cornerRadius = radius)
+        // ADR-029: the playing app's icon and the icons of the design's app fields.
+        val images = com.khaled.widgetstudio.data.Extras.images(context, spec) { key -> (design?.fieldValues?.get(key) ?: spec.field(key)?.default)?.resolved(language) }
+        val result = WidgetEnvironment.renderer(context).render(spec, renderContext.copy(mediaArtwork = artwork, images = images), (size.width.value * density).toInt(), (size.height.value * density).toInt(), cornerRadius = radius)
         var modifier = GlanceModifier.fillMaxSize().appWidgetBackground()
         if (Build.VERSION.SDK_INT >= 31) modifier = modifier.cornerRadius(android.R.dimen.system_app_widget_background_radius)
         Box(modifier = modifier) {

@@ -36,6 +36,12 @@ public enum Bindings {
         case timezoneTime(String)
         /// `days.<dateFieldKey>`: whole days from today to a date field (ADR-011).
         case daysUntil(String)
+        /// `app.<appFieldKey>.icon`: the icon of an app the user picks (ADR-029).
+        case appIcon(String)
+        /// `stock.<tickerFieldKey>.<part>`: price, change, changePct or series of a ticker field (ADR-029).
+        case stock(String, String)
+
+        public static let stockParts = ["price", "change", "changePct", "series"]
 
         public init?(_ raw: String) {
             let name = raw.trimmingCharacters(in: .whitespaces)
@@ -51,6 +57,13 @@ public enum Bindings {
                 let key = String(name.dropFirst(3).dropLast(5))
                 guard Bindings.isValidKey(key) else { return nil }
                 self = .timezoneTime(key)
+            } else if name.hasPrefix("app."), name.hasSuffix(".icon"), name.count > "app..icon".count {
+                let key = String(name.dropFirst(4).dropLast(5))
+                guard Bindings.isValidKey(key) else { return nil }
+                self = .appIcon(key)
+            } else if name.hasPrefix("stock."), case let parts = name.split(separator: ".").map(String.init), parts.count == 3,
+                      Bindings.isValidKey(parts[1]), Name.stockParts.contains(parts[2]) {
+                self = .stock(parts[1], parts[2])
             } else if Bindings.catalog[name] != nil {
                 self = .builtin(name)
             } else {
@@ -63,6 +76,8 @@ public enum Bindings {
             case .builtin(let name): Bindings.catalog[name]?.1 ?? .field
             case .field: .field
             case .timezoneTime, .daysUntil: .time
+            case .appIcon: .media
+            case .stock: .app
             }
         }
 
@@ -72,6 +87,8 @@ public enum Bindings {
             case .builtin(let name): Bindings.catalog[name]?.0
             case .timezoneTime: .text
             case .daysUntil: .number
+            case .appIcon: .image
+            case .stock(_, let part): part == "series" ? Kind.levels : Kind.number
             case .field: nil
             }
         }

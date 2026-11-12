@@ -396,7 +396,8 @@ object AIWidgetParser {
 
     private fun modeProblems(spec: WidgetSpec, mode: GenerationMode): List<String> {
         val images = spec.layers.indices.filter { index -> (spec.layers[index].content as? LayerContent.Image)?.let { Bindings.soleBinding(it.source) == null } ?: false }
-        return if (mode == GenerationMode.RECREATE) images.map { "layers[$it]: image layers are not allowed when recreating a design; draw it with shapes, text and icons" }
+        // ADR-029: a photo, map or scene in a recreated design is the user's own picture (user_image).
+        return if (mode == GenerationMode.RECREATE) emptyList()
         else if (images.isEmpty()) listOf("layers: add one image layer with \"source\": \"user_image\" for the user's photo") else emptyList()
     }
 
@@ -539,6 +540,9 @@ object ExternalAI {
             throw ImportError.Invalid(error.message ?: "")
         }
     }
+
+    /** Every widget in a reply. */
+    fun importAll(text: String, size: String = "auto"): List<GeneratedWidget> = listOf(importWidget(text, size))
 
     fun fixRequest(error: ImportError): String = when (error) {
         ImportError.Unreadable -> "The file could not be read. Reply again with the whole JSON object as text."

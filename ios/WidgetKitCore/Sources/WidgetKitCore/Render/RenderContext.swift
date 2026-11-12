@@ -18,6 +18,23 @@ public struct DataSnapshot: Sendable, Equatable {
         }
     }
 
+    /// One hour of the forecast (ADR-029): chance of rain in percent, rain in mm.
+    public struct HourForecast: Sendable, Equatable {
+        public var date: Date
+        public var symbol: String
+        public var temperature: Double
+        public var rainChance: Double
+        public var rain: Double
+
+        public init(date: Date, symbol: String, temperature: Double, rainChance: Double, rain: Double) {
+            self.date = date
+            self.symbol = symbol
+            self.temperature = temperature
+            self.rainChance = rainChance
+            self.rain = rain
+        }
+    }
+
     public struct Weather: Sendable, Equatable {
         public var temperature: Double
         public var high: Double
@@ -26,6 +43,10 @@ public struct DataSnapshot: Sendable, Equatable {
         public var symbol: String
         public var city: LocalizedText
         public var forecast: [DayForecast]
+        /// ADR-029: the next hours, the UV index and the air quality (European AQI).
+        public var hourly: [HourForecast] = []
+        public var uv: Double?
+        public var aqi: Double?
 
         public init(temperature: Double, high: Double, low: Double, condition: LocalizedText, symbol: String,
                     city: LocalizedText, forecast: [DayForecast]) {
@@ -156,6 +177,8 @@ public struct DataSnapshot: Sendable, Equatable {
                 live[binding.id] = .date(date ?? now)
             case "levels":
                 live[binding.id] = .levels(SpecLiterals.levels(example) ?? [])
+            case "series":
+                live[binding.id] = .levels(example.split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) })
             default:
                 live[binding.id] = .text(example)
             }
@@ -176,6 +199,8 @@ public struct RenderContext {
     public var userImage: CGImage?
     /// The album art of what is playing (`{{media.artwork}}`).
     public var mediaArtwork: CGImage?
+    /// Other image bindings by name (ADR-029): `media.appIcon`, `app.<key>.icon`. Filled where the system gives them.
+    public var images: [String: CGImage] = [:]
     /// Renders live texts (relative, timer) as fixed text measured from `date`, because SwiftUI's
     /// live styles measure from the real clock. For snapshot tests only.
     public var freezesLiveText = false

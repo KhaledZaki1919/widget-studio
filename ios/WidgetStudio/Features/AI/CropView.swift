@@ -25,7 +25,7 @@ struct CropView: View {
     @State private var preset: Preset = .free
 
     enum Preset: Hashable, CaseIterable {
-        case free, small, medium, large
+        case free, small, medium, large, xlarge
         /// Width over height (small 1:1, medium about 2.1:1, large about 0.95:1).
         var aspect: CGFloat? {
             switch self {
@@ -33,6 +33,7 @@ struct CropView: View {
             case .small: 1
             case .medium: 2.14
             case .large: 0.95
+            case .xlarge: 0.64
             }
         }
     }
@@ -62,6 +63,7 @@ struct CropView: View {
                     Text("detail.size.small").tag(Preset.small)
                     Text("detail.size.medium").tag(Preset.medium)
                     Text("detail.size.large").tag(Preset.large)
+                    Text("detail.size.xlarge").tag(Preset.xlarge)
                 }
                 .pickerStyle(.segmented)
                 .onChange(of: preset) { _, preset in applyPreset(preset) }
@@ -115,6 +117,7 @@ struct CropView: View {
         case .small: return .small
         case .medium: return .medium
         case .large: return .large
+        case .xlarge: return .xlarge
         case .free: return DetectedWidget(rect: selection, shape: shape ?? .roundedRect).suggestedSize(imageWidth: image.width)
         }
     }

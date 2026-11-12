@@ -10,6 +10,14 @@ struct StackLayerView: View {
     let mirrored: Bool
 
     var body: some View {
+        if layer.axis == .radial {
+            RadialStackView(layer: layer, children: visible, resolver: resolver, scale: scale, mirrored: mirrored)
+        } else {
+            linear
+        }
+    }
+
+    @ViewBuilder private var linear: some View {
         // The content always fits the frame: if it doesn't at full size, the whole stack is drawn
         // smaller, step by step, instead of running past the frame and off the widget (eval
         // 2026-11-02: corner texts in one row lost "hello" and "Nov" at the edges). The last step
@@ -30,7 +38,7 @@ struct StackLayerView: View {
         switch layer.axis {
         case .vertical: .vertical
         case .horizontal: .horizontal
-        case .grid: [.horizontal, .vertical]
+        case .grid, .radial: [.horizontal, .vertical]
         }
     }
 
@@ -53,6 +61,8 @@ struct StackLayerView: View {
                     StackChildView(layer: child, axis: .horizontal, textAlign: textAlign, resolver: resolver, scale: scale, mirrored: mirrored)
                 }
             }
+        case .radial:
+            EmptyView()
         case .grid:
             let rows = StackLayer(axis: .grid, columns: layer.columns, children: visible).rows
             Grid(alignment: Alignment(horizontal: horizontal(layer.alignItems ?? .start), vertical: .center),
@@ -88,6 +98,7 @@ struct StackLayerView: View {
         case .vertical: return Alignment(horizontal: horizontal(layer.alignItems ?? .start), vertical: vertical(justify))
         case .horizontal: return Alignment(horizontal: horizontal(justify), vertical: vertical(layer.alignItems ?? .center))
         case .grid: return Alignment(horizontal: horizontal(justify), vertical: .top)
+        case .radial: return .center
         }
     }
 
@@ -105,6 +116,69 @@ struct StackLayerView: View {
         case .center: .center
         case .end: .bottom
         }
+    }
+}
+
+/// A radial stack (ADR-029): children evenly around a circle, the first at `startAngle` (degrees clockwise
+/// from 12 o'clock), each turned to its angle when `rotateChildren` is true. Mirrored in Arabic, they run
+/// counterclockwise; glyphs never flip.
+private struct RadialStackView: View {
+    let layer: StackLayer
+    let children: [Layer]
+    let resolver: BindingResolver
+    let scale: CGFloat
+    let mirrored: Bool
+
+    var body: some View {
+        GeometryReader { proxy in
+            let rect = CGRect(origin: .zero, size: proxy.size)
+            let geometry = RadialLayout(stack: layer, count: children.count, size: proxy.size, scale: scale, largestChild: largest * scale,
+                                        mirrored: mirrored)
+            ZStack {
+                ForEach(Array(children.enumerated()), id: \.offset) { index, child in
+                    let angle = geometry.angle(index)
+                    StackChildView(layer: child, axis: .radial, textAlign: .center, resolver: resolver, scale: scale, mirrored: mirrored)
+                        .fixedSize()
+                        .rotationEffect(.degrees(layer.rotateChildren == true ? angle : 0))
+                        .position(ShapeGeometry.point(rect.insetBy(dx: rect.width / 2 - geometry.radius, dy: rect.height / 2 - geometry.radius),
+                                                      degrees: angle))
+                }
+            }
+        }
+    }
+
+    /// The largest child's size along either axis (canvas units), from its own size, font or symbol.
+    private var largest: CGFloat {
+        children.map { child -> CGFloat in
+            let given = CGFloat(max(child.frame.w, child.frame.h))
+            if given > 0 { return given }
+            switch child.content {
+            case .text(let text): return CGFloat(text.font.size) * 1.2
+            case .icon(let icon): return CGFloat(icon.size)
+            default: return 10
+            }
+        }.max() ?? 0
+    }
+}
+
+/// Where a radial stack's children sit, without SwiftUI views (tests, Android parity).
+struct RadialLayout {
+    let radius: CGFloat
+    let start: Double
+    let step: Double
+    let mirrored: Bool
+
+    init(stack: StackLayer, count: Int, size: CGSize, scale: CGFloat, largestChild: CGFloat, mirrored: Bool) {
+        let side = min(size.width, size.height)
+        radius = stack.radius.map { CGFloat($0) * scale } ?? max(side / 2 - largestChild / 2 - CGFloat(stack.padding ?? 0) * scale, 1)
+        start = stack.startAngle ?? 0
+        let sweep = min(max(stack.sweep ?? 360, 0), 360)
+        step = count > 1 ? (sweep >= 360 ? 360 / Double(count) : sweep / Double(count - 1)) : 0
+        self.mirrored = mirrored
+    }
+
+    func angle(_ index: Int) -> Double {
+        mirrored ? start - step * Double(index) : start + step * Double(index)
     }
 }
 

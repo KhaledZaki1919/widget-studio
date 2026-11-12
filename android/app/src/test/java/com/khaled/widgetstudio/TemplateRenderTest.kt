@@ -61,6 +61,25 @@ class TemplateRenderTest {
         File(out, "templates/summary.md").writeText(summary.joinToString("\n") + "\n")
     }
 
+    /** The hand-written test specs (every layer type, ADR-029's drawing tools in 14-xlarge-drawing) in both languages. */
+    @Test
+    fun everyTestSpecRenders() {
+        val renderer = SpecRenderer(app)
+        val zone = ZoneId.of("Africa/Cairo")
+        val now = Instant.ofEpochSecond(1_792_580_700)
+        File(out, "testspecs").mkdirs()
+        val folder = File("../../ios/WidgetKitCore/Sources/WidgetKitCore/Resources/TestSpecs")
+        for (file in folder.listFiles { f -> f.extension == "json" }.orEmpty().sortedBy { it.name }) {
+            val spec = com.khaled.widgetstudio.spec.SpecParser.parse(file.readText())
+            for (language in listOf("ar", "en")) {
+                val context = RenderContext(now = now, language = language, zone = zone, data = DataSnapshot.sample(now, zone))
+                val bitmap = renderer.render(spec, context, (spec.family.width * 2).toInt(), (spec.family.height * 2).toInt()).bitmap
+                assertTrue("${spec.id} $language renders something", distinctColors(bitmap) > 1)
+                write(bitmap, File(out, "testspecs/${spec.id}.$language.png"))
+            }
+        }
+    }
+
     private fun distinctColors(bitmap: Bitmap): Int {
         val seen = HashSet<Int>()
         for (y in 0 until bitmap.height step 4) for (x in 0 until bitmap.width step 4) {

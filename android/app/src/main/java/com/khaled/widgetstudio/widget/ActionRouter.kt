@@ -49,6 +49,8 @@ object ActionRouter {
     val opens = setOf(
         "open.app", "open.url", "open.deeplink", "app.launch", "call.dial", "message.open", "shortcut.run", "camera.open", "qr.scan",
         "calendar.open", "compass.open", "weather.open", "media.open", "task.add",
+        // ADR-029
+        "assistant.open", "search.open", "alarm.open", "clock.open", "health.open",
     )
 
     fun glance(context: Context, id: String, arg: String?): Action {
@@ -61,7 +63,7 @@ object ActionRouter {
         }
         missingPermission(context, id)?.let { return opening(context, id, arg, it) }
         if (id in inPlace) return actionRunCallback<Perform>(actionParametersOf(idKey to id, argKey to (arg ?: "")))
-        if (capability.supportAndroid == "panel" && id.startsWith("system.toggle")) return opening(context, id, arg, panel(context, capability))
+        if (capability.supportAndroid == "panel" && (id.startsWith("system.toggle") || capability.panel != null)) return opening(context, id, arg, panel(context, capability))
         val intent = activity(context, id, arg) ?: return hint(id, arg)
         return opening(context, id, arg, intent)
     }
@@ -93,6 +95,10 @@ object ActionRouter {
             "mobileData" -> Intent(if (modern) Settings.Panel.ACTION_INTERNET_CONNECTIVITY else Settings.ACTION_DATA_ROAMING_SETTINGS)
             "display" -> Intent(Settings.ACTION_DISPLAY_SETTINGS)
             "batterySaver" -> Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS)
+            // ADR-029
+            "hotspot" -> Intent("android.settings.TETHER_SETTINGS")
+            "nfc" -> Intent(if (modern) Settings.Panel.ACTION_NFC else Settings.ACTION_NFC_SETTINGS)
+            "captions" -> Intent(Settings.ACTION_CAPTIONING_SETTINGS)
             else -> MainActivity.intent(context, null)
         }
         return intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -114,6 +120,10 @@ object ActionRouter {
             "task.add" -> MainActivity.intent(context, MainActivity.OPEN_TASK_ADD)
             "weather.open" -> Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=weather"))
             "media.open" -> MediaHub.controller(context)?.packageName?.let { context.packageManager.getLaunchIntentForPackage(it) }
+            "assistant.open" -> Intent(Intent.ACTION_VOICE_COMMAND)
+            "search.open" -> Intent("android.search.action.GLOBAL_SEARCH")
+            "alarm.open", "clock.open" -> Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS)
+            "health.open" -> Intent("androidx.health.ACTION_HEALTH_CONNECT_SETTINGS")
             else -> null
         }
         return intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

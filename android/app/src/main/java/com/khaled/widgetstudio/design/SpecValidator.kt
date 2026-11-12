@@ -17,6 +17,10 @@ import java.time.ZoneId
 object IconWhitelist {
     @Volatile var names: Map<String, String> = emptyMap()
     fun isAllowed(symbol: String) = names.containsKey(symbol)
+
+    /** ADR-029: any SF Symbol name (lower-case words and digits joined by dots, at most 60 characters). */
+    fun isSymbolName(symbol: String) = symbol.isNotEmpty() && symbol.length <= 60 && !symbol.startsWith(".") && !symbol.endsWith(".") &&
+        !symbol.contains("..") && symbol.all { it in 'a'..'z' || it in '0'..'9' || it == '.' }
 }
 
 /** Binding names and what they yield (Bindings.swift catalog). */
@@ -29,7 +33,7 @@ object BindingCatalog {
 
     fun kind(type: String?) = when (type) {
         "number" -> Kind.NUMBER
-        "levels" -> Kind.LEVELS
+        "levels", "series" -> Kind.LEVELS
         "date" -> Kind.DATE
         "symbol" -> Kind.SYMBOL
         "image" -> Kind.IMAGE
@@ -43,7 +47,13 @@ object BindingCatalog {
         data class Field(val key: String) : Name()
         data class TimezoneTime(val key: String) : Name()
         data class DaysUntil(val key: String) : Name()
+        /** app.<appFieldKey>.icon (ADR-029). */
+        data class AppIcon(val key: String) : Name()
+        /** stock.<tickerFieldKey>.<price|change|changePct|series> (ADR-029). */
+        data class Stock(val key: String, val part: String) : Name()
     }
+
+    val stockParts = listOf("price", "change", "changePct", "series")
 
     fun parse(raw: String): Name? {
         val name = raw.trim()
@@ -52,6 +62,9 @@ object BindingCatalog {
             name.startsWith("days.") -> name.removePrefix("days.").takeIf(::isValidKey)?.let { Name.DaysUntil(it) }
             name.startsWith("tz.") && name.endsWith(".time") && name.length > "tz..time".length ->
                 name.drop(3).dropLast(5).takeIf(::isValidKey)?.let { Name.TimezoneTime(it) }
+            name.startsWith("app.") && name.endsWith(".icon") && name.length > "app..icon".length ->
+                name.drop(4).dropLast(5).takeIf(::isValidKey)?.let { Name.AppIcon(it) }
+            name.startsWith("stock.") -> name.split(".").takeIf { it.size == 3 && isValidKey(it[1]) && it[2] in stockParts }?.let { Name.Stock(it[1], it[2]) }
             catalog.containsKey(name) -> Name.Builtin(name)
             else -> null
         }
@@ -61,6 +74,8 @@ object BindingCatalog {
     fun allowedInAI(name: Name): Boolean = when (name) {
         is Name.Builtin -> Capabilities.binding(name.name)?.ai ?: false
         is Name.Field, is Name.DaysUntil, is Name.TimezoneTime -> true
+        is Name.AppIcon -> Capabilities.binding("app.<appField>.icon")?.ai ?: false
+        is Name.Stock -> Capabilities.binding("stock.<tickerField>.price")?.ai ?: false
     }
 }
 
@@ -134,14 +149,27 @@ object SpecLayout {
 class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boolean = true) {
     companion object {
         const val MAX_LAYERS = 30
-        const val MAX_TOTAL_LAYERS = 60
+        /** A chart, dot grid or list is one layer however much it draws (ADR-029: raised from 60). */
+        const val MAX_TOTAL_LAYERS = 100
+        const val MAX_DOTS = 1600
+        const val MAX_GRID_SIDE = 60
+        const val MAX_SPANS = 12
+        const val MAX_CHART_POINTS = 400
         const val MAX_STACK_DEPTH = 3
         const val MAX_CHILDREN = 12
         const val MAX_TEXT_LENGTH = 200
         val FONT_SIZES = 6.0..200.0
         const val MIN_AI_FONT_SIZE = 11.0
         val families = listOf("system", "system-rounded", "system-serif", "system-mono", "dot", "arabic", "hand", "serif-display", "condensed")
-        val aiFieldTypes = setOf("text", "date", "image", "url", "shortcut", "timezone")
+        val aiFieldTypes = setOf("text", "date", "image", "url", "shortcut", "timezone", "app", "ticker")
+
+        /** Digits row by row: 0/1 on and off, or levels 0…9 when any digit is above 1 (SpecLiterals.dotPattern). */
+        fun dotPattern(value: String): List<Double>? {
+            val digits = value.filter { it != ' ' }
+            if (digits.isEmpty() || digits.length > MAX_DOTS || !digits.all { it in '0'..'9' }) return null
+            val binary = digits.all { it == '0' || it == '1' }
+            return digits.map { (it - '0').toDouble() / if (binary) 1.0 else 9.0 }
+        }
         val weekdayKeys = listOf("sun", "mon", "tue", "wed", "thu", "fri", "sat")
 
         fun isValidId(id: String) = id.isNotEmpty() && id.length <= 64 && id.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' || it == '.' || it == '-' || it == '_' }
@@ -154,7 +182,9 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
     fun validate(spec: WidgetSpec): List<String> {
         this.spec = spec
         issues.clear()
-        if (spec.schemaVersion != 1) fail("schemaVersion", "must be 1")
+        if (spec.schemaVersion > WidgetSpec.CURRENT_VERSION) fail("specVersion", "made for a newer version of Widget Studio (${spec.schemaVersion}); update the app")
+        else if (spec.schemaVersion < 1) fail("specVersion", "must be 1 or ${WidgetSpec.CURRENT_VERSION}")
+        spec.card?.let(::checkCard)
         if (!isValidId(spec.id)) fail("id", "use letters, digits, dots, dashes or underscores (max 64)")
         if (spec.name is LText.Plain) fail("name", "needs both \"en\" and \"ar\"")
         spec.name.allValues.forEach { text("name", it, allowBindings = false) }
@@ -230,6 +260,16 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
                 if (field.type != "date") fail(path, "{{$raw}} needs a date field")
                 BindingCatalog.Kind.NUMBER
             }
+            is BindingCatalog.Name.AppIcon -> {
+                val field = spec.field(name.key) ?: return fail(path, "{{$raw}} refers to a missing field")
+                if (field.type != "app") fail(path, "{{$raw}} needs a field of type app")
+                BindingCatalog.Kind.IMAGE
+            }
+            is BindingCatalog.Name.Stock -> {
+                val field = spec.field(name.key) ?: return fail(path, "{{$raw}} refers to a missing field")
+                if (field.type != "ticker") fail(path, "{{$raw}} needs a field of type ticker")
+                if (name.part == "series") BindingCatalog.Kind.LEVELS else BindingCatalog.Kind.NUMBER
+            }
             is BindingCatalog.Name.Field -> {
                 val field = spec.field(name.key) ?: return fail(path, "{{$raw}} refers to a missing field")
                 if (ai && (field.type == "image" || field.type !in aiFieldTypes)) fail(path, "AI output may only bind text, date, link and Shortcut fields")
@@ -268,13 +308,35 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
         color("background.outerColor", b.outerColor)
     }
 
+    /** ADR-029: the card's shape, ratio, place and colors. */
+    private fun checkCard(card: com.khaled.widgetstudio.spec.CardSpec) {
+        number("card.aspect", card.aspect, 0.15..7.0)
+        number("card.cornerRadius", card.cornerRadius, 0.0..200.0)
+        card.bumps?.let { count("card.bumps", it, 5..24) }
+        color("card.outerColor", card.outerColor)
+        card.inset?.let { f ->
+            val family = spec.family
+            if (listOf(f.x, f.y, f.w, f.h).any { !it.isFinite() } || f.w <= 0 || f.h <= 0 || f.x < -0.5 || f.y < -0.5 ||
+                f.x + f.w > family.width + 0.5 || f.y + f.h > family.height + 0.5) {
+                fail("card.inset", "must lie inside the ${family.width.toInt()} × ${family.height.toInt()} canvas")
+            }
+        }
+    }
+
+    private fun gradient(path: String, g: com.khaled.widgetstudio.spec.SpecGradient?) {
+        if (g == null) return
+        if (g.colors.size !in 2..4) fail("$path.colors", "a gradient needs 2 to 4 colors")
+        g.colors.forEachIndexed { index, value -> color("$path.colors[$index]", value) }
+        number("$path.angle", g.angle, -360.0..360.0)
+    }
+
     private fun checkFields() {
         val keys = mutableSetOf<String>()
         spec.fields.forEachIndexed { index, field ->
             val path = "fields[$index]"
             if (!BindingCatalog.isValidKey(field.key)) fail("$path.key", "letters, digits and underscores, starting with a letter")
             if (!keys.add(field.key)) fail("$path.key", "duplicate key \"${field.key}\"")
-            if (ai && field.type !in aiFieldTypes) fail("$path.type", "AI output may only use text, date, url, shortcut, timezone and image fields")
+            if (ai && field.type !in aiFieldTypes) fail("$path.type", "AI output may only use text, date, url, shortcut, timezone, app, ticker and image fields")
             field.label.allValues.forEach { text("$path.label", it, allowBindings = false) }
             field.default?.allValues?.forEach { value ->
                 val p = "$path.default"
@@ -286,6 +348,7 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
                     "timezone" -> if (value.isNotEmpty() && runCatching { ZoneId.of(value) }.isFailure) fail(p, "unknown time zone")
                     "url" -> if (value.isNotEmpty()) fail(p, "URL fields can't have a default")
                     "icon" -> if (!IconWhitelist.isAllowed(value)) fail(p, "\"$value\" is not in the icon whitelist")
+                    "app", "ticker" -> if (DesignEditing.containsUrl(value)) fail(p, "remote URLs are not allowed in specs")
                     else -> if (DesignEditing.containsUrl(value)) fail(p, "remote URLs are not allowed in specs")
                 }
             }
@@ -369,6 +432,19 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
             is LayerContent.Text -> {
                 c.value.allValues.forEach { text("$path.value", it) }
                 font(c.font, "$path.font")
+                number("$path.minScale", c.minScale, 0.3..1.0)
+                c.spans?.let { spans ->
+                    count("$path.spans", spans.size, 1..MAX_SPANS)
+                    spans.forEachIndexed { index, span ->
+                        val p = "$path.spans[$index]"
+                        span.text.allValues.forEach { text("$p.text", it) }
+                        span.font?.let { font(it, "$p.font") }
+                        color("$p.color", span.color)
+                        number("$p.baselineOffset", span.baselineOffset, -100.0..100.0)
+                        number("$p.tracking", span.tracking, -10.0..40.0)
+                    }
+                }
+                c.path?.let { arc -> number("$path.path.arc", arc.arc, 1.0..400.0); number("$path.path.start", arc.start, -720.0..720.0) }
                 color("$path.color", c.color)
                 c.maxLines?.let { count("$path.maxLines", it, 1..10) }
                 number("$path.tracking", c.tracking, -10.0..40.0)
@@ -383,14 +459,24 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
                     binding("$path.source", raw, setOf(BindingCatalog.Kind.IMAGE))
                 } else {
                     val asset = c.source.startsWith("asset:") && isValidId(c.source.removePrefix("asset:"))
-                    if (c.source != "user_image" && !asset) fail("$path.source", "must be \"user_image\" or \"asset:<id>\"")
+                    if (c.source != "user_image" && !asset) fail("$path.source", "must be \"user_image\", an image binding like {{media.artwork}} or {{media.appIcon}}, or \"asset:<id>\"")
                     else if (ai && c.source != "user_image") fail("$path.source", "AI output may only use \"user_image\"")
                     number("$path.cornerRadius", c.cornerRadius, 0.0..200.0)
                 }
             }
             is LayerContent.Shape -> {
-                if (c.fill == null && c.stroke == null) fail(path, "a shape needs a fill or a stroke")
+                if (c.fill == null && c.stroke == null && c.gradient == null) fail(path, "a shape needs a fill or a stroke")
                 color("$path.fill", c.fill)
+                gradient("$path.fill", c.gradient)
+                c.sides?.let { count("$path.sides", it, 3..24) }
+                number("$path.innerRatio", c.innerRatio, 0.0..0.95)
+                number("$path.startAngle", c.startAngle, -720.0..720.0)
+                number("$path.endAngle", c.endAngle, -720.0..720.0)
+                c.points?.let { points ->
+                    if (points.size !in 3..16) fail("$path.points", "a polygon needs 3 to 16 points")
+                    if (points.any { p -> p.size != 2 || p.any { it !in -0.01..1.01 } }) fail("$path.points", "each point is [x, y] with fractions of the frame, 0 to 1")
+                }
+                c.progress?.let { bindingOrLiteral("$path.progress", it, number1, fraction) }
                 c.stroke?.let { s ->
                     color("$path.stroke.color", s.color)
                     number("$path.stroke.width", s.width, 0.0..40.0)
@@ -401,7 +487,7 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
             is LayerContent.Icon -> {
                 val raw = Bindings.soleBinding(c.symbol)
                 if (raw != null) binding("$path.symbol", raw, setOf(BindingCatalog.Kind.SYMBOL))
-                else if (!IconWhitelist.isAllowed(c.symbol)) fail("$path.symbol", "\"${c.symbol}\" is not in the icon whitelist")
+                else if (!IconWhitelist.isAllowed(c.symbol) && !IconWhitelist.isSymbolName(c.symbol)) fail("$path.symbol", "\"${c.symbol}\" is not an SF Symbol name (lower-case words joined by dots)")
                 number("$path.size", c.size, 4.0..200.0)
                 color("$path.color", c.color)
             }
@@ -409,15 +495,18 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
                 listOf("faceColor" to c.faceColor, "tickColor" to c.tickColor, "hourColor" to c.hourColor, "minuteColor" to c.minuteColor, "accentColor" to c.accentColor)
                     .forEach { (key, value) -> color("$path.$key", value) }
                 c.timezone?.let { zone -> bindingOrLiteral("$path.timezone", zone, setOf(BindingCatalog.Kind.TEXT)) { runCatching { ZoneId.of(it) }.isSuccess } }
+                number("$path.hourWidth", c.hourWidth, 0.005..0.4); number("$path.minuteWidth", c.minuteWidth, 0.005..0.4)
+                number("$path.hourLength", c.hourLength, 0.1..1.2); number("$path.minuteLength", c.minuteLength, 0.1..1.2)
             }
             is LayerContent.DotGrid -> {
-                count("$path.rows", c.rows, 1..40)
-                count("$path.cols", c.cols, 1..40)
-                if (c.rows * c.cols > 600) fail(path, "at most 600 dots")
+                count("$path.rows", c.rows, 1..MAX_GRID_SIDE)
+                count("$path.cols", c.cols, 1..MAX_GRID_SIDE)
+                if (c.rows * c.cols > MAX_DOTS) fail(path, "at most $MAX_DOTS dots")
+                c.levelColors?.let { colors -> count("$path.levelColors", colors.size, 1..10); colors.forEachIndexed { i, v -> color("$path.levelColors[$i]", v) } }
                 number("$path.dotSize", c.dotSize, 0.5..60.0)
                 number("$path.gap", c.gap, 0.0..60.0)
                 color("$path.onColor", c.onColor); color("$path.offColor", c.offColor); color("$path.highlightColor", c.highlightColor)
-                bindingOrLiteral("$path.values", c.values, setOf(BindingCatalog.Kind.LEVELS, BindingCatalog.Kind.NUMBER)) { v -> v.filter { it != ' ' }.let { d -> d.isNotEmpty() && d.length <= 600 && d.all { it == '0' || it == '1' } } }
+                bindingOrLiteral("$path.values", c.values, setOf(BindingCatalog.Kind.LEVELS, BindingCatalog.Kind.NUMBER)) { v -> dotPattern(v) != null }
             }
             is LayerContent.DotBars -> {
                 count("$path.bars", c.bars, 1..31)
@@ -432,8 +521,22 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
                 number("$path.lineWidth", c.lineWidth, 0.5..60.0)
             }
             is LayerContent.ForecastRow -> {
-                count("$path.days", c.days, 1..7)
-                color("$path.color", c.color)
+                count("$path.days", c.days, if (c.mode == "hourly") 1..8 else 1..7)
+                color("$path.color", c.color); color("$path.dividerColor", c.dividerColor); color("$path.labelColor", c.labelColor)
+                c.font?.let { font(it, "$path.font") }
+            }
+            is LayerContent.Chart -> {
+                bindingOrLiteral("$path.values", c.values, setOf(BindingCatalog.Kind.LEVELS)) { v -> LayerContent.Chart.parse(v)?.let { it.size <= MAX_CHART_POINTS } ?: false }
+                color("$path.color", c.color); color("$path.fill", c.fill); gradient("$path.fill", c.gradient)
+                listOf("baselineColor" to c.baselineColor, "highlightColor" to c.highlightColor, "labelColor" to c.labelColor, "downColor" to c.downColor)
+                    .forEach { (key, value) -> color("$path.$key", value) }
+                number("$path.lineWidth", c.lineWidth, 0.5..20.0); number("$path.barWidth", c.barWidth, 0.05..1.0); number("$path.cornerRadius", c.cornerRadius, 0.0..40.0)
+                c.baseline?.let { if (it.lowercase() !in listOf("first", "average") && it.toDoubleOrNull() == null) fail("$path.baseline", "a number, \"first\" or \"average\"") }
+                if (c.min != null && c.max != null && c.min >= c.max) fail("$path.max", "must be above min")
+                listOf("xLabels" to c.xLabels, "yLabels" to c.yLabels).forEach { (key, labels) ->
+                    labels?.allValues?.forEach { value -> text("$path.$key", value); if (value.split(",").size > 12) fail("$path.$key", "at most 12 labels") }
+                }
+                c.labelFont?.let { font(it, "$path.labelFont") }
             }
             is LayerContent.CalendarMonth -> {
                 font(c.font, "$path.font"); font(c.effectiveTitleFont, "$path.titleFont"); font(c.effectiveWeekdayFont, "$path.weekdayFont")
@@ -449,6 +552,8 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
                     val p = "$path.items[$index]"
                     item.title.allValues.forEach { text("$p.title", it) }
                     item.detail?.allValues?.forEach { text("$p.detail", it) }
+                    item.subtitle?.allValues?.forEach { text("$p.subtitle", it) }
+                    item.detail2?.allValues?.forEach { text("$p.detail2", it) }
                     if (item.icon != null && !IconWhitelist.isAllowed(item.icon)) fail("$p.icon", "\"${item.icon}\" is not in the icon whitelist")
                     color("$p.color", item.color)
                     item.done?.let { condition("$path.items.done", it) }
@@ -459,6 +564,7 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
                 color("$path.color", c.color); color("$path.trackColor", c.trackColor)
                 c.segments?.let { count("$path.segments", it, 1..20) }
                 number("$path.cornerRadius", c.cornerRadius, 0.0..200.0)
+                c.knob?.let { k -> number("$path.knob.size", k.size, 0.0..80.0); color("$path.knob.color", k.color) }
             }
             is LayerContent.Button -> {
                 val capability = Capabilities.action(c.action) ?: return fail("$path.action", "unknown action \"${c.action}\"; use an id from the allowed list")
@@ -487,14 +593,19 @@ class SpecValidator(private val ai: Boolean, private val checksTextOverlaps: Boo
         number("$path.spacing", stack.spacing, 0.0..100.0)
         number("$path.padding", stack.padding, 0.0..100.0)
         if (stack.axis == "grid") count("$path.columns", stack.columns ?: 2, 1..8) else if (stack.columns != null) fail("$path.columns", "only grids have columns")
+        if (stack.axis == "radial") {
+            number("$path.radius", stack.radius, 0.0..400.0); number("$path.startAngle", stack.startAngle, -720.0..720.0); number("$path.sweep", stack.sweep, 0.0..360.0)
+        }
         stack.children.forEachIndexed { index, child ->
             val p = "$path.children[$index]"
             val size = child.frame
             if (!size.w.isFinite() || !size.h.isFinite() || size.w < 0 || size.h < 0) fail(p, "width and height must be positive numbers or absent")
             when (child.content) {
                 is LayerContent.Text, is LayerContent.Icon, is LayerContent.Stack -> Unit
-                is LayerContent.Spacer -> if (stack.axis == "grid") fail(p, "grids can't hold spacers")
-                is LayerContent.Shape, is LayerContent.Ring, is LayerContent.ProgressBar, is LayerContent.AnalogClock ->
+                is LayerContent.Spacer -> if (stack.axis == "grid") fail(p, "grids can't hold spacers") else if (stack.axis == "radial") fail(p, "a radial stack can't hold spacers")
+                is LayerContent.Shape -> if (stack.axis != "radial" && (if (stack.axis == "horizontal") size.w <= 0 else size.h <= 0))
+                    fail(p, if (stack.axis == "horizontal") "needs a width inside a horizontal stack" else "needs a height inside this stack")
+                is LayerContent.Ring, is LayerContent.ProgressBar, is LayerContent.AnalogClock ->
                     if (if (stack.axis == "horizontal") size.w <= 0 else size.h <= 0) fail(p, if (stack.axis == "horizontal") "needs a width inside a horizontal stack" else "needs a height inside this stack")
                 else -> fail("$p.type", "\"${com.khaled.widgetstudio.spec.SpecWriter.typeName(child.content)}\" can't go in a stack; give it its own frame")
             }

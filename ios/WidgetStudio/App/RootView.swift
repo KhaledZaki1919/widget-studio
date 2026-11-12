@@ -172,6 +172,10 @@ enum WidgetActions {
         case "calendar.open": open("calshow://")
         case "reminders.open": open("x-apple-reminderkit://")
         case "weather.open": open("weather://")
+        // ADR-029: the Clock app (alarms, world clock) and Apple Health.
+        case "alarm.open": open("clock-alarm://")
+        case "clock.open": open("clock-worldclock://")
+        case "health.open": open("x-apple-health://")
         case "media.open": open("music://")
         default: break
         }

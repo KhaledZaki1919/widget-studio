@@ -64,10 +64,12 @@ private fun kindName(content: LayerContent): String = when (content) {
     is LayerContent.Stack -> when (content.axis) {
         "horizontal" -> tr("Row", "صف")
         "grid" -> tr("Grid", "شبكة")
+        "radial" -> tr("Circle", "دائرة")
         else -> tr("Column", "عمود")
     }
     is LayerContent.Spacer -> tr("Space", "مسافة")
     is LayerContent.States -> tr("States", "الحالات")
+    is LayerContent.Chart -> tr("Chart", "رسم بياني")
     is LayerContent.Unknown -> tr("Unknown layer", "طبقة غير معروفة")
 }
 

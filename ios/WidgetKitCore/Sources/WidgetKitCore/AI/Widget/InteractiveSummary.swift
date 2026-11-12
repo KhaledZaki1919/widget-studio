@@ -41,14 +41,21 @@ public struct InteractiveSummary: Sendable, Equatable {
         for item in AutoWire.walk(spec.layers) {
             var names: [String] = []
             switch item.layer.content {
-            case .text(let text): names = Bindings.names(in: text.value.resolved(language: "en")) + [text.live?.target].compactMap { $0 }.flatMap(Bindings.names(in:))
+            case .text(let text):
+                names = Bindings.names(in: text.value.resolved(language: "en")) + [text.live?.target].compactMap { $0 }.flatMap(Bindings.names(in:))
+                    + (text.spans ?? []).flatMap { Bindings.names(in: $0.text.resolved(language: "en")) }
+            case .chart(let chart): names = Bindings.names(in: chart.values)
+            case .shape(let shape): names = Bindings.names(in: shape.progress ?? "")
             case .icon(let icon): names = Bindings.names(in: icon.symbol)
             case .ring(let ring): names = Bindings.names(in: ring.progress)
             case .progressBar(let bar): names = Bindings.names(in: bar.progress)
             case .dotGrid(let grid): names = Bindings.names(in: grid.values)
             case .dotBars(let bars): names = Bindings.names(in: bars.values)
             case .image(let image): names = Bindings.names(in: image.source)
-            case .list(let list): names = list.items.flatMap { Bindings.names(in: $0.title.resolved(language: "en")) }
+            case .list(let list):
+                names = list.items.flatMap { item in
+                    [item.title, item.detail, item.subtitle, item.detail2].compactMap { $0 }.flatMap { Bindings.names(in: $0.resolved(language: "en")) }
+                }
             case .analogClock: names = ["time.hh"]
             case .forecastRow: names = ["weather.temp"]
             case .states(let states): names = states.expanded.compactMap(\.when).flatMap(Bindings.names(in:)) + Bindings.names(in: states.value ?? "")

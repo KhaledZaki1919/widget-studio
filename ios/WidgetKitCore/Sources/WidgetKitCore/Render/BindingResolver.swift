@@ -67,9 +67,19 @@ public struct BindingResolver {
 
     /// `dotGrid` values: levels as above, or a number 0…1 that lights that share of the cells.
     public func gridLevels(_ text: String, cells: Int) -> [Double] {
+        gridLevels(text, cells: cells, order: nil)
+    }
+
+    /// With `order` (ADR-029): a share lights the cells in that order (`DotGridLayout.order`); `cells` = rows × cols.
+    func gridLevels(_ text: String, cells: Int, order: DotGridLayer.DotOrder?, columns: Int? = nil) -> [Double] {
         if case .number(let share, _)? = soleValue(text) {
             let lit = Int((min(max(share, 0), 1) * Double(cells)).rounded())
-            return (0..<max(cells, 0)).map { $0 < lit ? 1 : 0 }
+            guard let order, order != .rows, let columns, columns > 0 else { return (0..<max(cells, 0)).map { $0 < lit ? 1 : 0 } }
+            var result = [Double](repeating: 0, count: max(cells, 0))
+            for index in DotGridLayout.order(rows: cells / columns, cols: columns, order).prefix(lit) where result.indices.contains(index) {
+                result[index] = 1
+            }
+            return result
         }
         return levels(text)
     }
@@ -107,6 +117,11 @@ public struct BindingResolver {
             return number(Double(max(days, 0)), digits: 0)
         case .builtin(let name):
             return builtin(name)
+        case .appIcon:
+            return nil
+        case .stock(let key, let part):
+            guard let ticker = fieldValue(key)?.trimmingCharacters(in: .whitespaces).lowercased(), !ticker.isEmpty else { return nil }
+            return context.data.live["stock.\(ticker).\(part)"]
         }
     }
 
@@ -164,6 +179,24 @@ public struct BindingResolver {
         case "time.hh": return .text(format(context.uses24Hour == false ? "h" : "HH"))
         case "time.mm": return .text(format("mm"))
         case "time.ampm": return .text(localizedFormat("a"))
+        case "time.ss": return .text(format("ss"))
+        case "time.words":
+            let parts = gregorian.dateComponents([.hour, .minute], from: context.date)
+            return .text(TimeWords.words(hour: parts.hour ?? 0, minute: parts.minute ?? 0, arabic: context.isArabic))
+        case "date.EE":
+            let short = localizedFormat("EEE")
+            return .text(context.isArabic ? short : String(short.prefix(2)))
+        case "weather.rainChance":
+            if let hours = upcoming, !hours.isEmpty { return number(hours.prefix(3).map(\.rainChance).max() ?? 0, digits: 0) }
+            return data.live[name]
+        case "weather.rainNext":
+            if let hours = upcoming, !hours.isEmpty { return .text(TimeWords.rainNext(hours, context: context)) }
+            return data.live[name]
+        case "weather.uv": return data.weather?.uv.map { number($0, digits: 0) } ?? data.live[name]
+        case "weather.aqi": return data.weather?.aqi.map { number($0, digits: 0) } ?? data.live[name]
+        case "hourly.temps":
+            if let hours = upcoming, !hours.isEmpty { return .levels(hours.prefix(24).map(\.temperature)) }
+            return data.live[name]
         case "date.d": return .text(format("d"))
         case "date.EEEE": return .text(localizedFormat("EEEE"))
         case "date.MMM": return .text(localizedFormat("MMM"))
@@ -221,12 +254,54 @@ public struct BindingResolver {
             return data.timer.flatMap { timer(name, $0) } ?? data.live[name]
         default:
             if name.hasPrefix("forecast.") { return forecast(name) }
+            if name.hasPrefix("hourly.") || name.hasPrefix("week.d"), let value = indexed(name) { return value }
             if let value = data.live[name] { return value }
             if name.hasPrefix("prayer."), let time = data.prayer?.times[String(name.dropFirst("prayer.".count))] {
                 return .date(time)
             }
             return nil
         }
+    }
+
+    // MARK: Hours and week days (ADR-029)
+
+    /// The hours from the current one on.
+    private var upcoming: [DataSnapshot.HourForecast]? {
+        context.data.weather?.hourly.filter { $0.date.addingTimeInterval(3600) > context.date }
+    }
+
+    /// `hourly.N.time|symbol|temp` (hour 1 is the next full hour) and `week.dN.EEE|d|isToday`.
+    private func indexed(_ name: String) -> Value? {
+        let parts = name.split(separator: ".").map(String.init)
+        guard parts.count == 3 else { return nil }
+        if parts[0] == "hourly" {
+            guard let n = Int(parts[1]) else { return nil }
+            guard let hours = upcoming, !hours.isEmpty else { return context.data.live[name] }
+            let next = hours.filter { $0.date > context.date }
+            guard next.indices.contains(n - 1) else { return nil }
+            let hour = next[n - 1]
+            switch parts[2] {
+            case "time":
+                let pattern = context.uses24Hour == false ? "h a" : "HH:mm"
+                return .text(FormatterCache.date(pattern, locale: context.localeIdentifier, zone: context.timeZone).string(from: hour.date))
+            case "symbol": return .text(hour.symbol)
+            case "temp": return number(hour.temperature, digits: 0)
+            default: return nil
+            }
+        }
+        if parts[0] == "week", parts[1].hasPrefix("d"), let n = Int(parts[1].dropFirst()), (1...7).contains(n) {
+            let calendar = gregorian
+            let today = calendar.startOfDay(for: context.date)
+            let offset = (calendar.component(.weekday, from: today) - calendar.firstWeekday + 7) % 7
+            guard let day = calendar.date(byAdding: .day, value: n - 1 - offset, to: today) else { return nil }
+            switch parts[2] {
+            case "EEE": return .text(FormatterCache.date("EEE", locale: context.localeIdentifier, zone: context.timeZone).string(from: day))
+            case "d": return .text(String(calendar.component(.day, from: day)))
+            case "isToday": return .text(calendar.isDate(day, inSameDayAs: today) ? "1" : "0")
+            default: return nil
+            }
+        }
+        return nil
     }
 
     // MARK: Time as a share (ADR-028)

@@ -228,7 +228,7 @@ fun PermissionsScreen(specs: List<WidgetSpec>, onDone: () -> Unit) {
                             when (permission.id) {
                                 "location" -> runtime.launch(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION))
                                 "calendar" -> runtime.launch(arrayOf(Manifest.permission.READ_CALENDAR))
-                                "health" -> health.launch(live.healthPermissions)
+                                "health" -> health.launch(live.allHealthPermissions)
                                 "notificationAccess" -> settings.launch(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
                                 "dndAccess" -> settings.launch(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
                                 "writeSettings" -> settings.launch(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:${context.packageName}")))

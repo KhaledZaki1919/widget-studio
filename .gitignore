@@ -12,3 +12,7 @@ android/local.properties
 *.p12
 *.jks
 *.keystore
+
+# Owner's private test images and anything made from them (renders, side-by-sides, JSON): never committed.
+private-eval/
+private-eval-out/

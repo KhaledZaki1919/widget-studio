@@ -123,7 +123,7 @@ public struct Capability: Decodable, Sendable, Equatable, Identifiable {
     public var bindingKind: Bindings.Kind {
         switch type {
         case "number": .number
-        case "levels": .levels
+        case "levels", "series": .levels
         case "date": .date
         case "symbol": .symbol
         case "image": .image
@@ -137,6 +137,7 @@ public struct Capability: Decodable, Sendable, Equatable, Identifiable {
         case "url": .url
         case "shortcut": .shortcut
         case "text": .text
+        case "app": .app
         default: nil
         }
     }

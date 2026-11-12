@@ -20,6 +20,7 @@ internal class StackLayout(private val d: Drawing) {
         val pad = ((stack.padding ?: 0.0) * scale).toFloat()
         val area = RectF(frame.left + pad, frame.top + pad, frame.right - pad, frame.bottom - pad)
         val visible = stack.children.filter { it.condition == null || d.resolver.isSatisfied(it.condition) }
+        if (stack.axis == "radial") return radial(canvas, stack, visible, frame, scale, mirrored)
         for (factor in listOf(1f, 0.85f, 0.7f, 0.55f, 0.4f)) {
             val s = scale * factor
             val fits = when (stack.axis) {
@@ -53,8 +54,33 @@ internal class StackLayout(private val d: Drawing) {
             }
             else -> {
                 val items = children.map { measure(it, "vertical", scale, area.width(), area.height()) }
-                (items.maxOfOrNull { it.width } ?: 0f) to items.sumOf { (if (it.flexible) 0f else it.height).toDouble() }.toFloat() + gap * max(0, items.size - 1)
+                // The width is what the widest child needs, not the space offered: a column of texts beside a big
+                // number in a horizontal stack must not claim the whole row (fixes the row shrinking to 40 %).
+                val widths = children.map { measure(it, "intrinsic", scale, area.width(), area.height()).width }
+                (widths.maxOrNull() ?: 0f) to items.sumOf { (if (it.flexible) 0f else it.height).toDouble() }.toFloat() + gap * max(0, items.size - 1)
             }
+        }
+    }
+
+    /** A radial stack (RadialStackView.swift): children around a circle, turned with their angle when asked. */
+    private fun radial(canvas: Canvas, stack: LayerContent.Stack, children: List<Layer>, frame: RectF, scale: Float, mirrored: Boolean) {
+        val sizes = children.map { measure(it, "intrinsic", scale, frame.width(), frame.height()) }
+        val largest = sizes.maxOfOrNull { maxOf(it.width, it.height) } ?: 0f
+        val side = minOf(frame.width(), frame.height())
+        val radius = stack.radius?.let { (it * scale).toFloat() } ?: maxOf(side / 2 - largest / 2 - ((stack.padding ?: 0.0) * scale).toFloat(), 1f)
+        val start = stack.startAngle ?: 0.0
+        val sweep = (stack.sweep ?: 360.0).coerceIn(0.0, 360.0)
+        val step = if (children.size > 1) (if (sweep >= 360) 360.0 / children.size else sweep / (children.size - 1)) else 0.0
+        children.forEachIndexed { index, child ->
+            val angle = if (mirrored) start - step * index else start + step * index
+            val radians = Math.toRadians(angle)
+            val cx = frame.centerX() + (Math.sin(radians) * radius).toFloat()
+            val cy = frame.centerY() - (Math.cos(radians) * radius).toFloat()
+            val item = sizes[index]
+            canvas.save()
+            if (stack.rotateChildren == true) canvas.rotate(angle.toFloat(), cx, cy)
+            d.layer(canvas, child, RectF(cx - item.width / 2, cy - item.height / 2, cx + item.width / 2, cy + item.height / 2), scale, mirrored, "center", fillWidth = false)
+            canvas.restore()
         }
     }
 
@@ -72,12 +98,18 @@ internal class StackLayout(private val d: Drawing) {
             is LayerContent.Text -> {
                 val value = d.text.value(content)
                 val lines = max(content.maxLines ?: 1, value.count { it == '\n' } + 1)
-                val width = givenW ?: if (axis == "horizontal") minOf(d.text.naturalWidth(value, content.font, content.tracking, scale), availableWidth) else availableWidth
+                val width = givenW ?: if (axis == "horizontal" || axis == "intrinsic") minOf(d.text.naturalWidth(value, content.font, content.tracking, scale), availableWidth) else availableWidth
                 val height = givenH ?: d.text.naturalHeight(value, content.font, content.tracking, scale, width, lines)
                 Item(child, width, height, false)
             }
             is LayerContent.Icon -> Item(child, givenW ?: (content.size * scale).toFloat(), givenH ?: (content.size * scale).toFloat(), false)
             is LayerContent.Stack -> {
+                if (axis == "intrinsic" && givenW == null) {
+                    val visible = content.children.filter { it.condition == null || d.resolver.isSatisfied(it.condition) }
+                    val (w, h) = natural(visible, content, scale, RectF(0f, 0f, availableWidth, givenH ?: availableHeight))
+                    val pad = ((content.padding ?: 0.0) * scale * 2).toFloat()
+                    return Item(child, minOf(w + pad, availableWidth), givenH ?: (h + pad), false)
+                }
                 val width = givenW ?: if (axis == "horizontal") 0f else availableWidth
                 val inner = RectF(0f, 0f, if (width > 0) width else availableWidth, givenH ?: availableHeight)
                 val pad = ((content.padding ?: 0.0) * scale * 2).toFloat()

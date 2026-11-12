@@ -36,9 +36,11 @@ struct TemplateWidget<ID: TemplateIdentity>: Widget {
 
     /// The template's own size only: nothing is shrunk or stretched.
     static var families: [WidgetFamily] {
+        // ADR-030: tall templates also fill iOS 27's 4 × 6 widget, scaled and centered.
         switch spec?.family {
         case .medium?: [.systemMedium]
-        case .large?: [.systemLarge]
+        case .large?: [.systemLarge] + WidgetFamily.extraLargePortrait
+        case .xlarge?: WidgetFamily.extraLargePortrait.isEmpty ? [.systemLarge] : WidgetFamily.extraLargePortrait
         default: [.systemSmall]
         }
     }

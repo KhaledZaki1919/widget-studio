@@ -10,7 +10,7 @@ public enum GenerationMode: String, Codable, CaseIterable, Sendable {
 
 /// The widget size the user asked for; `auto` follows the image's aspect ratio.
 public enum SizeChoice: String, CaseIterable, Sendable {
-    case auto, small, medium, large
+    case auto, small, medium, large, xlarge
 
     public var family: SpecFamily? {
         switch self {
@@ -18,6 +18,7 @@ public enum SizeChoice: String, CaseIterable, Sendable {
         case .small: .small
         case .medium: .medium
         case .large: .large
+        case .xlarge: .xlarge
         }
     }
 }
@@ -713,7 +714,8 @@ public enum AIWidgetParser {
         }
         switch mode {
         case .recreate:
-            return images.map { "layers[\($0)]: image layers are not allowed when recreating a design; draw it with shapes, text and icons" }
+            // ADR-029: a photo, map or scene in the design is the user's own picture (`user_image`).
+            return []
         case .photo:
             return images.isEmpty ? ["layers: add one image layer with \"source\": \"user_image\" for the user's photo"] : []
         }
