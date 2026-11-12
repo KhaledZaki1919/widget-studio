@@ -107,7 +107,7 @@ Ask Claude to do these in one change (they're small):
 
 ## WidgetKit push updates (ADR-030)
 
-Developer mode builds with Xcode 27 (`WS_EXTRA_CONDITIONS="WS_XL27 WS_DEVELOPER"`) give the large configurable widget a push handler (`LargePushPickWidget`, `WidgetPushTokens` in `DeveloperWidgets.swift`, iOS 26+). A server that holds the token can then make that widget reload at once, outside the daily reload budget. It can't work on the Fast Store install: the store re-signs without the push entitlement.
+Developer mode builds with Xcode 27 (`WS_EXTRA_CONDITIONS="WS_XL27 WS_DEVELOPER"`) give the large configurable widget a push handler (`LargePushPickWidget`, kind `WidgetStudio.pick.push`, `WidgetPushTokens` in `DeveloperWidgets.swift`, iOS 26+, listed next to the plain large one). A server that holds the token can then make that widget reload at once, outside the daily reload budget. It can't work on the Fast Store install: the store re-signs without the push entitlement.
 
 To turn it on with your own account:
 1. In the Apple Developer portal, enable Push Notifications for the app ID and the widget extension's ID, and create an APNs key (.p8).

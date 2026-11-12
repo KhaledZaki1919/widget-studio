@@ -14,15 +14,13 @@ struct DeveloperWidgets: WidgetBundle {
     var body: some Widget {
         SmallPickWidget()
         MediumPickWidget()
+        LargePickWidget()
         #if WS_XL27
-        // ADR-030: with a real Apple account, the large widget takes WidgetKit push updates (iOS 26+).
+        // ADR-030: with a real Apple account, a large widget that takes WidgetKit push updates (iOS 26+).
+        // Widget bundles accept "if #available" without an else, so it is a second kind next to the first.
         if #available(iOS 26.0, *) {
             LargePushPickWidget()
-        } else {
-            LargePickWidget()
         }
-        #else
-        LargePickWidget()
         #endif
     }
 }
@@ -34,7 +32,7 @@ struct DeveloperWidgets: WidgetBundle {
 @available(iOS 26.0, *)
 struct LargePushPickWidget: Widget {
     var body: some WidgetConfiguration {
-        AppIntentConfiguration(kind: "WidgetStudio.pick.large", intent: LargePickIntent.self,
+        AppIntentConfiguration(kind: "WidgetStudio.pick.push", intent: LargePickIntent.self,
                                provider: PickProvider<LargePickIntent>()) { PickWidgetView(entry: $0) }
             .configurationDisplayName("widget.pick.name")
             .description("widget.pick.description")
