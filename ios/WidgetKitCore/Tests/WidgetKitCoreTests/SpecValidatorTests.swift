@@ -77,9 +77,9 @@ struct SpecValidatorTests {
 
     // MARK: Top level
 
-    @Test func schemaVersionMustBe1() throws {
+    @Test func schemaVersionIsKnown() throws {
         var spec = exampleSpec()
-        spec["schemaVersion"] = 2
+        spec["schemaVersion"] = 3
         #expect(try specIssues(spec).contains { $0.path == "schemaVersion" })
     }
 
@@ -221,7 +221,7 @@ struct SpecValidatorTests {
     // MARK: Bindings
 
     @Test func unknownBindingFails() throws {
-        #expect(try issues(layers: [text("{{weather.uv}}")]) == [SpecIssue("layers[0].value", "unknown binding {{weather.uv}}")])
+        #expect(try issues(layers: [text("{{weather.pollen}}")]) == [SpecIssue("layers[0].value", "unknown binding {{weather.pollen}}")])
     }
 
     @Test func fieldBindingNeedsTheField() throws {

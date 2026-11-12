@@ -65,16 +65,8 @@ struct DiagnosticsView: View {
             if latest.isEmpty {
                 Text("diag.reloads.none").foregroundStyle(.secondary)
             }
-            ForEach(latest.prefix(12)) { entry in
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(verbatim: entry.kind).font(.footnote.monospaced())
-                    Text(verbatim: entry.date.formatted(date: .omitted, time: .standard) + " · " + entry.reason
-                         + (entry.entries.map { " · ($0) entries" } ?? "")
-                         + (entry.next.map { " · next " + $0.formatted(date: .omitted, time: .shortened) } ?? ""))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .environment(.layoutDirection, .leftToRight)
+            ForEach(Array(latest.prefix(12))) { entry in
+                ReloadRow(entry: entry)
             }
         } header: {
             Text("diag.section.reloads")
@@ -292,5 +284,25 @@ struct DiagnosticsView: View {
                 EmptyView()
             }
         }
+    }
+}
+
+/// One reload log line (ADR-030), left to right like the other log lines.
+private struct ReloadRow: View {
+    let entry: ReloadLog.Entry
+
+    private var detail: String {
+        var parts: [String] = [entry.date.formatted(date: .omitted, time: .standard), entry.reason]
+        if let count = entry.entries { parts.append("(count) entries") }
+        if let next = entry.next { parts.append("next " + next.formatted(date: .omitted, time: .shortened)) }
+        return parts.joined(separator: " · ")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(verbatim: entry.kind).font(.footnote.monospaced())
+            Text(verbatim: detail).font(.caption).foregroundStyle(.secondary)
+        }
+        .environment(.layoutDirection, .leftToRight)
     }
 }
