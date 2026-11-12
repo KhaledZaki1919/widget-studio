@@ -8,9 +8,13 @@ struct ExternalAITests {
         let text = ExternalAI.instructions(options: GenerationOptions())
         #expect(text.contains(WidgetPrompt.system))
         #expect(text.contains("Reply with only the JSON object"))
-        #expect(text.contains("\"palette\"") && text.contains("\"layers\""))   // the schema
-        #expect(text.contains("\"inventory\":[\"big time\""))                    // the example
-        #expect(text.contains("\"large\" when it is tall"))
+        // ADR-029: a readable reference of the schema, not the JSON Schema itself.
+        #expect(text.contains(ExternalAI.schemaReference) && text.contains("Layer, one of") && !text.contains("\"additionalProperties\""))
+        #expect(text.contains("\"specVersion\":2,\"inventory\""))               // the example
+        #expect(text.contains("\"card.aspect\""))
+        var all = GenerationOptions()
+        all.allWidgets = true
+        #expect(ExternalAI.instructions(options: all).contains("\"widgets\": [ … ]"))
         #expect(!text.contains("0×0"))
         #expect(ExternalAI.instructions(options: GenerationOptions(size: .medium)).contains("\"family\" must be \"medium\""))
         // Photo mode can't travel to a web chat: the task is always to recreate.
@@ -58,7 +62,8 @@ struct ExternalAITests {
 
 /// Eval 2026-11-02: invented shape kinds are mapped instead of failing the widget.
 struct ShapeKindAliasTests {
-    @Test func lineBecomesARect() throws {
+    /// ADR-029: `line` is a shape kind of its own now; unknown kinds still fail.
+    @Test func lineStaysALine() throws {
         let reply = ExternalAI.example.replacingOccurrences(
             of: "\"layers\":[", with: "\"layers\":[{\"type\":\"shape\",\"kind\":\"line\",\"fill\":\"@fg\",\"frame\":{\"x\":84,\"y\":10,\"w\":2,\"h\":150}},")
         let widget = try ExternalAI.importWidget(reply)
@@ -66,7 +71,7 @@ struct ShapeKindAliasTests {
             Issue.record("the divider is gone")
             return
         }
-        #expect(shape.kind == .rect)
+        #expect(shape.kind == .line)
         #expect(throws: ExternalAI.ImportError.self) {
             try ExternalAI.importWidget(reply.replacingOccurrences(of: "\"kind\":\"line\"", with: "\"kind\":\"hexagon\""))
         }

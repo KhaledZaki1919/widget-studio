@@ -180,7 +180,10 @@ struct SpecValidatorTests {
     }
 
     @Test func iconsFromTheWhitelistOrASymbolBinding() throws {
-        let unknown = layer("icon", ["symbol": "applelogo", "size": 20, "color": "#FFFFFF"])
+        // ADR-029: any SF Symbol name is allowed; anything that isn't one is not.
+        let any = layer("icon", ["symbol": "cart.badge.plus", "size": 20, "color": "#FFFFFF"])
+        #expect(try issues(layers: [any]).isEmpty)
+        let unknown = layer("icon", ["symbol": "Apple Logo!", "size": 20, "color": "#FFFFFF"])
         #expect(try issues(layers: [unknown]).contains { $0.path == "layers[0].symbol" })
         let bound = layer("icon", ["symbol": "{{weather.symbol}}", "size": 20, "color": "#FFFFFF"])
         #expect(try issues(layers: [bound]).isEmpty)

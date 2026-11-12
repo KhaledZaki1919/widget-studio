@@ -97,7 +97,9 @@ struct WidgetGenerationTests {
     /// Every object requires all its properties and allows no others; only portable keywords.
     func checkStrict(_ schema: JSONValue, path: String) {
         guard case .object(let fields) = schema else { return }
-        let portable: Set<String> = ["type", "properties", "required", "additionalProperties", "enum", "items", "anyOf"]
+        // ADR-029: the validator's limits are mirrored (minItems, maxItems, minimum, maximum, pattern).
+        let portable: Set<String> = ["type", "properties", "required", "additionalProperties", "enum", "items", "anyOf",
+                                     "minItems", "maxItems", "minimum", "maximum", "pattern"]
         #expect(Set(fields.keys).isSubset(of: portable), "\(path) uses \(fields.keys.sorted())")
         if case .object(let properties)? = fields["properties"] {
             #expect(fields["additionalProperties"] == false, "\(path) allows extra properties")
@@ -118,9 +120,9 @@ struct WidgetGenerationTests {
                 return values.first?.stringValue
             }
         }
-        // Recreated designs may use album art, never the user's photo (ADR-027).
-        #expect(AIWidgetSchema.schema(mode: .recreate).jsonString().contains("{{media.artwork}}"))
-        #expect(!AIWidgetSchema.schema(mode: .recreate).jsonString().contains("user_image"))
+        // ADR-029: recreated designs may use album art, app icons and the user's own photo (a map, a scene).
+        let recreate = AIWidgetSchema.schema(mode: .recreate).jsonString()
+        #expect(recreate.contains("media\\\\.artwork") && recreate.contains("media\\\\.appIcon") && recreate.contains("user_image"))
         #expect(AIWidgetSchema.schema(mode: .photo).jsonString().contains("user_image"))
         #expect(types(.recreate).contains("button") && types(.recreate).contains("forecastRow"))
     }
@@ -174,9 +176,10 @@ struct WidgetGenerationTests {
         #expect(throws: AIValidationError.self) { try AIWidgetParser.parse(noPhoto, options: GenerationOptions(mode: .photo), id: "a") }
     }
 
-    @Test func recreateRejectsImageLayers() throws {
+    /// ADR-029: a photo, map or scene in a recreated design is the user's own picture.
+    @Test func recreateAcceptsTheUsersPhoto() throws {
         let error = try parseError(try reply("spec-photo"), options: GenerationOptions(mode: .recreate))
-        #expect(error.contains("image layers are not allowed when recreating"))
+        #expect(!error.contains("image layers are not allowed"))
     }
 
     @Test func aiRulesAreEnforced() throws {
@@ -258,7 +261,8 @@ struct WidgetGenerationTests {
     // MARK: Generator
 
     @Test func invalidReplyIsRetriedWithTheValidationErrors() async throws {
-        let provider = ScriptedProvider([.success(try reply("spec-photo")), .success(try reply("spec-recreate"))])
+        let tooSmall = try reply("spec-recreate").replacingOccurrences(of: "\"size\": ", with: "\"size\": 3, \"was\": ")
+        let provider = ScriptedProvider([.success(tooSmall), .success(try reply("spec-recreate"))])
         let generator = WidgetGenerator(service: AIService(keyStore: AIKeyStore(storage: MemoryKeyStorage()), defaults: testDefaults(),
                                                            provider: provider))
         let result = try await generator.generate(image: image, options: GenerationOptions())
@@ -266,7 +270,7 @@ struct WidgetGenerationTests {
         #expect(result.spec.id.hasPrefix("ai."))
         let retry = provider.requests[1].request.userText
         #expect(retry.contains("<validation_error>"))
-        #expect(retry.contains("image layers are not allowed when recreating"))
+        #expect(retry.contains("at least 11"))
         #expect(provider.requests[0].request.images == [image.jpeg])
     }
 

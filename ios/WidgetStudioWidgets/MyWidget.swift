@@ -25,11 +25,23 @@ struct LargeMyWidget: Widget {
     }
 }
 
+#if WS_XL27
+/// ADR-030: the 4 × 6 portrait size of iOS 27 (built with Xcode 27 only; on older iOS it falls back to large).
+struct ExtraLargeMyWidget: Widget {
+    var body: some WidgetConfiguration {
+        MyWidgetConfiguration.make(kind: "WidgetStudio.my.xlarge", size: .xlarge)
+    }
+}
+#endif
+
 struct MyWidgets: WidgetBundle {
     var body: some Widget {
         SmallMyWidget()
         MediumMyWidget()
         LargeMyWidget()
+        #if WS_XL27
+        ExtraLargeMyWidget()
+        #endif
     }
 }
 
@@ -56,7 +68,8 @@ extension WidgetFamily {
     /// iOS 27's 4 × 6 portrait widget (ADR-030), where the SDK and the system have it. Xcode 16 and 26
     /// don't offer it on iOS, so older toolchains compile without it.
     static var extraLargePortrait: [WidgetFamily] {
-        #if compiler(>=6.3)
+        // Only builds with the iOS 27 SDK (Xcode 27, condition WS_XL27, set by the IPA job) compile it in.
+        #if WS_XL27
         if #available(iOS 27.0, *) { return [.systemExtraLargePortrait] }
         #endif
         return []

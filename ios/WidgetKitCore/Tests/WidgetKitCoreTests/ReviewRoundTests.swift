@@ -28,8 +28,8 @@ struct ReviewRoundTests {
     // MARK: Prompt v4 (v3 + text on shapes, corner rows, glass; ADR-023)
 
     @Test func promptAsksForInventoryFidelityAndStacks() {
-        #expect(WidgetPrompt.version == "generate_v6")
-        #expect(WidgetPrompt.system.contains("\"glass\": true") && WidgetPrompt.system.contains("a shape listed later would hide it"))
+        #expect(WidgetPrompt.version == "generate_v7")
+        #expect(WidgetPrompt.system.contains("\"glass\": true") && WidgetPrompt.system.contains("a shape listed later would hide the text"))
         #expect(WidgetPrompt.system.contains("Never give a text its own absolute frame"))
         #expect(WidgetPrompt.system.contains("`spacer`") && WidgetPrompt.system.contains("`alignItems`"))
         let system = WidgetPrompt.system
