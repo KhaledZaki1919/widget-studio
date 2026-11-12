@@ -170,7 +170,7 @@ struct TemplateProvider: TimelineProvider {
                 completion(Timeline(entries: [first], policy: .never))
                 return
             }
-            let inputs = await WidgetData.inputs(for: DataRequirements.groups(for: spec), now: start)
+            let inputs = await WidgetData.inputs(for: DataRequirements.groups(for: spec), tickers: MarketData.tickers(in: spec), now: start)
             let gap = LiveData.gap(for: spec, inputs)
             let (dates, reload) = LiveSchedule.make(for: spec, inputs: inputs, now: start)
             let entries = dates.map {

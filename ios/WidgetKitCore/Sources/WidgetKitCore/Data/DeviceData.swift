@@ -83,6 +83,20 @@ public enum DeviceFormat {
         return live
     }
 
+    /// ADR-029: `calendar.N.end`, `.calendar`, `.color` and `calendar.next.end`, in the order of `events`.
+    public static func eventExtras(_ events: [(start: Date, end: Date, calendar: String, color: String)], now: Date,
+                                   calendar: Calendar) -> [String: BindingResolver.Value] {
+        var live: [String: BindingResolver.Value] = [:]
+        let upcoming = events.filter { $0.start >= now || calendar.isDate($0.start, inSameDayAs: now) }.sorted { $0.start < $1.start }
+        if let next = upcoming.first { live["calendar.next.end"] = .date(next.end) }
+        for (index, event) in upcoming.prefix(4).enumerated() {
+            live["calendar.(index + 1).end"] = .date(event.end)
+            live["calendar.(index + 1).calendar"] = .text(event.calendar)
+            live["calendar.(index + 1).color"] = .text(event.color)
+        }
+        return live
+    }
+
     public static func reminders(_ titles: [String]) -> [String: BindingResolver.Value] {
         var live: [String: BindingResolver.Value] = ["reminders.count": .number(Double(titles.count), display: String(titles.count))]
         for (index, title) in titles.prefix(4).enumerated() { live["reminders.\(index + 1).title"] = .text(title) }
@@ -182,10 +196,15 @@ public enum DeviceData {
         let calendar = Calendar.current
         let start = calendar.startOfDay(for: now)
         guard let end = calendar.date(byAdding: .day, value: 7, to: start) else { return [:] }
-        let events = store.events(matching: store.predicateForEvents(withStart: start, end: end, calendars: nil))
-            .filter { !$0.isAllDay }
-            .map { (title: $0.title ?? "", start: $0.startDate ?? now, location: $0.location) }
+        let found = store.events(matching: store.predicateForEvents(withStart: start, end: end, calendars: nil)).filter { !$0.isAllDay }
+        let events = found.map { (title: $0.title ?? "", start: $0.startDate ?? now, location: $0.location) }
+        // ADR-029: end time, calendar name and color.
+        let extras = found.map { event in
+            (start: event.startDate ?? now, end: event.endDate ?? now, calendar: event.calendar?.title ?? "",
+             color: event.calendar.flatMap { HexColor.hex($0.cgColor) } ?? "#8E8E93")
+        }
         return DeviceFormat.events(events, now: now, calendar: calendar)
+            .merging(DeviceFormat.eventExtras(extras, now: now, calendar: calendar)) { _, new in new }
     }
 
     private static func reminderValues() async -> [String: BindingResolver.Value] {
@@ -246,5 +265,16 @@ public enum MediaControl {
         #else
         return false
         #endif
+    }
+}
+
+extension HexColor {
+    /// "#RRGGBB" of a color, through sRGB (a calendar's color, ADR-029).
+    public static func hex(_ color: CGColor) -> String? {
+        guard let space = CGColorSpace(name: CGColorSpace.sRGB),
+              let rgb = color.converted(to: space, intent: .defaultIntent, options: nil),
+              let parts = rgb.components, parts.count >= 3 else { return nil }
+        func byte(_ value: CGFloat) -> Int { Int((min(max(value, 0), 1) * 255).rounded()) }
+        return String(format: "#%02X%02X%02X", byte(parts[0]), byte(parts[1]), byte(parts[2]))
     }
 }

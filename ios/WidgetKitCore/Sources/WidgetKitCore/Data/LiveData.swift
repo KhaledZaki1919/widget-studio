@@ -33,9 +33,12 @@ public enum DataRequirements {
             case .analogClock(let clock): strings += [clock.timezone].compactMap { $0 }
             case .button(let button): strings += [button.arg].compactMap { $0 }
             case .list(let list):
-                strings += list.items.flatMap { item in
-                    item.title.allValues + (item.detail?.allValues ?? []) + [item.done].compactMap { $0 }
-                        + (item.subtitle?.allValues ?? []) + (item.detail2?.allValues ?? [])
+                for item in list.items {
+                    strings += item.title.allValues
+                    strings += item.detail?.allValues ?? []
+                    strings += item.subtitle?.allValues ?? []
+                    strings += item.detail2?.allValues ?? []
+                    if let done = item.done { strings.append(done) }
                 }
             case .progressBar(let bar): strings.append(bar.progress)
             case .image(let image): strings.append(image.source)
@@ -127,6 +130,9 @@ public enum LiveData {
                 data.live["sleep.bedtime"] = .date(window.start)
                 data.live["sleep.wake"] = .date(window.end)
             }
+            // ADR-029: heart, stress, energy, activity, stages and steps per hour.
+            let extras = health.extras ?? HealthExtras()
+            data.live.merge(extras.values(now: now, calendar: calendar, sleepMinutes: health.sleepLastNight(now: now, calendar: calendar))) { _, new in new }
         }
         data.batteryLevel = inputs.battery
         data.counter = Double(inputs.counter.count(in: inputs.settings.dhikrList))

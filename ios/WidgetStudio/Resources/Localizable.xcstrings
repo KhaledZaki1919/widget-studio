@@ -7011,13 +7011,13 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "معاينة بالحجم الحقيقي ببياناتك الحقيقية."
+            "value": "الويدجت كما يرسمها Widget Studio، مع طلب مقارنتها بصورتك. الصقهما في ChatGPT أو Claude أو Gemini ثم استورد الـJSON المصحح."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Real-size preview with your real data."
+            "value": "The widget as Widget Studio draws it, with a request to compare it with your image. Paste both into ChatGPT, Claude or Gemini and import its corrected JSON."
           }
         }
       }
@@ -9891,6 +9891,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "Extra large"
+          }
+        }
+      }
+    },
+    "editor.preview.copy": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نسخ المعاينة وطلب التصحيح"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy preview + fix request"
+          }
+        }
+      }
+    },
+    "editor.preview.copied": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نُسخت المعاينة: الصقها في محادثة الذكاء الاصطناعي"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview copied: paste it into the AI chat"
+          }
+        }
+      }
+    },
+    "create.external.all": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "كل الويدجتات في الصورة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All widgets in the image"
           }
         }
       }

@@ -268,7 +268,7 @@ struct PickProvider<Configuration: PickConfiguration>: AppIntentTimelineProvider
         let now = Date.now
         let first = Self.entry(itemID: configuration.itemID, appearance: configuration.appearanceChoice, date: now)
         guard let spec = first.spec else { return Timeline(entries: [first], policy: .never) }
-        let inputs = await WidgetData.inputs(for: DataRequirements.groups(for: spec), now: now)
+        let inputs = await WidgetData.inputs(for: DataRequirements.groups(for: spec), tickers: MarketData.tickers(in: spec), now: now)
         let gap = LiveData.gap(for: spec, inputs)
         let (dates, reload) = LiveSchedule.make(for: spec, inputs: inputs, now: now)
         let entries = dates.map {

@@ -13,6 +13,8 @@ struct ExternalAIView: View {
     let onImported: (SavedDesign, LayoutRepair) -> Void
 
     @State private var size = SizeChoice.auto
+    /// ADR-029: every widget in the image, as {"widgets": [...]}.
+    @State private var allWidgets = false
     @State private var copied = false
     @State private var pasted = ""
     @State private var error: ExternalAI.ImportError?
@@ -42,9 +44,12 @@ struct ExternalAIView: View {
                     Text("detail.size.xlarge").tag(SizeChoice.xlarge)
                 }
                 .pickerStyle(.segmented)
+                Toggle("create.external.all", isOn: $allWidgets)
+                    .accessibilityIdentifier("ax.create.external.all")
                 Button {
-                    UIPasteboard.general.string = ExternalAI.instructions(
-                        options: GenerationOptions(size: size, detectedCard: cardShape, cropped: crop != nil))
+                    var options = GenerationOptions(size: size, detectedCard: cardShape, cropped: crop != nil)
+                    options.allWidgets = allWidgets
+                    UIPasteboard.general.string = ExternalAI.instructions(options: options)
                     copied = true
                 } label: {
                     Label(copied ? LocalizedStringKey("create.external.copied") : "create.external.copy",

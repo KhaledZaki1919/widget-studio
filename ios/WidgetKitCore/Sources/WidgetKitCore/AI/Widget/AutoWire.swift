@@ -262,7 +262,7 @@ public enum AutoWire {
 
         init(spec: WidgetSpec, inventory: [String] = []) {
             self.spec = spec
-            canvas = CGSizeLike(width: Double(spec.family.canvas.width), height: Double(spec.family.canvas.height))
+            canvas = CGSizeLike(width: Double(spec.canvas.width), height: Double(spec.canvas.height))
             var words = spec.name.allValues + inventory
             var icons = Set<String>()
             for layer in spec.allLayers {

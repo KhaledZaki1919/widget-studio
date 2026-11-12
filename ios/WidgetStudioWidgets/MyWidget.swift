@@ -102,7 +102,7 @@ struct MyWidgetProvider: TimelineProvider {
                 completion(Timeline(entries: [first], policy: .after(now.addingTimeInterval(3600))))
                 return
             }
-            let inputs = await WidgetData.inputs(for: DataRequirements.groups(for: design.spec), now: now)
+            let inputs = await WidgetData.inputs(for: DataRequirements.groups(for: design.spec), tickers: MarketData.tickers(in: design.spec, fieldValues: design.fieldValues), now: now)
             let gap = LiveData.gap(for: design.spec, inputs)
             let (dates, reload) = LiveSchedule.make(for: design.spec, inputs: inputs, now: now)
             let entries = dates.map { MyWidgetEntry(date: $0, content: first.content, inputs: inputs, gap: gap) }

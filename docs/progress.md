@@ -8,19 +8,27 @@ Handoff note for the one-go run (PDF docs/feedback/image-to-widget-issues.pdf + 
 - Harness: android/app/src/test/.../PrivateEvalTest.kt (does nothing unless PRIVATE_EVAL is set). PRIVATE_EVAL_PHASE=before|after.
 - before.mjs / after.mjs write the replies; instructions-before.txt is the copied text used.
 
+## Next steps (handoff)
+- Push this commit, read iOS CI errors (last run showed 3 compile errors, fixed; new Swift since is uncompiled), fix all.
+- Download package-renders/ai-export, commit fresh Resources/Spec/ai files (adds schema_reference.md, schema.many.json); then Android reads schema_reference.md in ExternalAI.instructions.
+- Kotlin: mirror AIWidgetParser v2 card + parseAll/importAll, fixRequest bullets, previewRequest, Copy preview in Editor, All widgets toggle.
+- Docs: ADR-029/030 in decisions.md, capabilities.md (node scripts/capabilities-table.mjs), CLAUDE.md map, privacy page (Yahoo, air quality, usage access, Bluetooth).
+- After-eval: build-instructions.mjs on the new export, write after.mjs replies, PRIVATE_EVAL_PHASE=after, score vs scores-before.json.
+- Part B (fast updates) not started.
+
 ## Plan (PDF order) and status
-1. [ ] Prompt/schema: maxItems 12 + every limit in schema, image-layer line, valid example, structured output (Gemini responseJsonSchema, OpenAI json_schema), compact schema reference in copied text, 1.4 x cap height + minScale, chart counts as one / limit 100, plain string values, specVersion 2. Undocumented items documented.
+1. [~] Prompt/schema (Swift written: generate_v7.md, schema limits, AISchemaReference, v2 card parsing, parseAll, editor "Copy preview + fix request", "All widgets" toggle; NOT yet: Kotlin mirror of parser/instructions/UI, Gemini responseJsonSchema, CI export round-trip): maxItems 12 + every limit in schema, image-layer line, valid example, structured output (Gemini responseJsonSchema, OpenAI json_schema), compact schema reference in copied text, 1.4 x cap height + minScale, chart counts as one / limit 100, plain string values, specVersion 2. Undocumented items documented.
 2. [ ] Preview loop: render JSON to PNG for the in-app review; "Copy preview + fix request"; all errors at once with path and widget name.
-3. [ ] {"widgets":[...]} replies, import of .json/.zip with many.
-4. [ ] card {shape (+scallop), aspect, inset, cornerRadius, orientation}; canvas = card.
-5. [ ] chart layer.
-6. [ ] forecastRow hourly + hourly/rain/uv/aqi bindings.
-7. [ ] Health bindings (heart, stress, energy, activity, sleep stages, hourly steps).
-8. [ ] Shapes (line, triangle, polygon, sector, star, scallop), radial stack, arc text, spans, gradient fill, dotGrid levels/mask/sizeByLevel, clock options, progress knob.
-9. [ ] Calendar rows week/2weeks, end time, calendar name/color, list subtitle/detail2, week.dN bindings.
-10. [ ] Any SF Symbol + Android fallback, icon style, new actions.
-11. [ ] media.appIcon, app.<field>.icon, user_image back.
-12. [ ] stock/crypto, earbuds, screen time (catalog support or unsupported).
+3. [~] (Swift done) {"widgets":[...]} replies, import of .json/.zip with many.
+4. [x] card {shape (+scallop), aspect, inset, cornerRadius, orientation}; canvas = card.
+5. [x] chart layer.
+6. [x] forecastRow hourly + hourly/rain/uv/aqi bindings.
+7. [x] Health bindings (heart, stress, energy, activity, sleep stages, hourly steps).
+8. [x] Shapes (line, triangle, polygon, sector, star, scallop), radial stack, arc text, spans, gradient fill, dotGrid levels/mask/sizeByLevel, clock options, progress knob.
+9. [x] Calendar rows week/2weeks, end time, calendar name/color, list subtitle/detail2, week.dN bindings.
+10. [x] Any SF Symbol + Android fallback, icon style, new actions.
+11. [x] media.appIcon, app.<field>.icon, user_image back.
+12. [x] stock (Yahoo chart endpoint; earbuds/screen time Android only)/crypto, earbuds, screen time (catalog support or unsupported).
 B. [ ] Fast updates iOS (xlarge, Text styles, reload after intents/background, long timelines, reload log, push behind WS_DEVELOPER, Diagnostics) and Android (event service, throttle, battery-optimisation screen, XL receiver, delays).
 
 # Progress: rules, states, tasks, delete run (ADR-028)

@@ -76,7 +76,8 @@ public struct SpecValidator: Sendable {
         check.run()
         guard check.issues.isEmpty else { return .failure(SpecIssues(check.issues)) }
         var normalized = spec
-        let canvas = spec.family.canvas
+        // ADR-029: frames are in the card's canvas when the spec has a card.
+        let canvas = spec.canvas
         for index in normalized.layers.indices {
             normalized.layers[index].frame = normalized.layers[index].frame.clamped(to: canvas)
         }
@@ -103,8 +104,9 @@ public struct SpecValidator: Sendable {
     public static let aiFieldTypes: Set<FieldSpec.Kind> = [.text, .date, .image, .url, .shortcut, .timezone, .app, .ticker]
 
     /// Readable text for the AI retry ("Your previous reply was not valid: …").
+    /// ADR-029: every issue, so one reply can fix them all (capped for very broken replies).
     public static func describe(_ issues: [SpecIssue]) -> String {
-        issues.prefix(20).map(\.description).joined(separator: "; ")
+        issues.prefix(60).map(\.description).joined(separator: "; ")
     }
 
     static func issue(from error: DecodingError) -> SpecIssue {
@@ -192,7 +194,7 @@ private struct Check {
     /// the frames as drawn, clamped to the canvas: a list taller than the widget slides up under
     /// the header (eval 2026-11-01).
     mutating func checkTextOverlaps() {
-        let canvas = spec.family.canvas
+        let canvas = spec.canvas
         let drawn = spec.layers.map { layer -> Layer in
             var clamped = layer
             clamped.frame = layer.frame.clamped(to: canvas)

@@ -12,6 +12,8 @@ public struct HealthSummary: Codable, Sendable, Equatable {
     public var sleep: [String: Double]
     /// Bedtime and wake time per night, same keys (ADR-027; absent in older caches).
     public var sleepWindows: [String: SleepWindow]?
+    /// ADR-029: heart, variability, exercise, energy, stages, steps per hour (absent in older caches).
+    public var extras: HealthExtras?
     public var fetched: Date
 
     public struct SleepWindow: Codable, Sendable, Equatable {
@@ -121,7 +123,7 @@ public enum HealthReader {
         var types: Set<HKObjectType> = []
         if let steps = HKQuantityType.quantityType(forIdentifier: .stepCount) { types.insert(steps) }
         if let sleep = HKCategoryType.categoryType(forIdentifier: .sleepAnalysis) { types.insert(sleep) }
-        return types
+        return types.union(extraTypes)
     }
 
     /// Asks for read access (the app only; extensions can't show the prompt).
@@ -135,7 +137,9 @@ public enum HealthReader {
             let steps = try await dailySteps(now: now, calendar: calendar)
             let (sleep, windows) = try await nightlySleep(now: now, calendar: calendar)
             if steps.isEmpty && sleep.isEmpty { return .failure(.noData) }
-            return .success(HealthSummary(steps: steps, sleep: sleep, sleepWindows: windows, fetched: now))
+            var summary = HealthSummary(steps: steps, sleep: sleep, sleepWindows: windows, fetched: now)
+            summary.extras = await extras(now: now, calendar: calendar)
+            return .success(summary)
         } catch let error as HKError where error.code == .errorAuthorizationDenied || error.code == .errorAuthorizationNotDetermined {
             return .failure(.noData)
         } catch let error as HKError where error.code == .errorHealthDataUnavailable {

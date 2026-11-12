@@ -17,6 +17,8 @@ struct AIExportTests {
             "schema.recreate.json": AIWidgetSchema.schema(mode: .recreate).jsonString(),
             "schema.photo.json": AIWidgetSchema.schema(mode: .photo).jsonString(),
             "external_example.json": ExternalAI.example,
+            "schema_reference.md": ExternalAI.schemaReference,
+            "schema.many.json": AIWidgetSchema.many(mode: .recreate).jsonString(),
             "version.txt": WidgetPrompt.version,
         ]
     }

@@ -37,7 +37,7 @@ public enum AILayoutFix {
             }
         }
         raiseCoveredTexts(&layers)
-        let canvas = spec.family.canvas
+        let canvas = spec.canvas
         for _ in 0..<maxPasses {
             if let group = firstGroup(in: layers, canvas: canvas) {
                 if LayerEditing.group(group, in: &layers) == nil {

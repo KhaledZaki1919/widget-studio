@@ -64,9 +64,11 @@ public enum BulkImport {
         if let data = only.data(using: .utf8), case .object(let root)? = try? JSONDecoder().decode(JSONValue.self, from: data), root["layers"] == nil {
             for value in root.values {
                 if case .array(let items) = value, !items.isEmpty {
+                    // ADR-029: each widget keeps the reply's specVersion.
                     let nested = items.compactMap { item -> String? in
-                        if case .object = item { return item.jsonString() }
-                        return nil
+                        guard case .object(var widget) = item else { return nil }
+                        if widget["specVersion"] == nil, let version = root["specVersion"] { widget["specVersion"] = version }
+                        return JSONValue.object(widget).jsonString()
                     }
                     if !nested.isEmpty { return nested }
                 }

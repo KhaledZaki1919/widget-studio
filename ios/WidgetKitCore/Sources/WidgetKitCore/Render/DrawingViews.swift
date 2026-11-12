@@ -217,17 +217,18 @@ struct ArcTextView: View {
         GeometryReader { proxy in
             let size = layer.font.size * scale
             let side = min(proxy.size.width, proxy.size.height)
-            let radius = path.arc.map { CGFloat($0) * scale } ?? max(side / 2 - size * 0.7, size)
+            let radius: CGFloat = path.arc.map { CGFloat($0) * scale } ?? max(side / 2 - size * 0.7, size)
             let inside = path.inside == true
             let characters = Array(value)
-            let advances = characters.map { Self.advance($0) * size + CGFloat(layer.tracking ?? 0) * scale }
-            let total = advances.reduce(0, +)
-            let degreesPerUnit = 180 / (.pi * max(radius, 1))
-            let start = (path.start ?? 0) - Double(total * degreesPerUnit) / 2 * (inside ? -1 : 1)
+            let advances: [CGFloat] = characters.map { Self.advance($0) * size + CGFloat(layer.tracking ?? 0) * scale }
+            let total = Double(advances.reduce(0, +))
+            let degreesPerUnit: Double = 180 / (Double.pi * Double(max(radius, 1)))
+            let sign: Double = inside ? -1 : 1
+            let start: Double = (path.start ?? 0) - total * degreesPerUnit / 2 * sign
             ZStack {
                 ForEach(Array(characters.enumerated()), id: \.offset) { index, character in
-                    let before = advances.prefix(index).reduce(0, +) + advances[index] / 2
-                    let angle = start + Double(before * degreesPerUnit) * (inside ? -1 : 1)
+                    let before = Double(advances.prefix(index).reduce(0, +) + advances[index] / 2)
+                    let angle: Double = start + before * degreesPerUnit * sign
                     Text(verbatim: String(character))
                         .font(FontRegistry.font(layer.font, size: size, for: value))
                         .foregroundStyle(Color(hex: layer.color))

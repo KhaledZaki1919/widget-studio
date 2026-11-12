@@ -65,7 +65,7 @@ struct DotGridView: View {
         }
     }
 
-    private var plain: some View {
+    @ViewBuilder private var plain: some View {
         let on = Color(hex: layer.onColor)
         // Accented mode: unlit dots stay faint, so the lit ones read (ADR-023).
         let off = accented ? Color(hex: layer.offColor).opacity(0.35) : Color(hex: layer.offColor)

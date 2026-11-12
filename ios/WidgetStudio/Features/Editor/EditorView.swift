@@ -1,5 +1,7 @@
 import PhotosUI
 import SwiftUI
+import UIKit
+import UniformTypeIdentifiers
 import WidgetKitCore
 
 /// The editor (brief §7.3, M3): a live preview at real size above every field the template
@@ -47,6 +49,7 @@ struct EditorView: View {
                     TextField("editor.name", text: $model.design.name)
                         .accessibilityIdentifier("ax.editor.name")
                 }
+                PreviewRequestSection(model: model)
                 InteractiveSection(model: model)
                 if model.hasPhoto { photoSection }
                 appearanceSection
@@ -270,5 +273,38 @@ struct EditorView: View {
         } catch {
             saveError = error.localizedDescription
         }
+    }
+}
+
+/// "Copy preview + fix request" (ADR-029): the design drawn by the real renderer with sample data, as a PNG on
+/// the clipboard with a request to compare it with the original image, so another AI (ChatGPT, Claude, Gemini)
+/// can see its JSON's result and fix it.
+private struct PreviewRequestSection: View {
+    let model: EditorModel
+    @State private var copied = false
+
+    var body: some View {
+        Section {
+            Button {
+                copy()
+            } label: {
+                Label(copied ? LocalizedStringKey("editor.preview.copied") : "editor.preview.copy",
+                      systemImage: copied ? "checkmark.circle.fill" : "photo.on.rectangle.angled")
+            }
+            .accessibilityIdentifier("ax.editor.preview.copy")
+        } footer: {
+            Text("editor.preview.footer")
+        }
+    }
+
+    private func copy() {
+        let design = model.design
+        guard let image = SpecSnapshot.render(design.spec, colors: design.colors, language: "en", userImage: model.newPhoto),
+              let png = UIImage(cgImage: image).pngData() else { return }
+        let notes = DesignRules.check(design.spec).findings.map { $0.message.resolved(language: "en") }
+            + model.issues.map(\.description)
+        let text = ExternalAI.previewRequest(names: [design.name], notes: notes)
+        UIPasteboard.general.setItems([[UTType.png.identifier: png, UTType.utf8PlainText.identifier: text]])
+        copied = true
     }
 }
